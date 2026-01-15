@@ -579,7 +579,7 @@ RewriteRule ^shop/9786586941401-tempos-modernos-arte-tempo-politica-jacques-ranc
 # No silêncio que as palavras guardam
 RewriteRule ^shop/9786586941265-no-silencio-que-as-palavras-guardam-lula-wanderley-n-1-edicoes-art000000-118241\?page=7$ /livros/no-silencio-que-as-palavras-guardam [R=301,L]
 
-# Fragmentos de memórias malditas
+# Fragmentos de memórias malditassds
 RewriteRule ^shop/9786586941388-fragmentos-de-memorias-malditas-118139\?page=7$ /livros/fragmentos-de-memorias-malditas [R=301,L]
 
 # Políticas da Inimizade
