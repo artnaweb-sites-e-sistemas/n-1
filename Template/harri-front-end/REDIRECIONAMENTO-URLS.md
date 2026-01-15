@@ -127,3 +127,4 @@ wp eval-file Template/harri-front-end/scripts/save-external-urls.php
 
 Após executar o PASSO 1, o redirecionamento funcionará automaticamente para todas as URLs antigas!
 
+

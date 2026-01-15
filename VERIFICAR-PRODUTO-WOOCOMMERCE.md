@@ -83,3 +83,4 @@ https://n-1.artnaweb.com.br/wp-json/n1/v1/products
 Se este endpoint retornar produtos, significa que o problema está apenas no filtro de "destaque".
 
 
+

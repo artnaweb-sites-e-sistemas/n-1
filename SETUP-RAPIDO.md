@@ -107,3 +107,4 @@ Veja `GUIA-INTEGRACAO-API.md` para detalhes completos.
 - Verifique se imagens existem no WordPress
 
 
+

@@ -297,3 +297,4 @@ async function scrapeAllProducts() {
 // Executar
 scrapeAllProducts().catch(console.error);
 
+

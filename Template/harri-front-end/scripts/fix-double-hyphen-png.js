@@ -98,3 +98,4 @@ console.log(`   - Imagens .jpg: ${jpgCount}`);
 console.log(`   - Imagens .png: ${pngCount} (produtos que falharam)`);
 console.log(`   - Arquivo: n1-woocommerce-products-with-urls.csv`);
 
+

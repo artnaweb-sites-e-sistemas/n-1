@@ -38,3 +38,4 @@ failedProducts.forEach((product, index) => {
 
 console.log('\n💡 Use esses nomes de imagem para criar um CSV com extensão .png');
 
+

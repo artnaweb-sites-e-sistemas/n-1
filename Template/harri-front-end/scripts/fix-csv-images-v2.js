@@ -60,3 +60,4 @@ console.log(`✅ CSV final salvo em: ${OUTPUT_CSV}`);
 console.log(`   Total de produtos: ${processedRecords.length}`);
 
 
+

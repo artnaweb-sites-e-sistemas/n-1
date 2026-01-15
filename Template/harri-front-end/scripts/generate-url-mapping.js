@@ -145,3 +145,4 @@ function generateCSV(mappings) {
   return csv;
 }
 
+

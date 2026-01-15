@@ -152,3 +152,4 @@ Acesse: `http://localhost/seu-site/shop/`
 - Use F12 (DevTools) para debugar problemas
 
 
+

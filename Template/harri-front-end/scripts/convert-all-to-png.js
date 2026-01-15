@@ -67,3 +67,4 @@ console.log(`   1. Teste importar este CSV`);
 console.log(`   2. Se ainda falhar, pode ser que algumas sejam .jpg e outras .png`);
 console.log(`   3. Nesse caso, me informe quais produtos devem usar .jpg`);
 
+

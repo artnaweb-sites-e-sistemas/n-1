@@ -70,3 +70,4 @@ console.log(`   2. Depois, use o CSV original (n1-woocommerce-products-final.csv
 console.log(`      mas atualize as URLs das imagens para:`);
 console.log(`      https://loja.n-1edicoes.org/wp-content/uploads/2025/01/[nome-imagem].jpg`);
 
+

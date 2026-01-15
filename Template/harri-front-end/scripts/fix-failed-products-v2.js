@@ -84,3 +84,4 @@ console.log(`      Exemplo: https://loja.n-1edicoes.org/wp-content/uploads/2025/
 console.log(`\n   3. Ou importe o arquivo n1-woocommerce-products-failed-only.csv`);
 console.log(`      (sem imagens) e adicione as imagens manualmente depois.`);
 
+

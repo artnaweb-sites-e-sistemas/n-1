@@ -60,3 +60,4 @@ console.log(`   1. Faça upload das imagens para wp-content/uploads/2025/01/ no 
 console.log(`   2. Importe o arquivo n1-woocommerce-products-fixed.csv`);
 console.log(`   3. Adicione as imagens manualmente aos produtos ou atualize o CSV com URLs completas`);
 
+

@@ -634,3 +634,4 @@ RewriteRule ^shop/9788566943436-negri-no-tropico-23o2614-homero-santiago-jean-ti
 RewriteRule ^shop/9788561096007-o-diabo-mesquinho-fiodor-sologub-editora-kalinka-fic004000-1171\?page=7$ /livros/o-diabo-mesquinho [R=301,L]
 
 </IfModule>
+

@@ -102,3 +102,4 @@ console.log(`\n📝 Estratégia aplicada:`);
 console.log(`   - Para imagens encontradas na pasta local: usa extensão real`);
 console.log(`   - Para imagens não encontradas: tenta .png primeiro`);
 
+

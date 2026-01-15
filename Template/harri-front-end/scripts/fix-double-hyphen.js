@@ -79,3 +79,4 @@ console.log(`   - Produtos processados: ${updatedCount}`);
 console.log(`   - Arquivos com hífen duplo corrigidos: ${fixedCount}`);
 console.log(`   - Arquivo: n1-woocommerce-products-with-urls.csv`);
 
+

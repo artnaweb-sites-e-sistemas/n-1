@@ -91,3 +91,4 @@ console.log(`\n⚠️  IMPORTANTE:`);
 console.log(`   Se você souber os nomes dos outros 29 produtos que falharam,`);
 console.log(`   adicione-os na lista 'failedProductNames' no script e execute novamente.`);
 
+

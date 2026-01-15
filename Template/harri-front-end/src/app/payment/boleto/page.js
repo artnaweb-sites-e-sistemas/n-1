@@ -299,3 +299,4 @@ const BoletoPaymentPage = () => {
 export default BoletoPaymentPage;
 
 
+

@@ -114,3 +114,4 @@ console.log(`   - Arquivo: n1-woocommerce-products-with-urls.csv`);
 console.log(`\n📝 Formato das URLs geradas:`);
 console.log(`   ${WORDPRESS_URL}${UPLOAD_PATH}/[nome-imagem].[extensão-real]`);
 
+

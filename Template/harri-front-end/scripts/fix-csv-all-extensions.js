@@ -121,3 +121,4 @@ console.log(`   Para encontrar quais são .png, acesse:`);
 console.log(`   ${WORDPRESS_URL}/wp-admin/upload.php`);
 console.log(`   E verifique a extensão das imagens que falharam.`);
 
+

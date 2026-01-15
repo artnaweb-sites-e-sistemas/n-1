@@ -126,3 +126,4 @@ Quando for migrar o frontend para `https://loja.n-1edicoes.org/`:
 - 🔒 Em produção, considere restringir o CORS apenas aos domínios necessários
 
 
+

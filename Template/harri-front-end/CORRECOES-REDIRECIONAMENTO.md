@@ -65,3 +65,4 @@ Se o redirecionamento ainda não funcionar após essas correções:
 3. Teste o endpoint diretamente no navegador
 4. Verifique se o produto tem o ISBN correto no SKU
 
+

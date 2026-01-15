@@ -77,3 +77,4 @@ console.log(`✅ CSV ajustado salvo em: ${OUTPUT_CSV}`);
 console.log(`   Total de linhas processadas: ${newLines.length - 1}`);
 
 
+
