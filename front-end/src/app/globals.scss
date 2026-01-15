@@ -1,0 +1,404 @@
+@import '~bootstrap/scss/bootstrap';
+@import "swiper/css/bundle";
+@import "~slick-carousel/slick/slick.css"; 
+@import 'node_modules/react-modal-video/scss/modal-video.scss';
+@import 'node_modules/react-tooltip/dist/react-tooltip.css';
+@import '@assets/css/nice-select.css';
+@import '@assets/scss/main.scss';
+
+@keyframes heartbeat {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+}
+
+// User Hero Banner Styles
+.user-hero__area {
+  position: relative;
+  overflow: hidden;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(0, 0, 0, 0.03) 0%, rgba(0, 0, 0, 0.01) 100%);
+    z-index: 1;
+  }
+}
+
+.user-hero__content {
+  position: relative;
+  z-index: 2;
+}
+
+.user-hero__subtitle {
+  display: inline-block;
+  font-size: 16px;
+  font-weight: 500;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 15px;
+}
+
+.user-hero__title {
+  font-size: 48px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin-bottom: 20px;
+  line-height: 1.2;
+  
+  @media (max-width: 768px) {
+    font-size: 36px;
+  }
+  
+  @media (max-width: 576px) {
+    font-size: 28px;
+  }
+}
+
+.user-hero__text {
+  font-size: 18px;
+  color: #666;
+  max-width: 600px;
+  margin: 0 auto;
+  line-height: 1.6;
+  
+  @media (max-width: 768px) {
+    font-size: 16px;
+  }
+}
+
+// Remove bullet points from payment method accordion headers
+.payment-method .accordion-header {
+  list-style: none !important;
+  
+  &::before {
+    display: none !important;
+    content: none !important;
+  }
+  
+  .accordion-button {
+    list-style: none !important;
+    padding-left: 15px !important;
+    padding-right: 40px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    
+    &::before {
+      display: none !important;
+      content: none !important;
+    }
+    
+    .accordion-btn {
+      margin-left: auto !important;
+      padding-right: 10px !important;
+      right: 11px !important;
+    }
+  }
+}
+
+// Slider circle positioning
+.slider__thumb-13-circle-1,
+.slider__thumb-13-circle-2 {
+  position: absolute !important;
+  top: -10% !important;
+  right: 0% !important;
+  width: 550px !important;
+  height: 550px !important;
+  border-radius: 50% !important;
+  background-color: var(--tp-common-white) !important;
+  animation: tp-hotspot 3s infinite cubic-bezier(0.4, 0, 1, 1) !important;
+  animation-delay: 0s !important;
+}
+
+// Shop grid 5 columns
+.shop-grid-5-columns {
+  display: grid !important;
+  grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+  gap: 20px !important;
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  
+  @media (max-width: 1400px) {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  }
+  
+  @media (max-width: 992px) {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+  
+  @media (max-width: 768px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+  
+  @media (max-width: 576px) {
+    grid-template-columns: repeat(1, minmax(0, 1fr)) !important;
+  }
+  
+  // Uniform product card sizes
+  > div {
+    width: 100% !important;
+    min-width: 0 !important; // Permite que o grid controle a largura
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    box-sizing: border-box !important;
+    
+    .product__item {
+      width: 100% !important;
+      max-width: 100% !important;
+      margin-bottom: 30px !important;
+      padding: 0 !important;
+      box-sizing: border-box !important;
+      display: flex !important;
+      flex-direction: column !important;
+      
+      .product__thumb {
+        width: 100% !important;
+        max-width: 100% !important;
+        height: 280px !important; // Altura fixa para todas as imagens
+        overflow: hidden !important;
+        flex-shrink: 0 !important;
+        
+        a {
+          display: block !important;
+          width: 100% !important;
+          height: 100% !important;
+        }
+        
+        img {
+          width: 100% !important;
+          height: 100% !important;
+          object-fit: cover !important;
+          display: block !important;
+        }
+      }
+      
+      .product__content {
+        padding-top: 14px !important;
+        width: 100% !important;
+        flex: 1 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        
+        .product__title {
+          margin-bottom: 8px !important;
+          overflow: hidden !important;
+          width: 100% !important;
+          
+          a {
+            display: block !important;
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+            width: 100% !important;
+            max-width: 100% !important;
+          }
+        }
+        
+        .product__price {
+          margin-top: 0 !important;
+          width: 100% !important;
+          
+          .product__ammount {
+            font-weight: 700 !important;
+            font-size: 16px !important;
+          }
+        }
+      }
+    }
+  }
+}
+
+// Ajustes gerais para título truncado em todos os produtos
+.product__item .product__content .product__title {
+  overflow: hidden !important;
+  
+  a {
+    display: block !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    width: 100% !important;
+  }
+}
+
+// Preço em negrito
+.product__item .product__content .product__price .product__ammount {
+  font-weight: 700 !important;
+  font-size: 16px !important;
+}
+
+// Container da imagem principal do produto
+.product-main-image-container {
+  width: 100% !important;
+  max-width: 600px !important;
+  height: 600px !important;
+  max-height: 600px !important;
+  border: 1px solid #e0e0e0 !important;
+  border-radius: 4px !important;
+  overflow: hidden !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background-color: #fff !important;
+  padding: 10px !important;
+  box-sizing: border-box !important;
+  
+  > div {
+    width: 100% !important;
+    height: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+  
+  img {
+    max-width: 100% !important;
+    max-height: 100% !important;
+    object-fit: contain !important;
+  }
+}
+
+// Galeria de imagens do produto - alinhar miniaturas à esquerda
+.product__details-thumb-nav {
+  nav {
+    .d-flex {
+      justify-content: flex-start !important;
+      align-items: flex-start !important;
+      gap: 10px !important;
+      
+      button {
+        margin: 0 !important;
+        padding: 0 !important;
+        border: 1px solid #e0e0e0 !important;
+        border-radius: 4px !important;
+        overflow: hidden !important;
+        background-color: #fff !important;
+        transition: border-color 0.3s ease !important;
+        
+        &:hover {
+          border-color: #999 !important;
+        }
+        
+        &.active {
+          border-color: #bbb !important;
+          border-width: 1px !important;
+        }
+      }
+    }
+  }
+}
+
+// Tag "Em Estoque" - verde quando em estoque, vermelho quando fora
+.product__details-stock {
+  span {
+    padding: 4px 12px !important;
+    border-radius: 4px !important;
+    display: inline-block !important;
+    font-size: 14px !important;
+    font-weight: 500 !important;
+    
+    &.in-stock {
+      background-color: #d4edda !important;
+      color: #155724 !important;
+    }
+    
+    &.out-of-stock {
+      background-color: #f8d7da !important;
+      color: #721c24 !important;
+    }
+  }
+}
+
+// Produtos Relacionados - padronizar altura e largura
+.product__related-slider {
+  .row {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    align-items: stretch !important; // Garante que todas as colunas tenham a mesma altura
+    
+    > div {
+      display: flex !important;
+      flex-direction: column !important;
+      min-height: 100% !important;
+      padding: 0 15px !important; // Padding padrão do Bootstrap
+      margin-bottom: 30px !important;
+      
+      @media (max-width: 991px) {
+        padding: 0 10px !important;
+      }
+      
+      .product__item {
+        width: 100% !important;
+        height: 100% !important;
+        display: flex !important;
+        flex-direction: column !important;
+        margin-bottom: 0 !important;
+        box-sizing: border-box !important;
+        
+        .product__thumb {
+          width: 100% !important;
+          height: 280px !important; // Altura fixa para todas as imagens
+          overflow: hidden !important;
+          flex-shrink: 0 !important;
+          
+          a {
+            display: block !important;
+            width: 100% !important;
+            height: 100% !important;
+          }
+          
+          img {
+            width: 100% !important;
+            height: 100% !important;
+            object-fit: cover !important;
+          }
+        }
+        
+        .product__content {
+          flex: 1 !important;
+          display: flex !important;
+          flex-direction: column !important;
+          padding-top: 14px !important;
+          width: 100% !important;
+          
+          .product__title {
+            margin-bottom: 4px !important; // Reduzido de 8px para 4px
+            overflow: hidden !important;
+            width: 100% !important;
+            
+            a {
+              display: block !important;
+              white-space: nowrap !important;
+              overflow: hidden !important;
+              text-overflow: ellipsis !important;
+              width: 100% !important;
+              max-width: 100% !important;
+            }
+          }
+          
+          .product__price {
+            margin-top: 0 !important; // Removido margin-top: auto
+            padding-top: 0 !important;
+            width: 100% !important;
+            
+            .product__ammount {
+              font-weight: 700 !important;
+              font-size: 16px !important;
+            }
+          }
+        }
+      }
+    }
+  }
+}
