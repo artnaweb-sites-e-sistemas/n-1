@@ -1,6 +1,11 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  // Suprimir warnings de deprecação do Sass
+  sassOptions: {
+    quietDeps: true,
+    silenceDeprecations: ['legacy-js-api'],
+  },
   images: {
     remotePatterns: [
       {
@@ -30,6 +35,17 @@ const nextConfig = {
         pathname: "**",
       },
     ],
+  },
+  // Suprimir warnings durante o build
+  onDemandEntries: {
+    maxInactiveAge: 25 * 1000,
+    pagesBufferLength: 2,
+  },
+  // Logging apenas para erros
+  logging: {
+    fetches: {
+      fullUrl: false,
+    },
   },
 }
 
