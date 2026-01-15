@@ -2,6 +2,10 @@
 node_modules/
 .pnp
 .pnp.js
+<<<<<<< HEAD
+=======
+package-lock.json
+>>>>>>> 83c252954b9df06a9c9cb6d1b405e37c4f6baf42
 
 # Testing
 coverage/
@@ -19,6 +23,10 @@ dist/
 *.pem
 .env
 .env.local
+<<<<<<< HEAD
+=======
+env.local
+>>>>>>> 83c252954b9df06a9c9cb6d1b405e37c4f6baf42
 .env.development.local
 .env.test.local
 .env.production.local
@@ -32,6 +40,10 @@ yarn-error.log*
 # IDE
 .vscode/
 .idea/
+<<<<<<< HEAD
+=======
+.cursor/
+>>>>>>> 83c252954b9df06a9c9cb6d1b405e37c4f6baf42
 *.swp
 *.swo
 *~
@@ -39,6 +51,12 @@ yarn-error.log*
 # OS
 Thumbs.db
 .DS_Store
+<<<<<<< HEAD
+=======
+*.ini
+NTUSER.DAT*
+ntuser.dat.*
+>>>>>>> 83c252954b9df06a9c9cb6d1b405e37c4f6baf42
 
 # WordPress
 wp-config.php
@@ -48,15 +66,41 @@ wp-config.php
 *.tmp
 *.temp
 .cache/
+<<<<<<< HEAD
+=======
+*.zip
+*.backup
+>>>>>>> 83c252954b9df06a9c9cb6d1b405e37c4f6baf42
 
 # Scripts output
 Template/harri-front-end/scripts/*.csv
 Template/harri-front-end/scripts/*.txt
 Template/harri-front-end/scripts/*.json
 Template/harri-front-end/scripts/*.php
+<<<<<<< HEAD
+=======
+Template/harri-front-end/scripts/*.zip
+Template/harri-front-end/scripts/*.md
+>>>>>>> 83c252954b9df06a9c9cb6d1b405e37c4f6baf42
 !Template/harri-front-end/scripts/package.json
 
 # Images downloaded
 Template/harri-front-end/scripts/n1-products-images/
+<<<<<<< HEAD
+=======
+Template/harri-front-end/scripts/n1-missing-products-images/
+
+# Backup files
+*.bat
+*.sh
+
+# Documentation temp files
+bookmarks_*.json
+app.json
+eas.json
+
+# Old shop system (PrestaShop)
+loja-antiga/
+>>>>>>> 83c252954b9df06a9c9cb6d1b405e37c4f6baf42
 
 
