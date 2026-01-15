@@ -1,0 +1,143 @@
+/**
+ * Custom styles for N-1 Edições Theme
+ * 
+ * Este arquivo contém estilos customizados específicos do tema.
+ * Os estilos principais do template estão em style.css
+ */
+
+/* Ajustes específicos para WordPress/WooCommerce */
+.woocommerce-wrapper {
+    padding: 20px 0;
+}
+
+/* Breadcrumbs */
+.breadcrumb {
+    margin-bottom: 30px;
+}
+
+.breadcrumb-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.breadcrumb-item {
+    margin-right: 10px;
+}
+
+.breadcrumb-item:not(:last-child)::after {
+    content: '/';
+    margin-left: 10px;
+    color: #999;
+}
+
+/* Ajustes de responsividade */
+@media (max-width: 768px) {
+    .product__item {
+        margin-bottom: 30px;
+    }
+    
+    .header__bottom-right-13 {
+        padding-left: 15px !important;
+    }
+}
+
+/* WooCommerce customizations */
+.woocommerce .products {
+    display: flex;
+    flex-wrap: wrap;
+    margin: 0 -15px;
+}
+
+.woocommerce .products .product {
+    padding: 0 15px;
+    margin-bottom: 30px;
+}
+
+/* Botões customizados */
+.btn-primary {
+    background-color: #000;
+    border-color: #000;
+    color: #fff;
+    padding: 12px 30px;
+    text-transform: uppercase;
+    font-weight: 600;
+    transition: all 0.3s;
+}
+
+.btn-primary:hover {
+    background-color: #333;
+    border-color: #333;
+    color: #fff;
+}
+
+/* Preços */
+.product__price {
+    margin-top: 15px;
+}
+
+.product__ammount {
+    font-size: 18px;
+    font-weight: 600;
+    color: #000;
+}
+
+.product__old-price {
+    font-size: 16px;
+    text-decoration: line-through;
+    color: #999;
+    margin-right: 10px;
+}
+
+/* Loading states */
+.loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+/* Ajustes de espaçamento */
+.section-title-wrapper {
+    margin-bottom: 50px;
+}
+
+.section-title {
+    font-size: 36px;
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+/* Footer adjustments */
+.footer__widget {
+    margin-bottom: 50px;
+}
+
+.footer__widget-title {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 20px;
+}
+
+.footer__widget-content ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.footer__widget-content ul li {
+    margin-bottom: 10px;
+}
+
+.footer__widget-content ul li a {
+    color: #666;
+    text-decoration: none;
+    transition: color 0.3s;
+}
+
+.footer__widget-content ul li a:hover {
+    color: #000;
+}
+
+

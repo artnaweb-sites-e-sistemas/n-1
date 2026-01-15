@@ -1,0 +1,636 @@
+# WordPress
+# BEGIN WordPress
+<IfModule mod_rewrite.c>
+RewriteEngine On
+RewriteBase /
+RewriteRule ^index\.php$ - [L]
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule . /index.php [L]
+</IfModule>
+# END WordPress
+
+# Proteção de arquivos sensíveis
+<FilesMatch "^(import-products|copy-assets)">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Compressão
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css text/javascript application/javascript
+</IfModule>
+
+# Cache
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType image/jpg "access plus 1 year"
+    ExpiresByType image/jpeg "access plus 1 year"
+    ExpiresByType image/gif "access plus 1 year"
+    ExpiresByType image/png "access plus 1 year"
+    ExpiresByType text/css "access plus 1 month"
+    ExpiresByType application/javascript "access plus 1 month"
+</IfModule>
+
+
+# Redirecionamentos de URLs antigas para novas URLs (/livros/slug)
+# Gerado automaticamente - 2026-01-15T16:23:34.343Z
+# Total de redirecionamentos: 197
+
+# Habilitar mod_rewrite
+<IfModule mod_rewrite.c>
+RewriteEngine On
+RewriteBase /
+
+# Sonhos em série: arquitetura e pré-fabricação nas margens do capitalismo
+RewriteRule ^shop/9786561190695-sonhos-em-serie-arquitetura-e-pre-fabricacao-nas-margens-do-capitalismo-816379$ /livros/sonhos-em-serie-arquitetura-e-pre-fabricacao-nas-margens-do-capitalismo [R=301,L]
+
+# Pensar Gaza: entrevista com Étienne Balibar
+RewriteRule ^shop/9786561190718-pensar-gaza-entrevista-com-etienne-balibar-816389$ /livros/pensar-gaza-entrevista-com-etienne-balibar [R=301,L]
+
+# Coleção de Zines Clínicas de Borda
+RewriteRule ^shop/9786561190749-colecao-de-zines-clinicas-de-borda-816390$ /livros/colecao-de-zines-clinicas-de-borda [R=301,L]
+
+# Dinâmicas do pensamento por imagens
+RewriteRule ^shop/9786561190657-dinamicas-do-pensamento-por-imagens-eduardo-duarte-n-1-edicoes-art050000-816362$ /livros/dinamicas-do-pensamento-por-imagens [R=301,L]
+
+# psicanálise e amefricanidade
+RewriteRule ^shop/9786561190688-psicanalise-e-amefricanidade-andrea-guerra-herivelto-p-souza-raoni-machado-jardim-melina-de-lima-priscilla-santos-de-souza-n-1-edicoes-psy026000-816368$ /livros/psicanalise-e-amefricanidade [R=301,L]
+
+# Os involuntários da pátria
+RewriteRule ^shop/9786561190671-os-involuntarios-da-patria-eduardo-viveiros-de-castro-n-1-edicoes-soc002010-816355$ /livros/os-involuntarios-da-patria [R=301,L]
+
+# H2O e as águas do esquecimento
+RewriteRule ^shop/9786561190558-h2o-e-as-aguas-do-esquecimento-ivan-illich-n-1-edicoes-arc000000-816343$ /livros/h2o-e-as-aguas-do-esquecimento [R=301,L]
+
+# Aprender com as águas do Cercadinho
+RewriteRule ^shop/9786561190541-aprender-com-as-aguas-do-cercadinho-renata-oliveira-n-1-edicoes-edu000000-816340$ /livros/aprender-com-as-aguas-do-cercadinho [R=301,L]
+
+# A comunidade terrestre
+RewriteRule ^shop/9786561190572-a-comunidade-terrestre-achille-mbembe-n-1-edicoes-phi000000-816339$ /livros/a-comunidade-terrestre [R=301,L]
+
+# Sobre a pintura
+RewriteRule ^shop/9786561190565-sobre-a-pintura-gilles-deleuze-david-lapoujade-n-1-edicoes-phi000000-816337$ /livros/sobre-a-pintura [R=301,L]
+
+# O cogumelo no fim do mundo
+RewriteRule ^shop/9786586941968-o-cogumelo-no-fim-do-mundo-anna-tsing-jorgge-menna-barreto-yudi-rafael-n-1-edicoes-pol042060-124255$ /livros/o-cogumelo-no-fim-do-mundo [R=301,L]
+
+# Animacidades
+RewriteRule ^shop/9786561190398-animacidades-mel-y-chen-erneste-n-1-edicoes-soc065000-816327$ /livros/animacidades [R=301,L]
+
+# O desencadeamento do mundo
+RewriteRule ^shop/9786561190473-o-desencadeamento-do-mundo-francois-cusset-pedro-taam-n-1-edicoes-phi019000-816324$ /livros/o-desencadeamento-do-mundo [R=301,L]
+
+# O menino e o gato na floresta de aço
+RewriteRule ^shop/9786561190510-o-menino-e-o-gato-na-floresta-de-aco-igor-mendes-bel-lee-n-1-edicoes-juv000000-816326$ /livros/o-menino-e-o-gato-na-floresta-de-aco [R=301,L]
+
+# Cartas a um velho terapeuta:
+RewriteRule ^shop/9786561190527-cartas-a-um-velho-terapeuta-erico-andrade-thais-klein-n-1-edicoes-psy026000-816320$ /livros/cartas-a-um-velho-terapeuta [R=301,L]
+
+# Ivone, Princesa da Borgonha
+RewriteRule ^shop/9786561190381-ivone-princesa-da-borgonha-witold-gombrowicz-marcelo-paiva-de-souza-isabel-lee-n-1-edicoes-art000000-816304$ /livros/ivone-princesa-da-borgonha [R=301,L]
+
+# A última guerra? (Elias Sanbar)
+RewriteRule ^shop/9786561190237-a-ultima-guerra-elias-sanbar-816259$ /livros/a-ultima-guerra-elias-sanbar [R=301,L]
+
+# Futuros menores: filosofias do tempo e arquiteturas do mundo
+RewriteRule ^shop/9786561190367-futuros-menores-filosofias-do-tempo-e-arquiteturas-do-mundo-luz-horne-n-1-edicoes-arc000000-816258$ /livros/futuros-menores-filosofias-do-tempo-e-arquiteturas-do-mundo [R=301,L]
+
+# A raça no divã
+RewriteRule ^shop/9786561190466-a-raca-no-diva-thamy-ayouch-n-1-edicoes-psy000000-816260$ /livros/a-raca-no-diva [R=301,L]
+
+# Eu sou um monstro
+RewriteRule ^shop/9786561190374-eu-sou-um-monstro-816247$ /livros/eu-sou-um-monstro [R=301,L]
+
+# Perspectivismo e interculturalidade
+RewriteRule ^shop/9786561190404-perspectivismo-e-interculturalidade-oswaldo-giacoia-jr-n-1-edicoes-phi000000-816250$ /livros/perspectivismo-e-interculturalidade [R=301,L]
+
+# Pensar após Gaza
+RewriteRule ^shop/9786561190428-pensar-apos-gaza-franco-berardi-n-1-edicoes-phi000000-816245$ /livros/pensar-apos-gaza [R=301,L]
+
+# Democracia como comunidade de vida
+RewriteRule ^shop/9786561190411-democracia-como-comunidade-de-vida-achille-mbembe-n-1-edicoes-phi000000-816244$ /livros/democracia-como-comunidade-de-vida [R=301,L]
+
+# Uma história de mulheres filósofas
+RewriteRule ^shop/9786561190329-uma-historia-de-mulheres-filosofas-mary-ellen-waithe-n-1-edicoes-phi000000-816191$ /livros/uma-historia-de-mulheres-filosofas [R=301,L]
+
+# Teoria crítica da arquitetura
+RewriteRule ^shop/9786561190350-teoria-critica-da-arquitetura-silke-kapp-n-1-edicoes-phi040000-816213$ /livros/teoria-critica-da-arquitetura [R=301,L]
+
+# A floresta de cristal
+RewriteRule ^shop/9786561190336-a-floresta-de-cristal-eduardo-viveiros-de-castro-n-1-edicoes-phi000000-816177$ /livros/a-floresta-de-cristal [R=301,L]
+
+# A chuva desmancha todos os fatos:
+RewriteRule ^shop/9786561190343-a-chuva-desmancha-todos-os-fatos-deborah-danowski-n-1-edicoes-phi000000-816176$ /livros/a-chuva-desmancha-todos-os-fatos [R=301,L]
+
+# Racismo cínico
+RewriteRule ^shop/9786561190312-racismo-cinico-fidias-gomes-siqueira-n-1-edicoes-psy026000-816170$ /livros/racismo-cinico [R=301,L]
+
+# Corpo-gerúndio
+RewriteRule ^shop/9786561190190-corpo-gerundio-luaa-gabanini-n-1-edicoes-per003040-816149$ /livros/corpo-gerundio [R=301,L]
+
+# A pequena prisão
+RewriteRule ^shop/9786561190251-a-pequena-prisao-igor-mendes-n-1-edicoes-bio021000-816080\?page=2$ /livros/a-pequena-prisao [R=301,L]
+
+# Améfrica
+RewriteRule ^shop/9786561190213-amefrica-coletivo-legitima-defesa-n-1-edicoes-dra021000-816028\?page=2$ /livros/amefrica [R=301,L]
+
+# assim é a mulher por trás de seu véu?
+RewriteRule ^shop/9786561190220-assim-e-a-mulher-por-tras-de-seu-veu-lea-silveira-n-1-edicoes-phi034000-816037\?page=2$ /livros/assim-e-a-mulher-por-tras-de-seu-veu [R=301,L]
+
+# Triálogos
+RewriteRule ^shop/9786561190145-trialogos-felix-guattari-jean-claude-polack-danielle-sivadon-n-1-edicoes-phi046000-816031\?page=2$ /livros/trialogos [R=301,L]
+
+# Filosofia para aranhas - sobre a baixa teoria de Kathy Acker
+RewriteRule ^shop/9786561190183-filosofia-para-aranhas-sobre-a-baixa-teoria-de-kathy-acker-816005\?page=2$ /livros/filosofia-para-aranhas-sobre-a-baixa-teoria-de-kathy-acker [R=301,L]
+
+# A economia contra si mesma: por uma arte capitalista do acontecimento
+RewriteRule ^shop/9786561190169-a-economia-contra-si-mesma-por-uma-arte-capitalista-do-acontecimento-815981\?page=2$ /livros/a-economia-contra-si-mesma-por-uma-arte-capitalista-do-acontecimento [R=301,L]
+
+# Um altar que se coma
+RewriteRule ^shop/9786561190107-um-altar-que-se-coma-ana-luiza-braga-n-1-edicoes-soc000000-814755\?page=2$ /livros/um-altar-que-se-coma [R=301,L]
+
+# O tratado do todo-mundo
+RewriteRule ^shop/9786561190176-o-tratado-do-todo-mundo-edouard-glissant-n-1-edicoes-phi000000-815967\?page=2$ /livros/o-tratado-do-todo-mundo [R=301,L]
+
+# Não existe revolução infeliz
+RewriteRule ^shop/9786561190091-nao-existe-revolucao-infeliz-marcello-tari-andrea-piazzaroli-n-1-edicoes-phi000000-813192\?page=2$ /livros/nao-existe-revolucao-infeliz [R=301,L]
+
+# Antigos caminhos queer
+RewriteRule ^shop/9786561190114-antigos-caminhos-queer-zairong-xiang-n-1-edicoes-phi000000-813169\?page=2$ /livros/antigos-caminhos-queer [R=301,L]
+
+# No espelho do passado: Palestras e discursos 1978–1990
+RewriteRule ^shop/9786561190015-no-espelho-do-passado-palestras-e-discursos-19781990-812885\?page=2$ /livros/no-espelho-do-passado-palestras-e-discursos-19781990 [R=301,L]
+
+# Jesus, o homem que preferia as mulheres
+RewriteRule ^shop/9786561190022-jesus-o-homem-que-preferia-as-mulheres-812895\?page=2$ /livros/jesus-o-homem-que-preferia-as-mulheres [R=301,L]
+
+# Não se dissolve um levante
+RewriteRule ^shop/9786581097950-nao-se-dissolve-um-levante-812813\?page=2$ /livros/nao-se-dissolve-um-levante [R=301,L]
+
+# A ameaça atômica
+RewriteRule ^shop/9786581097912-a-ameaca-atomica-812814\?page=2$ /livros/a-ameaca-atomica [R=301,L]
+
+# O passado ainda está por vir
+RewriteRule ^shop/9786581097929-o-passado-ainda-esta-por-vir-deborah-danowsky-eduardo-viveiros-de-castro-n-1-edicoes-phi000000-812812\?page=2$ /livros/o-passado-ainda-esta-por-vir [R=301,L]
+
+# Teoria King Kong
+RewriteRule ^shop/9786581097967-teoria-king-kong-virginie-despentes-marcia-bechara-n-1-edicoes-phi000000-812815\?page=2$ /livros/teoria-king-kong [R=301,L]
+
+# Composto Escola
+RewriteRule ^shop/9786581097257-composto-escola-antonio-bispo-dos-santos-caca-fonseca-elbio-de-brito-silva-givania-maria-da-silva-gliceria-tupinamba-joelson-ferreira-laura-castro-quilombo-indigena-tiririca-dos-crioulos-yuri-firmeza-n-1-edicoes-edu009000-126915\?page=2$ /livros/composto-escola [R=301,L]
+
+# Summa Cosmologiae. Breve tratado (político) de imortalidade
+RewriteRule ^shop/9786586941494-summa-cosmologiae-breve-tratado-politico-de-imortalidade-122103\?page=2$ /livros/summa-cosmologiae-breve-tratado-politico-de-imortalidade [R=301,L]
+
+# Jupaú
+RewriteRule ^shop/9786581097592-jupau-812494\?page=2$ /livros/jupau [R=301,L]
+
+# Um brinde aos mortos: Histórias daqueles que ficam
+RewriteRule ^shop/9786581097431-um-brinde-aos-mortos-historias-daqueles-que-ficam-129099\?page=2$ /livros/um-brinde-aos-mortos-historias-daqueles-que-ficam [R=301,L]
+
+# Cartas do latão
+RewriteRule ^shop/9786581097530-cartas-do-latao-811577\?page=2$ /livros/cartas-do-latao [R=301,L]
+
+# E se eu fosse puta
+RewriteRule ^shop/9786581097721-e-se-eu-fosse-puta-amara-moira-n-1-edicoes-soc032000-812434\?page=2$ /livros/e-se-eu-fosse-puta [R=301,L]
+
+# Negritude sem identidade
+RewriteRule ^shop/9786581097752-negritude-sem-identidade-erico-andrade-n-1-edicoes-soc026000-812492\?page=2$ /livros/negritude-sem-identidade [R=301,L]
+
+# Por uma ética queer
+RewriteRule ^shop/9786581097738-por-uma-etica-queer-luisa-amaral-n-1-edicoes-soc032000-812432\?page=2$ /livros/por-uma-etica-queer [R=301,L]
+
+# Corpos crip
+RewriteRule ^shop/9786581097745-corpos-crip-christine-greiner-ana-godoy-fernanda-mello-n-1-edicoes-soc002010-812433\?page=2$ /livros/corpos-crip [R=301,L]
+
+# Junho Febril
+RewriteRule ^shop/9786581097639-junho-febril-56136\?page=2$ /livros/junho-febril [R=301,L]
+
+# Ficar com o problema: fazer parentes no chthluceno
+RewriteRule ^shop/9786581097585-ficar-com-o-problema-fazer-parentes-no-chthluceno-50204\?page=2$ /livros/ficar-com-o-problema-fazer-parentes-no-chthluceno [R=301,L]
+
+# Filosofia Primeira - Tratado De Ucronia Pós-Metafísica
+RewriteRule ^shop/9786581097455-filosofia-primeira-tratado-de-ucronia-pos-metafisica-fabian-luduena-romandini-n-1-edicoes-soc000000-51716\?page=2$ /livros/filosofia-primeira-tratado-de-ucronia-pos-metafisica [R=301,L]
+
+# Caixa Fora
+RewriteRule ^shop/9786586941487-caixa-fora-georges-didi-huberman-jean-tible-debora-inez-brandao-danich-hausen-mizoguchi-ivana-bentes-filipe-ferreira-durval-muniz-de-albuquerque-junior-ana-kiffer-agnes-horvath-arpad-szakolczai-alana-moraes-antonio-martinelli-tiqqun-raquel-rolnik-guilherme-wisnik-n-1-edicoes-soc000000-122100\?page=2$ /livros/caixa-fora [R=301,L]
+
+# ubuntu - psicanálise e herança coellonial
+RewriteRule ^shop/9786581097844-ubuntu-psicanalise-e-heranca-coellonial-rodrigo-lima-derek-hook-sheldon-george-patricia-gherovici-gautam-thakur-sophie-mendsohn-fuad-rahmat-david-pavon-cuellar-ursula-lau-stephen-sheehi-lara-sheehi-n-1-edicoes-psy026000-812802\?page=2$ /livros/ubuntu-psicanalise-e-heranca-coellonial [R=301,L]
+
+# Antropofagia Zumbi
+RewriteRule ^shop/9786586941630-antropofagia-zumbi-rolnik-suely-n-1-edicoes-phi000000-122172\?page=3$ /livros/antropofagia-zumbi [R=301,L]
+
+# Pandemia Crítica - Inverno 2020
+RewriteRule ^shop/9786586941289-pandemia-critica-inverno-2020-122111\?page=3$ /livros/pandemia-critica-inverno-2020 [R=301,L]
+
+# Pandemia Crítica - Outono 2020
+RewriteRule ^shop/9786586941296-pandemia-critica-outono-2020-peter-pal-pelbart-ricardo-muniz-fernandes-n-1-edicoes-soc000000-122112\?page=3$ /livros/pandemia-critica-outono-2020 [R=301,L]
+
+# Nietzsche e a filosofia
+RewriteRule ^shop/9788566943566-nietzsche-e-a-filosofia-gilles-deleuze-n-1-edicoes-phi000000-4478\?page=3$ /livros/nietzsche-e-a-filosofia [R=301,L]
+
+# Deleuze, os movimentos aberrantes
+RewriteRule ^shop/9788566943191-deleuze-os-movimentos-aberrantes-david-lapoujade-laymert-garcia-dos-santos-n-1-edicoes-phi000000-63734\?page=3$ /livros/deleuze-os-movimentos-aberrantes [R=301,L]
+
+# Afrotopia
+RewriteRule ^shop/9788566943979-afrotopia-felwine-sarr-n-1-edicoes-soc008000-108441\?page=3$ /livros/afrotopia [R=301,L]
+
+# Os vagabundos eficazes
+RewriteRule ^shop/9788566943641-os-vagabundos-eficazes-fernand-deligny-n-1-edicoes-phi000000-63772\?page=3$ /livros/os-vagabundos-eficazes [R=301,L]
+
+# William James, a construção da experiência
+RewriteRule ^shop/9788566943313-william-james-a-construcao-da-experiencia-david-lapoujade-hortencia-santos-lencastre-n-1-edicoes-phi000000-4462\?page=3$ /livros/william-james-a-construcao-da-experiencia [R=301,L]
+
+# Hijikata tatsumi
+RewriteRule ^shop/9788566943528-hijikata-tatsumi-kuniichi-uno-n-1-edicoes-pol000000-4482\?page=3$ /livros/hijikata-tatsumi [R=301,L]
+
+# Ética bixa
+RewriteRule ^shop/9788566943801-etica-bixa-paco-vidarte-pablo-cardellino-soto-maria-selenir-nunes-dos-santos-n-1-edicoes-phi000000-63740\?page=3$ /livros/etica-bixa [R=301,L]
+
+# Des-Habitat
+RewriteRule ^shop/9786586941395-des-habitat-118279\?page=3$ /livros/des-habitat [R=301,L]
+
+# Cartas e outros textos
+RewriteRule ^shop/9788566943542-cartas-e-outros-textos-gilles-deleuze-david-lapoujade-n-1-edicoes-phi000000-4477\?page=3$ /livros/cartas-e-outros-textos [R=301,L]
+
+# Aos nossos amigos
+RewriteRule ^shop/9788566943207-aos-nossos-amigos-comite-invisivel-n-1-edicoes-pol000000-4439\?page=3$ /livros/aos-nossos-amigos [R=301,L]
+
+# Potências do tempo
+RewriteRule ^shop/9788566943443-potencias-do-tempo-david-lapoujade-n-1-edicoes-phi000000-4467\?page=3$ /livros/potencias-do-tempo [R=301,L]
+
+# Pragmatismo pulsional
+RewriteRule ^shop/9786581097066-pragmatismo-pulsional-joao-perci-schiavon-n-1-edicoes-psy026000-110509\?page=3$ /livros/pragmatismo-pulsional [R=301,L]
+
+# Ensaios do assombro
+RewriteRule ^shop/9788566943849-ensaios-do-assombro-peter-pal-pelbart-n-1-edicoes-phi000000-63737\?page=3$ /livros/ensaios-do-assombro [R=301,L]
+
+# Impressões de Michel Foucault
+RewriteRule ^shop/9788566943399-impressoes-de-michel-foucault-roberto-machado-n-1-edicoes-phi000000-4449\?page=3$ /livros/impressoes-de-michel-foucault [R=301,L]
+
+# Ritornelos
+RewriteRule ^shop/9786581097028-ritornelos-felix-guattari-waldomiro-mugrelise-hortencia-santos-lencastre-n-1-edicoes-fic064000-108216\?page=3$ /livros/ritornelos [R=301,L]
+
+# O enigma da revolta
+RewriteRule ^shop/9788566943740-o-enigma-da-revolta-michel-foucault-lorena-balbino-christian-laval-n-1-edicoes-phi000000-68886\?page=3$ /livros/o-enigma-da-revolta [R=301,L]
+
+# Ruptura
+RewriteRule ^shop/9788566943931-ruptura-centelha-n-1-edicoes-pol000000-108443\?page=3$ /livros/ruptura [R=301,L]
+
+# Metafísicas canibais
+RewriteRule ^shop/9788566943177-metafisicas-canibais-eduardo-viveiros-de-castro-n-1-edicoes-phi000000-4453\?page=3$ /livros/metafisicas-canibais [R=301,L]
+
+# As existências mínimas
+RewriteRule ^shop/9788566943467-as-existencias-minimas-david-lapoujade-hortencia-lencastre-n-1-edicoes-phi000000-4465\?page=3$ /livros/as-existencias-minimas [R=301,L]
+
+# Contribuição para a guerra em curso
+RewriteRule ^shop/9788566943764-contribuicao-para-a-guerra-em-curso-tiqqun-vinicius-nicastro-honesko-giorgio-agamben-n-1-edicoes-pol000000-63768\?page=3$ /livros/contribuicao-para-a-guerra-em-curso [R=301,L]
+
+# Motim e destituição agora
+RewriteRule ^shop/9788566943498-motim-e-destituicao-agora-comite-invisivel-n-1-edicoes-phi000000-4472\?page=3$ /livros/motim-e-destituicao-agora [R=301,L]
+
+# A contracultura, entre a curtição e o experimental
+RewriteRule ^shop/9786581097035-a-contracultura-entre-a-curticao-e-o-experimental-108215\?page=3$ /livros/a-contracultura-entre-a-curticao-e-o-experimental [R=301,L]
+
+# O universo inacabado
+RewriteRule ^shop/9788566943559-o-universo-inacabado-mario-novello-n-1-edicoes-soc000000-4476\?page=3$ /livros/o-universo-inacabado [R=301,L]
+
+# Somos nosso cérebro?
+RewriteRule ^shop/9786581097073-somos-nosso-cerebro-francisco-ortega-fernando-vidal-alexandre-martins-n-1-edicoes-sci089000-108074\?page=3$ /livros/somos-nosso-cerebro [R=301,L]
+
+# Fabulações do corpo japonês
+RewriteRule ^shop/9788566943412-fabulacoes-do-corpo-japones-4447\?page=3$ /livros/fabulacoes-do-corpo-japones [R=301,L]
+
+# Às voltas com Lautréamont
+RewriteRule ^shop/9788566943962-as-voltas-com-lautreamont-laymert-garcia-dos-santos-n-1-edicoes-lit000000-108442\?page=3$ /livros/as-voltas-com-lautreamont [R=301,L]
+
+# Intoxicações poéticas da carne
+RewriteRule ^shop/9786586941203-intoxicacoes-poeticas-da-carne-christine-greiner-gal-oppido-n-1-edicoes-pho000000-117173\?page=4$ /livros/intoxicacoes-poeticas-da-carne [R=301,L]
+
+# Quando e como eu li Foucault
+RewriteRule ^shop/9788566943306-quando-e-como-eu-li-foucault-4458\?page=4$ /livros/quando-e-como-eu-li-foucault [R=301,L]
+
+# Esparsas: Viagem aos papéis do Gueto de Varsóvia
+RewriteRule ^shop/9786581097561-esparsas-viagem-aos-papeis-do-gueto-de-varsovia-129098\?page=4$ /livros/esparsas-viagem-aos-papeis-do-gueto-de-varsovia [R=301,L]
+
+# Spartakus
+RewriteRule ^shop/9788566943580-spartakus-furio-jesi-vinicius-nicastro-honesko-n-1-edicoes-pol000000-63765\?page=4$ /livros/spartakus [R=301,L]
+
+# Fascismo ou revolução?
+RewriteRule ^shop/9788566943818-fascismo-ou-revolucao-maurizio-lazzarato-takashi-wakamatsu-fernando-scheibe-n-1-edicoes-pol042000-110182\?page=4$ /livros/fascismo-ou-revolucao [R=301,L]
+
+# Um piano nas barricadas (N-1 edições)
+RewriteRule ^shop/9786580421046-um-piano-nas-barricadas-n-1-edicoes-113353\?page=4$ /livros/um-piano-nas-barricadas-n-1-edicoes [R=301,L]
+
+# Nós somos Pussy Riot
+RewriteRule ^shop/9786581097134-nos-somos-pussy-riot-110526\?page=4$ /livros/nos-somos-pussy-riot [R=301,L]
+
+# Cinco dias em março
+RewriteRule ^shop/9788566943719-cinco-dias-em-marco-toshiki-okada-lica-hashimoto-n-1-edicoes-art000000-63729\?page=4$ /livros/cinco-dias-em-marco [R=301,L]
+
+# Espaço Coruja: pelo direito das crianças e das mulheres. Legisladora Marielle Franco
+RewriteRule ^shop/9786581097059-espaco-coruja-pelo-direito-das-criancas-e-das-mulheres-legisladora-marielle-franco-113351\?page=4$ /livros/espaco-coruja-pelo-direito-das-criancas-e-das-mulheres-legisladora-marielle-franco [R=301,L]
+
+# Nietzsche - O bufão dos deuses
+RewriteRule ^shop/9788566943382-nietzsche-o-bufao-dos-deuses-maria-cristina-franco-ferraz-n-1-edicoes-phi000000-4454\?page=4$ /livros/nietzsche-o-bufao-dos-deuses [R=301,L]
+
+# ocupar a psicanálise: por uma clínica antirracista e decolonial
+RewriteRule ^shop/9786581097523-ocupar-a-psicanalise-por-uma-clinica-antirracista-e-decolonial-129086\?page=4$ /livros/ocupar-a-psicanalise-por-uma-clinica-antirracista-e-decolonial [R=301,L]
+
+# As máquinas celibatárias
+RewriteRule ^shop/9788566786965-as-maquinas-celibatarias-108444\?page=4$ /livros/as-maquinas-celibatarias [R=301,L]
+
+# Uma vida política
+RewriteRule ^shop/9786586941272-uma-vida-politica-daniel-defert-ernani-chaves-n-1-edicoes-pol000000-117883\?page=4$ /livros/uma-vida-politica [R=301,L]
+
+# Hegel e o Haiti
+RewriteRule ^shop/9788566943481-hegel-e-o-haiti-susan-buck-morss-vladimir-safatle-n-1-edicoes-phi000000-4471\?page=4$ /livros/hegel-e-o-haiti [R=301,L]
+
+# A missão
+RewriteRule ^shop/9788566943375-a-missao-heiner-muller-christine-rohrig-laymert-garcia-dos-santos-wolfgang-storch-n-1-edicoes-art000000-4436\?page=4$ /livros/a-missao [R=301,L]
+
+# Guattari
+RewriteRule ^shop/9788566943290-guattari-kuniichi-uno-laymert-garcia-dos-santos-hortencia-lencastre-n-1-edicoes-phi000000-4448\?page=4$ /livros/guattari [R=301,L]
+
+# PsiMaré Psicanalistas em trânsito
+RewriteRule ^shop/9786581097516-psimare-psicanalistas-em-transito-129082\?page=4$ /livros/psimare-psicanalistas-em-transito [R=301,L]
+
+# O aracniano e outros textos
+RewriteRule ^shop/9788566943184-o-aracniano-e-outros-textos-fernand-deligny-lara-de-malimpensa-n-1-edicoes-phi000000-63721\?page=4$ /livros/o-aracniano-e-outros-textos [R=301,L]
+
+# Ocupação Psicanalítica
+RewriteRule ^shop/9786581097578-ocupacao-psicanalitica-129095\?page=4$ /livros/ocupacao-psicanalitica [R=301,L]
+
+# Brazuca negão e sebento
+RewriteRule ^shop/9788566943405-brazuca-negao-e-sebento-4470\?page=4$ /livros/brazuca-negao-e-sebento [R=301,L]
+
+# Coletivo Margem Psicanálise
+RewriteRule ^shop/9786581097554-coletivo-margem-psicanalise-129096\?page=4$ /livros/coletivo-margem-psicanalise [R=301,L]
+
+# Declaração
+RewriteRule ^shop/9788566943092-declaracao-antonio-negri-michael-hardt-n-1-edicoes-pol000000-112139\?page=4$ /livros/declaracao [R=301,L]
+
+# Amazônia transcultural
+RewriteRule ^shop/9788566943085-amazonia-transcultural-laymert-garcia-dos-santos-n-1-edicoes-art000000-4438\?page=4$ /livros/amazonia-transcultural [R=301,L]
+
+# A íntima utopia
+RewriteRule ^shop/9788566943023-a-intima-utopia-jean-claude-polack-danielle-sivadon-hortencia-santos-lencastre-andrew-goffey-n-1-edicoes-psy000000-4435\?page=4$ /livros/a-intima-utopia [R=301,L]
+
+# Estamira: Fragmentos de um Mundo em Abismo
+RewriteRule ^shop/9788566943047-estamira-fragmentos-de-um-mundo-em-abismo-114151\?page=4$ /livros/estamira-fragmentos-de-um-mundo-em-abismo [R=301,L]
+
+# Devires totêmicos
+RewriteRule ^shop/9788566943146-devires-totemicos-barbara-glowczewski-jamille-pinheiro-abrahao-de-oliveira-santos-n-1-edicoes-pol000000-4445\?page=4$ /livros/devires-totemicos [R=301,L]
+
+# Na quebra: a estética da tradição radical preta
+RewriteRule ^shop/9786581097417-na-quebra-a-estetica-da-tradicao-radical-preta-129070\?page=4$ /livros/na-quebra-a-estetica-da-tradicao-radical-preta [R=301,L]
+
+# Fala trans
+RewriteRule ^shop/9786581097486-fala-trans-5058\?page=4$ /livros/fala-trans [R=301,L]
+
+# MOVE
+RewriteRule ^shop/9786581097493-move-5059\?page=4$ /livros/move [R=301,L]
+
+# Qual Cidade queremos escutar
+RewriteRule ^shop/9786581097509-qual-cidade-queremos-escutar-5060\?page=4$ /livros/qual-cidade-queremos-escutar [R=301,L]
+
+# Estação Psicanálise
+RewriteRule ^shop/9786581097547-estacao-psicanalise-51690\?page=5$ /livros/estacao-psicanalise [R=301,L]
+
+# Caixa de Dramaturgias Indígenas
+RewriteRule ^shop/9786581097691-caixa-de-dramaturgias-indigenas-org-trudrua-dorrico-e-luna-rosa-recaldes-outra-margem-n-1-edicoes-dra020000-811592\?page=5$ /livros/caixa-de-dramaturgias-indigenas [R=301,L]
+
+# O que a Guerra da Ucrânia tem a nos ensinar
+RewriteRule ^shop/9786581097424-o-que-a-guerra-da-ucrania-tem-a-nos-ensinar-maurizio-lazzarato-felipe-shimabukuro-n-1-edicoes-his027130-60009\?page=5$ /livros/o-que-a-guerra-da-ucrania-tem-a-nos-ensinar [R=301,L]
+
+# Roda de escuta
+RewriteRule ^shop/9786581097646-roda-de-escuta-812657\?page=5$ /livros/roda-de-escuta [R=301,L]
+
+# Coletivo Intervenção: por uma psicanálise clinico-política
+RewriteRule ^shop/9786581097615-coletivo-intervencao-por-uma-psicanalise-clinico-politica-812658\?page=5$ /livros/coletivo-intervencao-por-uma-psicanalise-clinico-politica [R=301,L]
+
+# Psicanálise na Rua
+RewriteRule ^shop/9786581097776-psicanalise-na-rua-812659\?page=5$ /livros/psicanalise-na-rua [R=301,L]
+
+# Museu das Memórias (In)Possíveis
+RewriteRule ^shop/9786581097783-museu-das-memorias-in-possiveis-812660\?page=5$ /livros/museu-das-memorias-inpossiveis [R=301,L]
+
+# Projeto Gradiva
+RewriteRule ^shop/9786581097769-projeto-gradiva-812661\?page=5$ /livros/projeto-gradiva [R=301,L]
+
+# Reviravolta de Gaia
+RewriteRule ^shop/9786556911267-reviravolta-de-gaia-812663\?page=5$ /livros/reviravolta-de-gaia [R=301,L]
+
+# Ainda a arte contemporânea
+RewriteRule ^shop/9786581097806-ainda-a-arte-contemporanea-celso-f-favaretto-n-1-edicoes-art000000-812666\?page=5$ /livros/ainda-a-arte-contemporanea [R=301,L]
+
+# A Gioconda está nas escadas: a condição prosaica
+RewriteRule ^shop/9786581097790-a-gioconda-esta-nas-escadas-a-condicao-prosaica-812667\?page=5$ /livros/a-gioconda-esta-nas-escadas-a-condicao-prosaica [R=301,L]
+
+# Piseagrama - Vegetalidades
+RewriteRule ^shop/9786581097868-piseagrama-vegetalidades-n-1-edicoes-soc026000-812750\?page=5$ /livros/piseagrama-vegetalidades [R=301,L]
+
+# Meus desenhos não são desenhos
+RewriteRule ^shop/9786581097851-meus-desenhos-nao-sao-desenhos-ana-kiffer-n-1-edicoes-dra000000-812808\?page=5$ /livros/meus-desenhos-nao-sao-desenhos [R=301,L]
+
+# Cartilha de Mezinhagem
+RewriteRule ^shop/9786581097714-cartilha-de-mezinhagem-raimunda-gomes-da-silva-n-1-edicoes-ckb000000-812809\?page=5$ /livros/cartilha-de-mezinhagem [R=301,L]
+
+# Lugares do delírio
+RewriteRule ^shop/9786581097479-lugares-do-delirio-tania-rivera-n-1-edicoes-art000000-812810\?page=5$ /livros/lugares-do-delirio [R=301,L]
+
+# Coletivo Testemunho e Ação
+RewriteRule ^shop/9786581097837-coletivo-testemunho-e-acao-812833\?page=5$ /livros/coletivo-testemunho-e-acao [R=301,L]
+
+# Caixa Pandemia das bordas
+RewriteRule ^shop/9786581097974-caixa-pandemia-das-bordas-812843\?page=5$ /livros/caixa-pandemia-das-bordas [R=301,L]
+
+# O judeu pós-judeu: judaicidade e etnocentrismo Ed.2
+RewriteRule ^shop/9786561190701-o-judeu-pos-judeu-judaicidade-e-etnocentrismo-ed-2-816386\?page=5$ /livros/o-judeu-pos-judeu-judaicidade-e-etnocentrismo-ed2 [R=301,L]
+
+# Política Selvagem
+RewriteRule ^shop/9786581097400-politica-selvagem-jean-tible-n-1-edicoes-phi000000-129063\?page=5$ /livros/politica-selvagem [R=301,L]
+
+# Direito de sequência esquizoanalítica
+RewriteRule ^shop/9786581097370-direito-de-sequencia-esquizoanalitica-129061\?page=5$ /livros/direito-de-sequencia-esquizoanalitica [R=301,L]
+
+# Psicanálise e esquizoanálise
+RewriteRule ^shop/9786581097394-psicanalise-e-esquizoanalise-anderson-santos-n-1-edicoes-psy026000-129060\?page=5$ /livros/psicanalise-e-esquizoanalise [R=301,L]
+
+# Acompanhamento terapêutico
+RewriteRule ^shop/9786581097387-acompanhamento-terapeutico-mauricio-porto-n-1-edicoes-med011000-129058\?page=5$ /livros/acompanhamento-terapeutico [R=301,L]
+
+# Os anos de inverno: 1980–1985
+RewriteRule ^shop/9786581097363-os-anos-de-inverno-19801985-129057\?page=5$ /livros/os-anos-de-inverno-19801985 [R=301,L]
+
+# Sujeito suposto suspeito:
+RewriteRule ^shop/9786586941951-sujeito-suposto-suspeito-andrea-guerra-n-1-edicoes-phi000000-129055\?page=5$ /livros/sujeito-suposto-suspeito [R=301,L]
+
+# Potências da Suavidade
+RewriteRule ^shop/9786581097356-potencias-da-suavidade-anne-dufourmantelle-hortencia-lencastre-fernanda-mello-n-1-edicoes-phi000000-126911\?page=5$ /livros/potencias-da-suavidade [R=301,L]
+
+# Crítica da razão negra
+RewriteRule ^shop/9786581097264-critica-da-razao-negra-achille-mbembe-n-1-edicoes-pol000000-124402\?page=5$ /livros/critica-da-razao-negra [R=301,L]
+
+# Brutalismo
+RewriteRule ^shop/9786581097271-brutalismo-achille-mbembe-n-1-edicoes-phi000000-124399\?page=5$ /livros/brutalismo [R=301,L]
+
+# Van Gogh não existe
+RewriteRule ^shop/9786581097332-van-gogh-nao-existe-giorgio-manganelli-andrea-santurbano-flavio-taam-n-1-edicoes-art000000-124392\?page=5$ /livros/van-gogh-nao-existe [R=301,L]
+
+# Artaud, o momo
+RewriteRule ^shop/9786581097295-artaud-o-momo-124389\?page=5$ /livros/artaud-o-momo [R=301,L]
+
+# A nota fervorosa (texto e desenhos de Antonin Artaud)
+RewriteRule ^shop/9786581097288-a-nota-fervorosa-texto-e-desenhos-de-antonin-artaud-124388\?page=5$ /livros/a-nota-fervorosa-texto-e-desenhos-de-antonin-artaud [R=301,L]
+
+# Manifesto Cósmico I e II
+RewriteRule ^shop/9786581097301-manifesto-cosmico-i-e-ii-124384\?page=6$ /livros/manifesto-cosmico-i-e-ii [R=301,L]
+
+# Vida da literatura
+RewriteRule ^shop/9786581097240-vida-da-literatura-124362\?page=6$ /livros/vida-da-literatura [R=301,L]
+
+# Leituras do corpo no Japão
+RewriteRule ^shop/9788566943153-leituras-do-corpo-no-japao-christine-greiner-n-1-edicoes-art000000-124353\?page=6$ /livros/leituras-do-corpo-no-japao [R=301,L]
+
+# A estrutura psicológica do fascismo
+RewriteRule ^shop/9786581097219-a-estrutura-psicologica-do-fascismo-georges-bataille-joao-gomes-da-silva-filho-n-1-edicoes-phi000000-124284\?page=6$ /livros/a-estrutura-psicologica-do-fascismo [R=301,L]
+
+# Quatro cantos
+RewriteRule ^shop/9786586941883-quatro-cantos-antonio-bispo-dos-santos-maria-sueli-rodrigues-luiz-rufino-ana-mumbuca-n-1-edicoes-soc000000-124265\?page=6$ /livros/quatro-cantos [R=301,L]
+
+# Heliogabalo ou O anarquista coroado
+RewriteRule ^shop/9786586941838-heliogabalo-ou-o-anarquista-coroado-antonin-artaud-ze-celso-martinez-correa-n-1-edicoes-art055000-124259\?page=6$ /livros/heliogabalo-ou-o-anarquista-coroado [R=301,L]
+
+# Para dar um fim no juízo de deus
+RewriteRule ^shop/9786586941845-para-dar-um-fim-no-juizo-de-deus-antonin-artaud-ze-celso-martinez-correa-ernesto-filho-n-1-edicoes-art055000-124258\?page=6$ /livros/para-dar-um-fim-no-juizo-de-deus [R=301,L]
+
+# Artaud - Pensamento e corpo
+RewriteRule ^shop/9786586941821-artaud-pensamento-e-corpo-kuniichi-uno-christine-greiner-ernesto-filho-n-1-edicoes-art055000-124257\?page=6$ /livros/artaud-pensamento-e-corpo [R=301,L]
+
+# O soldado antropofagico
+RewriteRule ^shop/9786586941944-o-soldado-antropofagico-tales-ab-saber-n-1-edicoes-soc054000-124254\?page=6$ /livros/o-soldado-antropofagico [R=301,L]
+
+# Contos de uma mulher liberta
+RewriteRule ^shop/9786586941814-contos-de-uma-mulher-liberta-natalia-domingos-n-1-edicoes-bio000000-124202\?page=6$ /livros/contos-de-uma-mulher-liberta [R=301,L]
+
+# A palavra falsa
+RewriteRule ^shop/9786586941913-a-palavra-falsa-armand-robin-stella-senra-n-1-edicoes-soc010000-124197\?page=6$ /livros/a-palavra-falsa [R=301,L]
+
+# O intolerável do presente, a urgência da revolução: Minorias e Classes
+RewriteRule ^shop/9786586941920-o-intoleravel-do-presente-a-urgencia-da-revolucao-minorias-e-classes-124188\?page=6$ /livros/o-intoleravel-do-presente-a-urgencia-da-revolucao-minorias-e-classes [R=301,L]
+
+# Quando o sol aqui não mais brilhar: a falência da negritude
+RewriteRule ^shop/9786586941906-quando-o-sol-aqui-nao-mais-brilhar-a-falencia-da-negritude-castiel-vitorino-brasileiro-n-1-edicoes-phi000000-124186\?page=6$ /livros/quando-o-sol-aqui-nao-mais-brilhar-a-falencia-da-negritude [R=301,L]
+
+# Máquina Kafka
+RewriteRule ^shop/9786586941869-maquina-kafka-124185\?page=6$ /livros/maquina-kafka [R=301,L]
+
+# Ficções do pragmatismo
+RewriteRule ^shop/9786586941852-ficcoes-do-pragmatismo-124177\?page=6$ /livros/ficcoes-do-pragmatismo [R=301,L]
+
+# A Alteração dos mundos
+RewriteRule ^shop/9786586941876-a-alteracao-dos-mundos-david-lapoujade-hortencia-lencastre-n-1-edicoes-phi000000-124176\?page=6$ /livros/a-alteracao-dos-mundos [R=301,L]
+
+# Lucio costa era racista?
+RewriteRule ^shop/9786586941760-lucio-costa-era-racista-paulo-tavares-n-1-edicoes-phi000000-124169\?page=6$ /livros/lucio-costa-era-racista [R=301,L]
+
+# O reino e o Jardim
+RewriteRule ^shop/9786586941722-o-reino-e-o-jardim-giorgio-agamben-vinicius-nicastro-honesko-n-1-edicoes-phi000000-122417\?page=6$ /livros/o-reino-e-o-jardim [R=301,L]
+
+# Gravidade
+RewriteRule ^shop/9786586941715-gravidade-steve-paxton-n-1-edicoes-dra000000-122404\?page=6$ /livros/gravidade [R=301,L]
+
+# Chixinakax utxiwa: uma reflexão sobre práticas e discursos descolonizadores
+RewriteRule ^shop/9786586941692-chixinakax-utxiwa-uma-reflexao-sobre-praticas-e-discursos-descolonizadores-122399\?page=6$ /livros/chixinakax-utxiwa-uma-reflexao-sobre-praticas-e-discursos-descolonizadores [R=301,L]
+
+# A psicanálise em elipse decolonial
+RewriteRule ^shop/9786586941579-a-psicanalise-em-elipse-decolonial-andrea-maris-campos-guerra-rodrigo-goes-e-lima-n-1-edicoes-phi000000-122211\?page=6$ /livros/a-psicanalise-em-elipse-decolonial [R=301,L]
+
+# A potência das fendas
+RewriteRule ^shop/9786586941470-a-potencia-das-fendas-flo-menezes-vladimir-safatle-n-1-edicoes-phi000000-122193\?page=6$ /livros/a-potencia-das-fendas [R=301,L]
+
+# O corpo utópico, as heterotopias
+RewriteRule ^shop/9786586941593-o-corpo-utopico-as-heterotopias-michel-foucault-salma-tannus-muchail-n-1-edicoes-phi000000-122189\?page=6$ /livros/o-corpo-utopico-as-heterotopias [R=301,L]
+
+# em que ponto estamos?
+RewriteRule ^shop/9786586941555-em-que-ponto-estamos-122115\?page=6$ /livros/em-que-ponto-estamos [R=301,L]
+
+# O avesso do niilismo
+RewriteRule ^shop/9786586941647-o-avesso-do-niilismo-122108\?page=6$ /livros/o-avesso-do-niilismo [R=301,L]
+
+# Desejos ingovernáveis: Rimbaud e a Comuna de Paris + Uma estação no Inferno
+RewriteRule ^shop/9786586941524-desejos-ingovernaveis-rimbaud-e-a-comuna-de-paris-uma-estacao-no-inferno-122102\?page=6$ /livros/desejos-ingovernaveis-rimbaud-e-a-comuna-de-paris-uma-estacao-no-inferno [R=301,L]
+
+# Uma Baleia na Montanha
+RewriteRule ^shop/9786586941326-uma-baleia-na-montanha-120618\?page=6$ /livros/uma-baleia-na-montanha [R=301,L]
+
+# Sociedades do desaparecimento
+RewriteRule ^shop/9786586941432-sociedades-do-desaparecimento-119641\?page=6$ /livros/sociedades-do-desaparecimento [R=301,L]
+
+# Sobre a fabricação gradativa de pensamentos durante a fala
+RewriteRule ^shop/9786586941449-sobre-a-fabricacao-gradativa-de-pensamentos-durante-a-fala-119640\?page=6$ /livros/sobre-a-fabricacao-gradativa-de-pensamentos-durante-a-fala [R=301,L]
+
+# Tempos Modernos: Arte, tempo, política
+RewriteRule ^shop/9786586941401-tempos-modernos-arte-tempo-politica-jacques-ranciere-n-1-edicoes-phi000000-118449\?page=6$ /livros/tempos-modernos-arte-tempo-politica [R=301,L]
+
+# No silêncio que as palavras guardam
+RewriteRule ^shop/9786586941265-no-silencio-que-as-palavras-guardam-lula-wanderley-n-1-edicoes-art000000-118241\?page=7$ /livros/no-silencio-que-as-palavras-guardam [R=301,L]
+
+# Fragmentos de memórias malditas
+RewriteRule ^shop/9786586941388-fragmentos-de-memorias-malditas-118139\?page=7$ /livros/fragmentos-de-memorias-malditas [R=301,L]
+
+# Políticas da Inimizade
+RewriteRule ^shop/9786586941173-politicas-da-inimizade-achille-mbembe-sebastiao-nascimento-n-1-edicoes-soc050000-117706\?page=7$ /livros/politicas-da-inimizade [R=301,L]
+
+# Diferentes modos de existência
+RewriteRule ^shop/9786586941197-diferentes-modos-de-existencia-etienne-soriau-walter-romero-menon-junior-n-1-edicoes-phi000000-117613\?page=7$ /livros/diferentes-modos-de-existencia [R=301,L]
+
+# Para além de Black Mirror: estilhaços distópicos do presente
+RewriteRule ^shop/9786586941128-para-alem-de-black-mirror-estilhacos-distopicos-do-presente-117611\?page=7$ /livros/para-alem-de-black-mirror-estilhacos-distopicos-do-presente [R=301,L]
+
+# ABEBE - CAIXA PRETAS
+RewriteRule ^shop/9786586941210-abebe-caixa-pretas-abigail-campos-leal-anne-caroline-quiangala-yuderkys-espinosa-minoso-linn-da-quebrada-jaqueline-gomes-de-jesus-cidinha-da-silva-tatiana-nascimento-pedra-homen-n-1-edicoes-soc000000-117231\?page=7$ /livros/abebe-caixa-pretas [R=301,L]
+
+# A cosmopolítica dos animais
+RewriteRule ^shop/9786586941159-a-cosmopolitica-dos-animais-juliana-fausto-n-1-edicoes-art037000-117175\?page=7$ /livros/a-cosmopolitica-dos-animais [R=301,L]
+
+# HOMO INC.ORPORATED
+RewriteRule ^shop/9786586941012-homo-inc-orporated-114313\?page=7$ /livros/homo-incorporated [R=301,L]
+
+# O que os Animais nos Ensinam Sobre Política
+RewriteRule ^shop/9788566943474-o-que-os-animais-nos-ensinam-sobre-politica-brian-mussumi-n-1-edicoes-soc010000-114152\?page=7$ /livros/o-que-os-animais-nos-ensinam-sobre-politica [R=301,L]
+
+# Fernando Pessoa ou a Metafísica das Sensações
+RewriteRule ^shop/9786586941111-fernando-pessoa-ou-a-metafisica-das-sensacoes-113990\?page=7$ /livros/fernando-pessoa-ou-a-metafisica-das-sensacoes [R=301,L]
+
+# Salto no escuro
+RewriteRule ^shop/9786586941302-salto-no-escuro-113894\?page=7$ /livros/salto-no-escuro [R=301,L]
+
+# O clarão de Espinosa
+RewriteRule ^shop/9786581097080-o-clarao-de-espinosa-romain-rolland-carla-ferro-waldomiro-mugrelise-n-1-edicoes-fic019000-113504\?page=7$ /livros/o-clarao-de-espinosa [R=301,L]
+
+# Semente de crápula
+RewriteRule ^shop/9786581097097-semente-de-crapula-fernand-deligny-waldomiro-mugrelise-juliana-jardim-luiz-pimentel-n-1-edicoes-edu026000-113501\?page=7$ /livros/semente-de-crapula [R=301,L]
+
+# Necropolítica
+RewriteRule ^shop/9788566943504-necropolitica-achille-mbembe-n-1-edicoes-pol000000-108032\?page=7$ /livros/necropolitica [R=301,L]
+
+# Walter Benjamin: os cacos da história
+RewriteRule ^shop/9788566943627-walter-benjamin-os-cacos-da-historia-jeanne-marie-gagnebin-n-1-edicoes-phi000000-63773\?page=7$ /livros/walter-benjamin-os-cacos-da-historia [R=301,L]
+
+# Esferas da insurreição
+RewriteRule ^shop/9788566943597-esferas-da-insurreicao-suely-rolnik-paul-b-preciado-n-1-edicoes-phi000000-63738\?page=7$ /livros/esferas-da-insurreicao [R=301,L]
+
+# Biografia do Língua
+RewriteRule ^shop/9788554946128-biografia-do-lingua-mario-lucio-sousa-ima-editorial-fic027050-8193\?page=7$ /livros/biografia-do-lingua [R=301,L]
+
+# Negri no trópico 23º26’14”
+RewriteRule ^shop/9788566943436-negri-no-tropico-23o2614-homero-santiago-jean-tible-vera-telles-n-1-edicoes-phi000000-4466\?page=7$ /livros/negri-no-tropico-232614 [R=301,L]
+
+# O diabo mesquinho
+RewriteRule ^shop/9788561096007-o-diabo-mesquinho-fiodor-sologub-editora-kalinka-fic004000-1171\?page=7$ /livros/o-diabo-mesquinho [R=301,L]
+
+</IfModule>
