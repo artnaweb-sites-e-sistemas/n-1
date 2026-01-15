@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import PrdDetailsLoader from "@components/loader/details-loader";
+import { API_BASE_URL } from "@lib/env";
 
 export default function ShopRedirectPage() {
   const params = useParams();
@@ -33,7 +34,7 @@ export default function ShopRedirectPage() {
 
         // Método 1: Buscar pelo endpoint old-url
         try {
-          const apiUrl = `${process.env.NEXT_PUBLIC_API_URL || 'https://n-1.artnaweb.com.br/wp-json/n1/v1'}/products/old-url?url=${encodeURIComponent(originalOldUrl)}`;
+          const apiUrl = `${API_BASE_URL()}/products/old-url?url=${encodeURIComponent(originalOldUrl)}`;
           console.log('[REDIRECT] Tentando endpoint:', apiUrl);
           
           const response = await fetch(apiUrl, {
@@ -62,7 +63,7 @@ export default function ShopRedirectPage() {
           console.log('[REDIRECT] Tentando buscar por ISBN:', isbn);
           
           try {
-            const productsUrl = `${process.env.NEXT_PUBLIC_API_URL || 'https://n-1.artnaweb.com.br/wp-json/n1/v1'}/products`;
+            const productsUrl = `${API_BASE_URL()}/products`;
             const productsResponse = await fetch(productsUrl, {
               cache: 'no-store',
             });

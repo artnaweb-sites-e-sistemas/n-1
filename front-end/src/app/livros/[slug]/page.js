@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import ShopDetailsMainArea from "@components/product-details/product-details-area-main";
 import PrdDetailsLoader from "@components/loader/details-loader";
+import { API_BASE_URL } from "@lib/env";
 
 export default function LivroPage() {
   const params = useParams();
@@ -22,7 +23,7 @@ export default function LivroPage() {
           return;
         }
 
-        const apiUrl = `${process.env.NEXT_PUBLIC_API_URL || 'https://n-1.artnaweb.com.br/wp-json/n1/v1'}/api/products/slug/${encodeURIComponent(slug)}`;
+        const apiUrl = `${API_BASE_URL()}/api/products/slug/${encodeURIComponent(slug)}`;
         
         const response = await fetch(apiUrl, {
           cache: 'no-store',

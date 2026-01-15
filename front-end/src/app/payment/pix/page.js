@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -8,7 +8,7 @@ import Footer from '@layout/footer';
 import Wrapper from '@layout/wrapper';
 import Loader from '@components/loader/loader';
 
-const PixPaymentPage = () => {
+const PixPaymentContent = () => {
   const searchParams = useSearchParams();
   const router = useRouter();
   const orderId = searchParams.get('order');
@@ -304,6 +304,22 @@ const PixPaymentPage = () => {
       </section>
       <Footer />
     </Wrapper>
+  );
+};
+
+const PixPaymentPage = () => {
+  return (
+    <Suspense fallback={
+      <Wrapper>
+        <Header style_2={true} />
+        <div className="d-flex align-items-center justify-content-center" style={{ height: '60vh' }}>
+          <Loader loading={true} />
+        </div>
+        <Footer />
+      </Wrapper>
+    }>
+      <PixPaymentContent />
+    </Suspense>
   );
 };
 
