@@ -16,7 +16,7 @@ const schema = Yup.object().shape({
   password: Yup.string().required('Senha é obrigatória').min(6, 'A senha deve ter pelo menos 6 caracteres').label("Senha"),
 });
 
-const LoginForm = () => {
+const LoginForm = ({ onCheckoutLogin }) => {
   const [showPass, setShowPass] = useState(false);
   const [loginUser, {}] = useLoginUserMutation();
   const router = useRouter();
@@ -35,17 +35,22 @@ const LoginForm = () => {
       email: data.email,
       password: data.password,
     })
-      .then((data) => {
-        if(data?.error){
-          notifyError(data?.error?.data?.error);
-          console.log(data?.error?.data?.error,'error message');
+      .then((result) => {
+        if(result?.error){
+          notifyError(result?.error?.data?.error);
+          console.log(result?.error?.data?.error,'error message');
         }
         else {
           notifySuccess("Login realizado com sucesso");
-          setTimeout(() => {
-            router.push("/user-dashboard");
-          },500)
-          console.log(data?.data?.message,'success message');
+          // Se estiver no checkout, não redirecionar e chamar callback
+          if (onCheckoutLogin) {
+            onCheckoutLogin();
+          } else {
+            setTimeout(() => {
+              router.push("/user-dashboard");
+            },500)
+          }
+          console.log(result?.data?.message,'success message');
         }
       })
     reset();

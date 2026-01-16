@@ -28,13 +28,18 @@ const BillingDetails = ({ register, errors, calculateShippingByPostcode, watch, 
   
   // Inicializar CEP com máscara se já houver valor
   useEffect(() => {
-    const initialCep = zipCodeValue || shipping_info?.zipCode || '';
+    const initialCep = zipCodeValue || shipping_info?.zipCode || user?.zipCode || user?.cep || '';
     if (initialCep && !localCep) {
       const masked = applyCepMask(initialCep);
       setLocalCep(masked);
+      // Atualizar o valor no formulário
+      const cleanValue = initialCep.replace(/\D/g, '');
+      if (cleanValue) {
+        setValue('zipCode', cleanValue, { shouldValidate: false });
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [zipCodeValue, shipping_info, user]);
   
   // Handler para mudança no campo CEP
   const handleCepChange = (e) => {
@@ -78,7 +83,7 @@ const BillingDetails = ({ register, errors, calculateShippingByPostcode, watch, 
           )}
           <input
             {...register(`${name}`, {
-              required: `${label} é obrigatório!`,
+              required: isRequired ? `${label} é obrigatório!` : false,
             })}
             type={type}
             placeholder={placeholder}
@@ -100,7 +105,7 @@ const BillingDetails = ({ register, errors, calculateShippingByPostcode, watch, 
           placeholder="Nome"
           register={register}
           error={errors?.firstName?.message}
-          defaultValue={user?.name}
+          defaultValue={user?.name?.split(' ')[0] || user?.name || ''}
         />
         <CheckoutFormList
           name="lastName"
@@ -109,14 +114,36 @@ const BillingDetails = ({ register, errors, calculateShippingByPostcode, watch, 
           placeholder="Sobrenome"
           register={register}
           error={errors?.lastName?.message}
+          defaultValue={user?.lastName || user?.name?.split(' ').slice(1).join(' ') || ''}
         />
         <CheckoutFormList
           name="address"
           col="12"
           label="Endereço"
-          placeholder="Rua e número"
+          placeholder="Rua"
           register={register}
           error={errors?.address?.message}
+          defaultValue={user?.address || user?.shippingAddress}
+        />
+        <CheckoutFormList
+          name="number"
+          col="3"
+          label="Nº"
+          placeholder="Nº"
+          register={register}
+          error={errors?.number?.message}
+          defaultValue={user?.number || user?.numero}
+          isRequired={false}
+        />
+        <CheckoutFormList
+          name="complement"
+          col="9"
+          label="Complemento"
+          placeholder="Complemento"
+          register={register}
+          error={errors?.complement?.message}
+          defaultValue={user?.complement}
+          isRequired={false}
         />
         <CheckoutFormList
           col="12"
@@ -125,6 +152,7 @@ const BillingDetails = ({ register, errors, calculateShippingByPostcode, watch, 
           name="city"
           register={register}
           error={errors?.city?.message}
+          defaultValue={user?.city}
         />
         <CheckoutFormList
           col="6"
@@ -133,6 +161,7 @@ const BillingDetails = ({ register, errors, calculateShippingByPostcode, watch, 
           name="country"
           register={register}
           error={errors?.country?.message}
+          defaultValue={user?.country || user?.state}
         />
         <div className="col-md-6">
           <div className="checkout-form-list">
@@ -195,6 +224,7 @@ const BillingDetails = ({ register, errors, calculateShippingByPostcode, watch, 
           placeholder="Número de telefone"
           register={register}
           error={errors?.contact?.message}
+          defaultValue={user?.phone || user?.contactNumber}
         />
 
         <div className="order-notes">

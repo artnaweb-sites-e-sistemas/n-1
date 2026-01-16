@@ -1,7 +1,5 @@
 "use client";
 import Link from "next/link";
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { useSelector } from "react-redux";
 // internal
 import Header from "@layout/header";
@@ -16,13 +14,6 @@ import useCheckoutSubmit from "@hooks/use-checkout-submit";
 export default function CheckoutMainArea() {
   const checkout_data = useCheckoutSubmit();
   const { cart_products } = useSelector((state) => state.cart);
-  const router = useRouter();
-  useEffect(() => {
-    const isAuthenticate = localStorage.getItem("auth");
-    if (!isAuthenticate) {
-      router.push("/login");
-    }
-  }, [router]);
   return (
     <Wrapper>
       <Header style_2={true} />
@@ -36,7 +27,7 @@ export default function CheckoutMainArea() {
         </div>
       ) : (
         <>
-          <CouponArea {...checkout_data} />
+          <CouponArea {...checkout_data} onUserLoggedIn={checkout_data.fillCheckoutFields} />
           <CheckoutArea {...checkout_data} />
         </>
       )}

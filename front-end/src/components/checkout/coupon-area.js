@@ -6,6 +6,16 @@ import LoginForm from "@components/forms/login-form";
 const CouponArea = (props) => {
   const [checkoutLogin, setCheckoutLogin] = useState(false);
   const [checkoutCoupon, setCheckoutCoupon] = useState(false);
+  
+  const handleCheckoutLogin = () => {
+    // Fechar o formulário de login após sucesso
+    setCheckoutLogin(false);
+    // Chamar callback se fornecido (para atualizar campos do checkout)
+    if (props.onUserLoggedIn) {
+      props.onUserLoggedIn();
+    }
+  };
+  
   return (
     <section className="coupon-area pt-120 pb-30">
       <div className="container">
@@ -28,7 +38,7 @@ const CouponArea = (props) => {
                       Se você já possui uma conta, faça login para agilizar o processo de compra.
                     </p>
                     {/* form start */}
-                    <LoginForm />
+                    <LoginForm onCheckoutLogin={handleCheckoutLogin} />
                     {/* form end */}
                   </div>
                 </div>

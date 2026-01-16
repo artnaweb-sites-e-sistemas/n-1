@@ -306,6 +306,11 @@ module.exports.updateUser = async (req, res) => {
       user.email = req.body.email;
       user.phone = req.body.phone;
       user.address = req.body.address;
+      user.number = req.body.number;
+      user.complement = req.body.complement;
+      user.zipCode = req.body.zipCode;
+      user.city = req.body.city;
+      user.country = req.body.country;
       user.bio = req.body.bio; 
       const updatedUser = await user.save();
       const token = generateToken(updatedUser);

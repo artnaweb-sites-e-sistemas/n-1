@@ -1238,8 +1238,22 @@ class N1_WooCommerce_API {
             '_id' => (string)$user->ID,
             'id' => $user->ID,
             'name' => $user->display_name,
+            'lastName' => get_user_meta($user->ID, 'n1_lastname', true) ?: '',
             'email' => $user->user_email,
             'role' => !empty($user->roles) ? $user->roles[0] : 'customer',
+            'phone' => get_user_meta($user->ID, 'n1_phone', true) ?: get_user_meta($user->ID, 'billing_phone', true) ?: '',
+            'contactNumber' => get_user_meta($user->ID, 'n1_phone', true) ?: get_user_meta($user->ID, 'billing_phone', true) ?: '',
+            'address' => get_user_meta($user->ID, 'n1_address', true) ?: get_user_meta($user->ID, 'billing_address_1', true) ?: '',
+            'shippingAddress' => get_user_meta($user->ID, 'n1_address', true) ?: get_user_meta($user->ID, 'shipping_address_1', true) ?: '',
+            'number' => get_user_meta($user->ID, 'n1_number', true) ?: '',
+            'numero' => get_user_meta($user->ID, 'n1_number', true) ?: '',
+            'complement' => get_user_meta($user->ID, 'n1_complement', true) ?: '',
+            'zipCode' => get_user_meta($user->ID, 'n1_zipcode', true) ?: get_user_meta($user->ID, 'billing_postcode', true) ?: '',
+            'cep' => get_user_meta($user->ID, 'n1_zipcode', true) ?: get_user_meta($user->ID, 'billing_postcode', true) ?: '',
+            'city' => get_user_meta($user->ID, 'n1_city', true) ?: get_user_meta($user->ID, 'billing_city', true) ?: '',
+            'country' => get_user_meta($user->ID, 'n1_country', true) ?: get_user_meta($user->ID, 'billing_state', true) ?: '',
+            'state' => get_user_meta($user->ID, 'n1_country', true) ?: get_user_meta($user->ID, 'billing_state', true) ?: '',
+            'bio' => get_user_meta($user->ID, 'n1_bio', true) ?: get_user_meta($user->ID, 'description', true) ?: '',
         );
     }
     
@@ -1722,6 +1736,49 @@ class N1_WooCommerce_API {
         
         if (is_wp_error($result)) {
             return new WP_Error('update_failed', $result->get_error_message(), array('status' => 500));
+        }
+        
+        // Salvar campos adicionais usando user_meta
+        if (isset($params['lastName'])) {
+            update_user_meta($user_id, 'n1_lastname', sanitize_text_field($params['lastName']));
+        }
+        
+        if (isset($params['phone'])) {
+            update_user_meta($user_id, 'n1_phone', sanitize_text_field($params['phone']));
+            update_user_meta($user_id, 'billing_phone', sanitize_text_field($params['phone']));
+        }
+        
+        if (isset($params['address'])) {
+            update_user_meta($user_id, 'n1_address', sanitize_text_field($params['address']));
+            update_user_meta($user_id, 'billing_address_1', sanitize_text_field($params['address']));
+        }
+        
+        if (isset($params['number'])) {
+            update_user_meta($user_id, 'n1_number', sanitize_text_field($params['number']));
+        }
+        
+        if (isset($params['complement'])) {
+            update_user_meta($user_id, 'n1_complement', sanitize_text_field($params['complement']));
+        }
+        
+        if (isset($params['zipCode'])) {
+            update_user_meta($user_id, 'n1_zipcode', sanitize_text_field($params['zipCode']));
+            update_user_meta($user_id, 'billing_postcode', sanitize_text_field($params['zipCode']));
+        }
+        
+        if (isset($params['city'])) {
+            update_user_meta($user_id, 'n1_city', sanitize_text_field($params['city']));
+            update_user_meta($user_id, 'billing_city', sanitize_text_field($params['city']));
+        }
+        
+        if (isset($params['country'])) {
+            update_user_meta($user_id, 'n1_country', sanitize_text_field($params['country']));
+            update_user_meta($user_id, 'billing_state', sanitize_text_field($params['country']));
+        }
+        
+        if (isset($params['bio'])) {
+            update_user_meta($user_id, 'n1_bio', sanitize_textarea_field($params['bio']));
+            wp_update_user(array('ID' => $user_id, 'description' => sanitize_textarea_field($params['bio'])));
         }
         
         $user = get_userdata($user_id);

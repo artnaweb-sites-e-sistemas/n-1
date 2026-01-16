@@ -1,6 +1,6 @@
 'use client';
 import * as dayjs from "dayjs";
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { CardElement, useElements, useStripe } from "@stripe/react-stripe-js";
 import { useForm } from "react-hook-form";
@@ -17,12 +17,14 @@ import {
   useCreatePaymentIntentMutation,
   useCalculateShippingMutation,
 } from "src/redux/features/order/orderApi";
+import { useUpdateProfileMutation } from "src/redux/features/auth/authApi";
 
 const useCheckoutSubmit = () => {
   const { data: offerCoupons, isError, isLoading } = useGetOfferCouponsQuery();
   const [addOrder, {}] = useAddOrderMutation();
   const [createPaymentIntent, {}] = useCreatePaymentIntentMutation();
   const [calculateShipping, { isLoading: isCalculatingShipping }] = useCalculateShippingMutation();
+  const [updateProfile, {}] = useUpdateProfileMutation();
   
   // Log quando os dados dos cupons chegam
   useEffect(() => {
@@ -384,17 +386,46 @@ const useCheckoutSubmit = () => {
     }
   };
 
-  //set values
+  // Função para preencher campos do checkout
+  const fillCheckoutFields = React.useCallback(() => {
+    if (user) {
+      // Se o usuário estiver logado, preencher com seus dados
+      // Usar lastName do usuário se disponível, senão separar do name
+      const userLastName = user.lastName || '';
+      const userName = user.name || '';
+      const nameParts = userName.split(' ');
+      const firstName = nameParts[0] || '';
+      const lastName = userLastName || nameParts.slice(1).join(' ') || '';
+      
+      setValue("firstName", shipping_info.firstName || firstName);
+      setValue("lastName", shipping_info.lastName || lastName);
+      setValue("address", shipping_info.address || user.address || user.shippingAddress || '');
+      setValue("number", shipping_info.number || user.number || user.numero || '');
+      setValue("complement", shipping_info.complement || user.complement || '');
+      setValue("city", shipping_info.city || user.city || '');
+      setValue("country", shipping_info.country || user.country || user.state || '');
+      setValue("zipCode", shipping_info.zipCode || user.zipCode || user.cep || '');
+      setValue("email", shipping_info.email || user.email || '');
+      setValue("contact", shipping_info.contact || user.phone || user.contactNumber || '');
+    } else {
+      // Se não estiver logado, usar shipping_info
+      setValue("firstName", shipping_info.firstName || '');
+      setValue("lastName", shipping_info.lastName || '');
+      setValue("address", shipping_info.address || '');
+      setValue("number", shipping_info.number || '');
+      setValue("complement", shipping_info.complement || '');
+      setValue("city", shipping_info.city || '');
+      setValue("country", shipping_info.country || '');
+      setValue("zipCode", shipping_info.zipCode || '');
+      setValue("email", shipping_info.email || '');
+      setValue("contact", shipping_info.contact || '');
+    }
+  }, [user, setValue, shipping_info]);
+
+  //set values - preencher com dados do usuário se estiver logado, senão usar shipping_info
   useEffect(() => {
-    setValue("firstName", shipping_info.firstName);
-    setValue("lastName", shipping_info.lastName);
-    setValue("address", shipping_info.address);
-    setValue("city", shipping_info.city);
-    setValue("country", shipping_info.country);
-    setValue("zipCode", shipping_info.zipCode);
-    setValue("email", shipping_info.email);
-    setValue("contact", shipping_info.contact);
-  }, [user, setValue, shipping_info,router]);
+    fillCheckoutFields();
+  }, [fillCheckoutFields]);
 
   // submitHandler
   const submitHandler = async (data) => {
@@ -410,6 +441,8 @@ const useCheckoutSubmit = () => {
     let orderInfo = {
       name: `${data.firstName} ${data.lastName}`,
       address: data.address,
+      number: data.number || '',
+      complement: data.complement || '',
       contact: data.contact,
       email: data.email,
       city: data.city,
@@ -768,6 +801,52 @@ const useCheckoutSubmit = () => {
       } else {
         const orderId = result.data?.order?._id || result.data?._id || 'success';
         
+        // Salvar dados do checkout no perfil do usuário se estiver logado
+        if (user && user._id) {
+          try {
+            // Limpar CEP do orderData se disponível
+            const orderZipCode = orderData.shipping_info?.postcode || order.zipCode || '';
+            const cleanOrderZipCode = orderZipCode ? String(orderZipCode).replace(/\D/g, '') : '';
+            
+            // Extrair dados do orderData ou order original
+            const firstName = orderData.shipping_info?.firstName || order.name?.split(' ')[0] || '';
+            const lastName = orderData.shipping_info?.lastName || order.name?.split(' ').slice(1).join(' ') || '';
+            const fullName = firstName && lastName ? `${firstName} ${lastName}` : (order.name || user.name);
+            
+            const profileData = {
+              id: user._id,
+              name: fullName,
+              lastName: lastName || user.lastName || '',
+              email: orderData.shipping_info?.email || order.email || user.email,
+              phone: orderData.shipping_info?.phone || order.contact || user.phone || user.contactNumber || '',
+              address: orderData.shipping_info?.address || order.address || user.address || user.shippingAddress || '',
+              number: order.number || user.number || user.numero || '',
+              complement: order.complement || user.complement || '',
+              zipCode: cleanOrderZipCode || order.zipCode || user.zipCode || user.cep || '',
+              city: orderData.shipping_info?.city || order.city || user.city || '',
+              country: orderData.shipping_info?.country || order.country || user.country || user.state || '',
+            };
+            
+            // Só atualizar se houver dados novos para salvar
+            const hasNewData = profileData.address || profileData.city || profileData.country || profileData.zipCode || profileData.phone;
+            if (hasNewData) {
+              updateProfile(profileData)
+                .then((result) => {
+                  if (result?.error) {
+                    console.log("Erro ao salvar dados no perfil:", result.error);
+                  } else {
+                    console.log("Dados do checkout salvos no perfil com sucesso");
+                  }
+                })
+                .catch((err) => {
+                  console.log("Erro ao salvar dados no perfil (não crítico):", err);
+                });
+            }
+          } catch (profileErr) {
+            console.log("Erro ao salvar dados no perfil (não crítico):", profileErr);
+          }
+        }
+        
         // Se for PIX, redirecionar com dados do QR Code
         if (orderPaymentMethod === 'pix' && orderData.pixData) {
           // Salvar dados do PIX no localStorage para a página de pagamento
@@ -814,6 +893,7 @@ const useCheckoutSubmit = () => {
     selectedShippingId,
     isCalculatingShipping,
     discountPercentage,
+    fillCheckoutFields,
     discountProductType,
     isCheckoutSubmit,
     setTotal,

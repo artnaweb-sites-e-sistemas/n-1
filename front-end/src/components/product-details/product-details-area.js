@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import { useDispatch, useSelector } from "react-redux";
+import { useRouter } from "next/navigation";
 // internal
-import { HeartTwo, CartTwo } from "@svg/index";
+import { HeartTwo, CartTwo, RightArrow } from "@svg/index";
 import { SocialShare } from "@components/social";
 import ProductDetailsPrice from "./product-details-price";
 import ProductQuantity from "./product-quantity";
@@ -40,12 +41,20 @@ const ProductDetailsArea = ({ product }) => {
   }, [mainImage]);
 
   const dispatch = useDispatch();
+  const router = useRouter();
   const { wishlist } = useSelector((state) => state.wishlist);
+  const { cart_products } = useSelector((state) => state.cart);
   const isWishlistAdded = wishlist.some((item) => item._id === _id);
+  const isAddedToCart = cart_products.some((item) => item._id === _id);
 
   // handle add product
   const handleAddProduct = (prd) => {
     dispatch(add_cart_product(prd));
+  };
+
+  // handle go to cart
+  const handleGoToCart = () => {
+    router.push('/cart');
   };
 
   // handle add wishlist
@@ -54,7 +63,33 @@ const ProductDetailsArea = ({ product }) => {
   };
 
   return (
-    <section className="product__details-area pb-115">
+    <>
+      <style dangerouslySetInnerHTML={{__html: `
+        .product-cart-btn-hover svg {
+          display: inline-block;
+          vertical-align: middle;
+          transform: translateY(-1px);
+          transition: transform 0.3s ease-in-out;
+        }
+        .product-cart-btn-hover:hover svg {
+          transform: translateY(-1px) translateX(5px);
+        }
+        .product-cart-btn-hover {
+          transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease !important;
+        }
+        .product-cart-btn-hover:hover {
+          transform: translateY(-2px) !important;
+          box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4) !important;
+          background-color: #059669 !important;
+        }
+        .product-cart-btn-hover:active {
+          transform: translateY(0) !important;
+        }
+        .product-cart-btn-hover:active svg {
+          transform: translateY(-1px) translateX(2px);
+        }
+      `}} />
+      <section className="product__details-area pb-115">
       <div className="container">
         <div className="row">
           <div className="col-xl-7 col-lg-6">
@@ -124,19 +159,41 @@ const ProductDetailsArea = ({ product }) => {
               {/* quantity */}
 
               <div className="product__details-action d-flex flex-wrap align-items-center">
-                <button
-                  onClick={() => handleAddProduct(product)}
-                  type="button"
-                  className="product-add-cart-btn product-add-cart-btn-3"
-                  disabled={!inStock}
-                  style={{
-                    opacity: inStock ? 1 : 0.5,
-                    cursor: inStock ? 'pointer' : 'not-allowed'
-                  }}
-                >
-                  <CartTwo />
-                  {inStock ? 'Adicionar ao Carrinho' : 'Fora de Estoque'}
-                </button>
+                {isAddedToCart ? (
+                  <button
+                    onClick={handleGoToCart}
+                    type="button"
+                    className="product-add-cart-btn product-add-cart-btn-3 product-cart-btn-hover"
+                    style={{
+                      backgroundColor: '#10b981',
+                      borderColor: '#10b981',
+                      color: '#ffffff',
+                      opacity: 1,
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      verticalAlign: 'middle'
+                    }}
+                  >
+                    Ir para o Carrinho
+                    <RightArrow />
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => handleAddProduct(product)}
+                    type="button"
+                    className="product-add-cart-btn product-add-cart-btn-3"
+                    disabled={!inStock}
+                    style={{
+                      opacity: inStock ? 1 : 0.5,
+                      cursor: inStock ? 'pointer' : 'not-allowed'
+                    }}
+                  >
+                    <CartTwo />
+                    {inStock ? 'Adicionar ao Carrinho' : 'Fora de Estoque'}
+                  </button>
+                )}
                 <button
                   onClick={() => handleAddWishlist(product)}
                   type="button"
@@ -171,6 +228,7 @@ const ProductDetailsArea = ({ product }) => {
         </div>
       </div>
     </section>
+    </>
   );
 };
 
