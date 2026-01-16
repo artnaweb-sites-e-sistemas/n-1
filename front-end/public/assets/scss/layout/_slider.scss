@@ -1933,7 +1933,8 @@
                 color: var(--tp-text-1);
                 position: relative;
                 padding-left: 13px;
-                display: inline-block;
+                display: inline-flex;
+                align-items: center;
                 line-height: 1.12;
                 margin-bottom: 11px;
                 animation-delay: .3s;
@@ -1948,9 +1949,10 @@
                     position: absolute;
                     content: '';
                     left: 0;
-                    top: -2px;
+                    top: 50%;
+                    @include transform(translateY(-50%));
                     width: 2px;
-                    height: 37px;
+                    height: 18px;
                     background-color: var(--tp-theme-1);
 
                     @include rtl{

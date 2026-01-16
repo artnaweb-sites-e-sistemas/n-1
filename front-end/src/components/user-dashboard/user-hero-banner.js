@@ -15,11 +15,8 @@ const UserHeroBanner = () => {
                 Bem-vindo(a) à sua área pessoal
               </span>
               <h2 className="user-hero__title">
-                Olá, {user?.name || 'Usuário'}!
+                Olá, {user?.name?.split(' ')[0] || user?.name || 'Usuário'}!
               </h2>
-              <p className="user-hero__text">
-                Gerencie seus pedidos, atualize suas informações e acompanhe suas compras
-              </p>
             </div>
           </div>
         </div>

@@ -41,7 +41,7 @@ const slider_data = [
     id: 3,
     pre_title: (
       <>
-        Desde 2011 <br /> Produzindo Conhecimento
+        Desde 2011 Produzindo Conhecimento
       </>
     ),
     title: (
