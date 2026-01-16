@@ -4,6 +4,7 @@
   "private": true,
   "description": "Repositório N-1 Edições - Front-end, Backend e Admin Panel",
   "scripts": {
+    "start": "cd front-end && npm run dev",
     "dev:front": "cd front-end && npm run dev",
     "build:front": "cd front-end && npm run build",
     "start:front": "cd front-end && npm run start",
@@ -15,6 +16,11 @@
     "build:admin": "cd admin-panel && npm run build",
     "install:admin": "cd admin-panel && npm install",
     "install:all": "npm run install:front && npm run install:backend && npm run install:admin"
+  },
+  "config": {
+    "commit": {
+      "template": ".gitmessage"
+    }
   },
   "keywords": [
     "nextjs",

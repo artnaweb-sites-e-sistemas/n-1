@@ -1,0 +1,58 @@
+# Convenções de Commit - N-1 Edições
+
+Ao gerar mensagens de commit, sempre use o formato:
+
+```
+<tipo>(<escopo>): <descrição curta>
+```
+
+## Tipos de Commit:
+
+- `feat` - Nova funcionalidade
+- `fix` - Correção de bug
+- `update` - Atualizar algo existente
+- `remove` - Remover arquivo/código
+- `refactor` - Refatoração (melhorias no código)
+- `chore` - Tarefas de manutenção/configuração
+- `docs` - Documentação
+- `style` - Formatação (não afeta código)
+- `perf` - Melhorias de performance
+- `test` - Testes
+- `deploy` - Mudanças relacionadas a deploy
+
+## Escopos Comuns:
+
+- `front-end` - Mudanças no front-end
+- `backend` - Mudanças no backend
+- `admin-panel` - Mudanças no admin panel
+- `plugin` - Mudanças no plugin WordPress
+- `config` - Mudanças de configuração
+- `build` - Mudanças no build
+- `env` - Variáveis de ambiente
+- `api` - API/endpoints
+- `cart` - Carrinho
+- `checkout` - Checkout
+- `products` - Produtos
+- `auth` - Autenticação
+- `styles` - Estilos/CSS
+- `components` - Componentes
+- `utils` - Utilitários
+
+## Regras:
+
+1. Use português para descrições
+2. Primeira letra minúscula na descrição
+3. Sem ponto final na descrição curta
+4. Seja específico e claro
+5. Use o tipo correto que melhor descreve a mudança
+
+## Exemplos:
+
+- `feat(cart): adicionar botão de remover item`
+- `fix(checkout): corrigir erro ao processar pagamento`
+- `update(nextjs): atualizar Next.js para versão 15.1.6`
+- `remove(scripts): remover scripts antigos de migração`
+- `refactor(env): padronizar variáveis de ambiente`
+- `chore(vercel): configurar variáveis de ambiente`
+- `docs(readme): atualizar instruções de deploy`
+

@@ -1,0 +1,24 @@
+# <tipo>(<escopo>): <descrição curta>
+
+# Tipos:
+# feat - Nova funcionalidade
+# fix - Correção de bug
+# update - Atualizar algo existente
+# remove - Remover arquivo/código
+# refactor - Refatoração
+# chore - Manutenção/configuração
+# docs - Documentação
+# style - Formatação
+# perf - Performance
+# test - Testes
+# deploy - Deploy
+
+# Escopos: front-end, backend, admin-panel, plugin, config, build, env, api, cart, checkout, products, auth, styles, components, utils
+
+# Exemplos:
+# feat(cart): adicionar botão de remover item
+# fix(checkout): corrigir erro ao processar pagamento
+# update(nextjs): atualizar Next.js para versão 15.1.6
+# remove(scripts): remover scripts antigos
+# refactor(env): padronizar variáveis de ambiente
+# chore(vercel): configurar variáveis de ambiente
