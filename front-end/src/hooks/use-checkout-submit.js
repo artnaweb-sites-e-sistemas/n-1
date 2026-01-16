@@ -1,7 +1,7 @@
 'use client';
 import * as dayjs from "dayjs";
 import React, { useEffect, useRef, useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch, useSelector, useStore } from "react-redux";
 import { CardElement, useElements, useStripe } from "@stripe/react-stripe-js";
 import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
@@ -63,6 +63,7 @@ const useCheckoutSubmit = () => {
   
   const dispatch = useDispatch();
   const router = useRouter();
+  const store = useStore();
   const stripe = useStripe();
   const elements = useElements();
 
@@ -447,11 +448,15 @@ const useCheckoutSubmit = () => {
 
   // submitHandler
   const submitHandler = async (data) => {
+    console.log('[CHECKOUT] submitHandler iniciado com dados:', data);
+    
     // Garantir que o CEP está sem máscara
     const cleanZipCode = data.zipCode ? String(data.zipCode).replace(/\D/g, '') : '';
+    console.log('[CHECKOUT] CEP limpo:', cleanZipCode);
     
     // Validar CEP
     if (!cleanZipCode || cleanZipCode.length !== 8) {
+      console.log('[CHECKOUT] Erro: CEP inválido');
       notifyError("Por favor, informe um CEP válido");
       setIsCheckoutSubmit(false);
       return;
@@ -460,6 +465,7 @@ const useCheckoutSubmit = () => {
     // Validar se o frete foi calculado
     // Verificar se há opções de frete disponíveis e se uma foi selecionada
     if (shippingOptions.length === 0 || !selectedShippingId) {
+      console.log('[CHECKOUT] Erro: Frete não calculado. shippingOptions:', shippingOptions.length, 'selectedShippingId:', selectedShippingId);
       setShippingError(true);
       notifyError("Por favor, calcule o frete antes de finalizar o pedido. Clique no botão 'Calcular Frete' após informar o CEP.");
       setIsCheckoutSubmit(false);
@@ -469,6 +475,7 @@ const useCheckoutSubmit = () => {
     // Limpar erro de frete se tudo estiver ok
     setShippingError(false);
     
+    console.log('[CHECKOUT] Validações passadas. Prosseguindo com checkout...');
     dispatch(set_shipping(data));
     setIsCheckoutSubmit(true);
     
@@ -584,72 +591,75 @@ const useCheckoutSubmit = () => {
         return;
       }
       
-      // Se clientSecret não estiver disponível, criar novo payment intent
-      if (!clientSecret) {
-        try {
-          // Criar payment intent com método de pagamento específico
-          const paymentIntentResult = await createPaymentIntent({
-            price: parseInt(cartTotal),
-            payment_method: 'card',
-          });
-          
-          const paymentIntentResponse = paymentIntentResult?.data?.data || paymentIntentResult?.data || paymentIntentResult;
-          const newClientSecret = paymentIntentResponse?.clientSecret;
-          if (!newClientSecret) {
-            throw new Error('Não foi possível criar payment intent');
-          }
-          
-          const { paymentIntent, error: intentErr } = await stripe.confirmCardPayment(newClientSecret, {
-            payment_method: {
-              card: card,
-              billing_details: {
-                name: user?.name || order.name,
-                email: user?.email || order.email,
-              },
-            },
-          });
-          
-          if (intentErr) {
-            notifyError(intentErr.message);
-            setIsCheckoutSubmit(false);
-            return;
-          }
-          
-          orderData.paymentIntent = paymentIntent;
-          orderData.paymentStatus = paymentIntent?.status || 'succeeded';
-        } catch (err) {
-          console.error("Erro ao processar pagamento com cartão:", err);
+      // Sempre criar um novo payment intent para evitar conflitos
+      try {
+        // Criar payment intent com método de pagamento específico
+        const paymentIntentResult = await createPaymentIntent({
+          price: parseInt(cartTotal),
+          payment_method: 'card',
+        });
+        
+        if (paymentIntentResult?.error) {
+          const errorMsg = paymentIntentResult.error?.data?.message || paymentIntentResult.error?.data || 'Erro ao criar Payment Intent';
+          notifyError(errorMsg);
+          setIsCheckoutSubmit(false);
+          return;
+        }
+        
+        const paymentIntentResponse = paymentIntentResult?.data?.data || paymentIntentResult?.data || paymentIntentResult;
+        const newClientSecret = paymentIntentResponse?.clientSecret;
+        
+        if (!newClientSecret) {
+          console.error("Payment Intent criado mas sem clientSecret:", paymentIntentResponse);
           notifyError("Erro ao processar pagamento. Tente novamente.");
           setIsCheckoutSubmit(false);
           return;
         }
-      } else {
-        // Usar clientSecret existente
-        try {
-          const { paymentIntent, error: intentErr } = await stripe.confirmCardPayment(clientSecret, {
-            payment_method: {
-              card: card,
-              billing_details: {
-                name: user?.name || order.name,
-                email: user?.email || order.email,
+        
+        // Confirmar o payment intent com os dados do cartão
+        // O Stripe requer código de país ISO 3166-1 alpha-2 (2 caracteres), sempre usar 'BR' para Brasil
+        const countryCode = 'BR'; // Sempre Brasil, não usar estado como 'SP'
+        
+        const { paymentIntent, error: intentErr } = await stripe.confirmCardPayment(newClientSecret, {
+          payment_method: {
+            card: card,
+            billing_details: {
+              name: user?.name || order.name || `${order.shipping_info?.firstName || ''} ${order.shipping_info?.lastName || ''}`.trim(),
+              email: user?.email || order.email || order.shipping_info?.email || '',
+              address: {
+                line1: order.address || order.shipping_info?.address || '',
+                city: order.city || order.shipping_info?.city || '',
+                postal_code: order.zipCode || order.shipping_info?.postcode || '',
+                state: order.country || order.shipping_info?.country || '', // Estado vai aqui (SP, RJ, etc)
+                country: countryCode, // País sempre 'BR'
               },
             },
-          });
-          
-          if (intentErr) {
-            notifyError(intentErr.message);
-            setIsCheckoutSubmit(false);
-            return;
-          }
-          
-          orderData.paymentIntent = paymentIntent;
-          orderData.paymentStatus = paymentIntent?.status || 'succeeded';
-        } catch (err) {
-          console.error("Erro ao processar pagamento com cartão:", err);
+          },
+        });
+        
+        if (intentErr) {
+          console.error("Erro ao confirmar pagamento:", intentErr);
+          notifyError(intentErr.message || "Erro ao processar pagamento. Verifique os dados do cartão.");
+          setIsCheckoutSubmit(false);
+          return;
+        }
+        
+        if (!paymentIntent) {
           notifyError("Erro ao processar pagamento. Tente novamente.");
           setIsCheckoutSubmit(false);
           return;
         }
+        
+        orderData.paymentIntent = paymentIntent;
+        orderData.paymentStatus = paymentIntent?.status || 'succeeded';
+        
+        // Limpar clientSecret após uso para evitar reutilização
+        setClientSecret('');
+      } catch (err) {
+        console.error("Erro ao processar pagamento com cartão:", err);
+        notifyError(err.message || "Erro ao processar pagamento. Tente novamente.");
+        setIsCheckoutSubmit(false);
+        return;
       }
     } else if (orderPaymentMethod === 'pix') {
       // Processar PIX
@@ -831,9 +841,19 @@ const useCheckoutSubmit = () => {
 
     // Salvar pedido
     try {
+      console.log('[PEDIDO] Preparando para salvar pedido. orderData:', orderData);
+      console.log('[PEDIDO] User ID:', user?._id || 'Não logado');
+      console.log('[PEDIDO] Token de autenticação presente:', !!store.getState()?.auth?.accessToken);
+      
       const result = await addOrder(orderData);
+      
+      console.log('[PEDIDO] Resultado do addOrder:', result);
+      
       if (result?.error) {
-        notifyError("Erro ao processar pedido. Tente novamente.");
+        console.error('[PEDIDO] Erro ao salvar pedido:', result.error);
+        console.error('[PEDIDO] Status do erro:', result.error?.status);
+        console.error('[PEDIDO] Mensagem do erro:', result.error?.data);
+        notifyError(result.error?.data?.message || "Erro ao processar pedido. Tente novamente.");
         setIsCheckoutSubmit(false);
       } else {
         const orderId = result.data?.order?._id || result.data?._id || 'success';

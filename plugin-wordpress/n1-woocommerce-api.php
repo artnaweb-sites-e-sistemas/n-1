@@ -2007,12 +2007,64 @@ class N1_WooCommerce_API {
             return new WP_Error('invalid_data', 'Informações de entrega são obrigatórias', array('status' => 400));
         }
         
+        // Tentar autenticar usuário se houver token na requisição
         $user_id = get_current_user_id();
+        error_log('N1 API - add_order: user_id inicial (get_current_user_id) = ' . $user_id);
+        
+        // Se não houver usuário logado, tentar autenticar pelo token
         if (!$user_id) {
-            return new WP_Error('unauthorized', 'Usuário não autenticado', array('status' => 401));
+            // Verificar se há token na requisição
+            $headers = array();
+            if (function_exists('getallheaders')) {
+                $headers = getallheaders();
+            } else {
+                foreach ($_SERVER as $name => $value) {
+                    if (substr($name, 0, 5) == 'HTTP_') {
+                        $headers[str_replace(' ', '-', ucwords(strtolower(str_replace('_', ' ', substr($name, 5)))))] = $value;
+                    }
+                }
+            }
+            
+            // Normalizar headers para case-insensitive
+            $normalized_headers = array();
+            foreach ($headers as $key => $value) {
+                $normalized_headers[strtolower($key)] = $value;
+            }
+            
+            $auth_header = '';
+            if (isset($normalized_headers['authorization'])) {
+                $auth_header = $normalized_headers['authorization'];
+            } elseif (isset($_SERVER['HTTP_AUTHORIZATION'])) {
+                $auth_header = $_SERVER['HTTP_AUTHORIZATION'];
+            } elseif (isset($_SERVER['REDIRECT_HTTP_AUTHORIZATION'])) {
+                $auth_header = $_SERVER['REDIRECT_HTTP_AUTHORIZATION'];
+            }
+            
+            error_log('N1 API - add_order: Auth header presente = ' . ($auth_header ? 'sim' : 'não'));
+            
+            // Se houver token, tentar validar
+            if ($auth_header && preg_match('/Bearer\s+(.*)$/i', $auth_header, $matches)) {
+                $token = trim($matches[1]);
+                error_log('N1 API - add_order: Token encontrado, validando...');
+                $validated_user_id = $this->validate_token($token);
+                if ($validated_user_id) {
+                    $user_id = $validated_user_id;
+                    wp_set_current_user($user_id);
+                    error_log('N1 API - add_order: Token válido, user_id = ' . $user_id);
+                } else {
+                    error_log('N1 API - add_order: Token inválido ou expirado, usando guest checkout');
+                    $user_id = 0;
+                }
+            } else {
+                error_log('N1 API - add_order: Sem token, usando guest checkout (user_id = 0)');
+                $user_id = 0;
+            }
+        } else {
+            error_log('N1 API - add_order: Usuário já logado, user_id = ' . $user_id);
         }
         
         $coupon_info = isset($params['couponInfo']) ? $params['couponInfo'] : null;
+        error_log('N1 API - add_order: Continuando com processamento do pedido. user_id final = ' . $user_id);
         
         // Extrair payment intent ID - pode vir como objeto ou string
         $payment_intent_id = null;
