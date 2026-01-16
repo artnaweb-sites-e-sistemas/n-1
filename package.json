@@ -1,0 +1,27 @@
+{
+  "name": "n1-edicoes",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Repositório N-1 Edições - Front-end, Backend e Admin Panel",
+  "scripts": {
+    "dev:front": "cd front-end && npm run dev",
+    "build:front": "cd front-end && npm run build",
+    "start:front": "cd front-end && npm run start",
+    "install:front": "cd front-end && npm install",
+    "dev:backend": "cd backend && npm run start-dev",
+    "start:backend": "cd backend && npm start",
+    "install:backend": "cd backend && npm install",
+    "dev:admin": "cd admin-panel && npm run dev",
+    "build:admin": "cd admin-panel && npm run build",
+    "install:admin": "cd admin-panel && npm install",
+    "install:all": "npm run install:front && npm run install:backend && npm run install:admin"
+  },
+  "keywords": [
+    "nextjs",
+    "wordpress",
+    "ecommerce"
+  ],
+  "author": "",
+  "license": "ISC"
+}
+
