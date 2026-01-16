@@ -19,6 +19,7 @@ const OrderArea = ({
   shippingOptions,
   selectedShippingId,
   isCalculatingShipping,
+  shippingError,
   paymentMethod,
   setPaymentMethod,
 }) => {
@@ -56,6 +57,7 @@ const OrderArea = ({
               shippingOptions={shippingOptions}
               selectedShippingId={selectedShippingId}
               isCalculatingShipping={isCalculatingShipping}
+              shippingError={shippingError}
             />
           </tfoot>
         </table>

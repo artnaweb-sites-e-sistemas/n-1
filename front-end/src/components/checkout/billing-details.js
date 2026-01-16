@@ -15,6 +15,9 @@ const BillingDetails = ({ register, errors, calculateShippingByPostcode, watch, 
     // Remove tudo que não é número
     const numbers = value.replace(/\D/g, '');
     
+    // Se não há números, retorna vazio
+    if (!numbers) return '';
+    
     // Limita a 8 dígitos
     const limitedNumbers = numbers.slice(0, 8);
     
@@ -26,30 +29,65 @@ const BillingDetails = ({ register, errors, calculateShippingByPostcode, watch, 
     }
   };
   
-  // Inicializar CEP com máscara se já houver valor
+  // Flag para controlar se já inicializou
+  const [isInitialized, setIsInitialized] = React.useState(false);
+  
+  // Inicializar CEP com máscara apenas uma vez
   useEffect(() => {
-    const initialCep = zipCodeValue || shipping_info?.zipCode || user?.zipCode || user?.cep || '';
-    if (initialCep && !localCep) {
-      const masked = applyCepMask(initialCep);
-      setLocalCep(masked);
-      // Atualizar o valor no formulário
-      const cleanValue = initialCep.replace(/\D/g, '');
-      if (cleanValue) {
-        setValue('zipCode', cleanValue, { shouldValidate: false });
+    if (!isInitialized) {
+      const initialCep = zipCodeValue || shipping_info?.zipCode || user?.zipCode || user?.cep || '';
+      if (initialCep) {
+        const masked = applyCepMask(initialCep);
+        setLocalCep(masked);
+        // Atualizar o valor no formulário
+        const cleanValue = initialCep.replace(/\D/g, '');
+        if (cleanValue) {
+          setValue('zipCode', cleanValue, { shouldValidate: false });
+        }
       }
+      setIsInitialized(true);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [zipCodeValue, shipping_info, user]);
+  }, []); // Apenas na montagem inicial
   
   // Handler para mudança no campo CEP
   const handleCepChange = (e) => {
-    const value = e.target.value;
-    const maskedValue = applyCepMask(value);
+    const inputValue = e.target.value;
+    
+    // Se o campo está vazio, limpar ambos os estados
+    if (!inputValue || inputValue.trim() === '') {
+      setLocalCep('');
+      setValue('zipCode', '', { shouldValidate: false });
+      return;
+    }
+    
+    // Extrair apenas números do valor digitado
+    const numbers = inputValue.replace(/\D/g, '');
+    
+    // Se não há números após limpar, limpar o campo
+    if (!numbers || numbers.length === 0) {
+      setLocalCep('');
+      setValue('zipCode', '', { shouldValidate: false });
+      return;
+    }
+    
+    // Aplicar máscara
+    const maskedValue = applyCepMask(numbers);
+    
+    // Atualizar estado local com a máscara
     setLocalCep(maskedValue);
     
-    // Atualiza o valor no formulário (sem a máscara para validação)
-    const cleanValue = maskedValue.replace(/\D/g, '');
-    setValue('zipCode', cleanValue, { shouldValidate: true });
+    // Atualizar valor no formulário sem máscara
+    setValue('zipCode', numbers, { shouldValidate: true });
+  };
+  
+  // Handler para quando o usuário pressiona backspace/delete
+  const handleCepKeyDown = (e) => {
+    // Se o campo está vazio e o usuário pressiona backspace/delete, garantir que está limpo
+    if ((e.key === 'Backspace' || e.key === 'Delete') && localCep.length === 0) {
+      setLocalCep('');
+      setValue('zipCode', '', { shouldValidate: false });
+    }
   };
   
   // Função para calcular frete ao clicar no botão
@@ -187,6 +225,7 @@ const BillingDetails = ({ register, errors, calculateShippingByPostcode, watch, 
                 placeholder="00000-000"
                 value={localCep}
                 onChange={handleCepChange}
+                onKeyDown={handleCepKeyDown}
                 maxLength={9}
                 style={{ flex: 1 }}
               />

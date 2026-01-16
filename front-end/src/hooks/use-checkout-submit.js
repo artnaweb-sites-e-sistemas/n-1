@@ -59,6 +59,7 @@ const useCheckoutSubmit = () => {
   const [shippingOptions, setShippingOptions] = useState([]);
   const [selectedShippingId, setSelectedShippingId] = useState("");
   const [paymentMethod, setPaymentMethod] = useState('card'); // 'card', 'pix', 'boleto'
+  const [shippingError, setShippingError] = useState(false);
   
   const dispatch = useDispatch();
   const router = useRouter();
@@ -374,6 +375,7 @@ const useCheckoutSubmit = () => {
       }
 
       setShippingOptions(options);
+      setShippingError(false); // Limpar erro quando frete for calculado
       notifySuccess(`${options.length} opção(ões) de frete encontrada(s)`);
       
       // Selecionar a primeira opção automaticamente
@@ -427,13 +429,48 @@ const useCheckoutSubmit = () => {
     fillCheckoutFields();
   }, [fillCheckoutFields]);
 
+  // Limpar opções de frete quando o CEP mudar
+  useEffect(() => {
+    const subscription = watch((value, { name }) => {
+      if (name === 'zipCode') {
+        const cleanZipCode = value.zipCode ? String(value.zipCode).replace(/\D/g, '') : '';
+        // Se o CEP mudou e tem 8 dígitos, limpar opções de frete para forçar novo cálculo
+        if (cleanZipCode.length === 8 && shippingOptions.length > 0) {
+          setShippingOptions([]);
+          setSelectedShippingId('');
+          setShippingCost(0);
+        }
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [watch, shippingOptions.length]);
+
   // submitHandler
   const submitHandler = async (data) => {
-    dispatch(set_shipping(data));
-    setIsCheckoutSubmit(true);
-
     // Garantir que o CEP está sem máscara
     const cleanZipCode = data.zipCode ? String(data.zipCode).replace(/\D/g, '') : '';
+    
+    // Validar CEP
+    if (!cleanZipCode || cleanZipCode.length !== 8) {
+      notifyError("Por favor, informe um CEP válido");
+      setIsCheckoutSubmit(false);
+      return;
+    }
+    
+    // Validar se o frete foi calculado
+    // Verificar se há opções de frete disponíveis e se uma foi selecionada
+    if (shippingOptions.length === 0 || !selectedShippingId) {
+      setShippingError(true);
+      notifyError("Por favor, calcule o frete antes de finalizar o pedido. Clique no botão 'Calcular Frete' após informar o CEP.");
+      setIsCheckoutSubmit(false);
+      return;
+    }
+    
+    // Limpar erro de frete se tudo estiver ok
+    setShippingError(false);
+    
+    dispatch(set_shipping(data));
+    setIsCheckoutSubmit(true);
     
     // Limpar CPF/CNPJ (remover pontos, traços e barras)
     const cleanCpf = data.cpf ? String(data.cpf).replace(/\D/g, '') : '';
@@ -892,6 +929,7 @@ const useCheckoutSubmit = () => {
     shippingOptions,
     selectedShippingId,
     isCalculatingShipping,
+    shippingError,
     discountPercentage,
     fillCheckoutFields,
     discountProductType,
