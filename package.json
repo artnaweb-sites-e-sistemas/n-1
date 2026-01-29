@@ -5,7 +5,7 @@
   "description": "Repositório N-1 Edições - Front-end, Backend e Admin Panel",
   "scripts": {
     "start": "cd front-end && npm run dev",
-    "dev:front": "cd front-end && npm run dev",
+    "dev": "cd front-end && npm run dev",
     "build:front": "cd front-end && npm run build",
     "start:front": "cd front-end && npm run start",
     "install:front": "cd front-end && npm install",
