@@ -16,7 +16,8 @@ const HomeShop = () => {
   return (
     <Wrapper>
       <Header />
-      <HeroBanner />
+      {/* HeroBanner ocultado - para reativar, descomente a linha abaixo */}
+      {/* <HeroBanner /> */}
       <HomeShopContentInfinite />
       <ShopFeature />
       <ShopCta />
