@@ -1,7 +1,7 @@
 import ShopMainArea from "@components/shop/shop-main-area";
 
 export const metadata = {
-  title: "Shop - Harri Shop",
+  title: "N-1 Edições - Loja",
 };
 
 export default async function ShopPage({searchParams}) {

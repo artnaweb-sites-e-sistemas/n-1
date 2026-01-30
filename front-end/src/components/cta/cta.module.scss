@@ -1,0 +1,20 @@
+.ctaArea {
+  background-color: #000000 !important;
+  background-image: none !important;
+  background: #000000 !important;
+  
+  &::before,
+  &::after {
+    display: none !important;
+    content: none !important;
+  }
+}
+
+.ctaInner {
+  background-color: transparent !important;
+}
+
+.ctaTitle {
+  color: #ffffff !important;
+}
+

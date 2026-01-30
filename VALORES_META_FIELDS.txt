@@ -1,0 +1,43 @@
+===========================================
+VALORES PARA COPIAR E COLAR NO WORDPRESS
+===========================================
+
+CAMPO 1: n1_catalog_content
+-------------------------------------------
+Copie TODO o conteúdo abaixo (é um HTML grande):
+
+[O conteúdo HTML completo está no arquivo product_meta_fields.json, campo "catalog_content"]
+
+IMPORTANTE: Este campo é muito grande. Abra o arquivo product_meta_fields.json e copie TODO o valor do campo "catalog_content" (está entre aspas, mas copie sem as aspas).
+
+
+CAMPO 2: n1_catalog_images
+-------------------------------------------
+Cole exatamente isso (uma URL por linha):
+
+https://n-1.artnaweb.com.br/wp-content/uploads/2026/01/catalog_image_9786561190763_1.png
+https://n-1.artnaweb.com.br/wp-content/uploads/2026/01/catalog_image_product_2.png
+https://n-1.artnaweb.com.br/wp-content/uploads/2026/01/catalog_image_product_3.png
+
+
+CAMPO 3: n1_catalog_pdf
+-------------------------------------------
+Cole exatamente isso:
+
+https://e.issuu.com/embed.html?u=n-1publications&d=nas_brechas_de_futuros_cancelados_-_renan_porto
+
+
+===========================================
+INSTRUÇÕES:
+===========================================
+
+1. Abra o WordPress Admin
+2. Vá em Produtos → Todos os Produtos
+3. Edite o produto "Nas brechas de futuros cancelados"
+4. Role até "Campos Personalizados" (Custom Fields)
+5. Se não aparecer, clique em "Opções da Tela" e marque "Campos Personalizados"
+6. Adicione os 3 campos acima com os valores correspondentes
+7. Salve o produto
+8. Acesse a página do produto no site para verificar
+
+

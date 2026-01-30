@@ -4,7 +4,7 @@ import { ShopShortSelect, ShopShortTab, ShowingResult } from "./shop-top-bar";
 import ProductGridItems from "./prd-grid-items";
 import ProductListItems from "./prd-list-items";
 
-const ShopArea = ({ products,all_products,shortHandler }) => {
+const ShopArea = ({ products, all_products, shortHandler }) => {
   const [showingGridItems, setShowingGridItems] = useState(0);
   const [showingListItems, setShowingListItems] = useState(0);
   const [tabActive, setActiveTab] = useState("grid");
@@ -28,7 +28,7 @@ const ShopArea = ({ products,all_products,shortHandler }) => {
             <div className="col-lg-6 col-md-7">
               <div className="shop__sort d-flex flex-wrap justify-content-md-end align-items-center">
                 <ShopShortTab handleTab={handleTab} />
-                <ShopShortSelect shortHandler={shortHandler}/>
+                <ShopShortSelect shortHandler={shortHandler} />
               </div>
             </div>
           </div>

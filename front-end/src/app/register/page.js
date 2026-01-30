@@ -4,7 +4,7 @@ import Wrapper from "@layout/wrapper";
 import RegisterArea from "@components/login-register/register-area";
 
 export const metadata = {
-  title: "Register - Harri Shop",
+  title: "N-1 Edições - Cadastro",
 };
 
 export default function Register() {

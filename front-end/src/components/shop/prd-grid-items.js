@@ -45,18 +45,18 @@ const ProductGridItems = ({ itemsPerPage, items, setShowingGridItems }) => {
               </div>
             ))}
         </div>
-      {/* pagination start */}
-      <div className="row">
-        <div className="col-xxl-12">
-          <div className="tp-pagination tp-pagination-style-2">
-            <Pagination
-              handlePageClick={handlePageClick}
-              pageCount={pageCount}
-            />
+        {/* pagination start */}
+        <div className="row">
+          <div className="col-xxl-12">
+            <div className="tp-pagination tp-pagination-style-2">
+              <Pagination
+                handlePageClick={handlePageClick}
+                pageCount={pageCount}
+              />
+            </div>
           </div>
         </div>
-      </div>
-      {/* pagination end */}
+        {/* pagination end */}
       </div>
 
     </>

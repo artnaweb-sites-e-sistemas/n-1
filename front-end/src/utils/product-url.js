@@ -36,6 +36,15 @@ function generateSlug(title) {
   // Converter para minúsculas
   let slug = title.toLowerCase();
   
+  // Substituir caracteres especiais por equivalentes normais ANTES de normalizar
+  slug = slug
+    .replace(/₂/g, '2')
+    .replace(/₃/g, '3')
+    .replace(/₄/g, '4')
+    .replace(/²/g, '2')
+    .replace(/³/g, '3')
+    .replace(/⁴/g, '4');
+  
   // Remover acentos (simplificado)
   slug = slug
     .normalize('NFD')

@@ -19,7 +19,20 @@ import { handleModalShow } from "src/redux/features/productSlice";
 // internal
 
 export default function ShopDetailsMainArea({ id }) {
-  const { data: product, isLoading, isError } = useGetProductQuery(id);
+  // Se id é um objeto (produto do catálogo local), usar diretamente
+  // Se id é string/number (ID do WooCommerce), buscar via API
+  const isCatalogProduct = id && typeof id === 'object' && id.source === 'catalog';
+  
+  const { data: wooCommerceProduct, isLoading: isLoadingWooCommerce, isError: isErrorWooCommerce } = useGetProductQuery(
+    isCatalogProduct ? null : id,
+    { skip: isCatalogProduct }
+  );
+  
+  // Produto final: catálogo local ou WooCommerce
+  const product = isCatalogProduct ? id : wooCommerceProduct;
+  const isLoading = isCatalogProduct ? false : isLoadingWooCommerce;
+  const isError = isCatalogProduct ? false : isErrorWooCommerce;
+  
   const router = useRouter();
   const dispatch = useDispatch();
   useEffect(() => {
@@ -40,13 +53,13 @@ export default function ShopDetailsMainArea({ id }) {
     content = <ErrorMessage message="There was an error" />;
   }
 
-  if (!isLoading && !isError) {
+  if (!isLoading && !isError && product) {
     content = (
       <>
         <ProductDetailsBreadcrumb title={product.title} />
         <ProductDetailsArea product={product} />
         <ProductDetailsTabArea product={product} />
-        <RelatedProducts id={product._id} categories={product.categories} />
+        <RelatedProducts product={product} />
       </>
     );
   }

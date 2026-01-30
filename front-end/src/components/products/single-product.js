@@ -23,10 +23,10 @@ const SingleProduct = ({ product, discountPrd = false }) => {
   const { wishlist } = useSelector((state) => state.wishlist);
   const isWishlistAdded = wishlist.some(item => item._id === _id);
   const isAddedToCart = cart_products.some((prd) => prd._id === _id);
-  
+
   // Garantir que a imagem existe, senão usar placeholder
-  const productImage = image && image.trim() !== '' 
-    ? image 
+  const productImage = image && image.trim() !== ''
+    ? image
     : 'https://n-1.artnaweb.com.br/wp-content/uploads/woocommerce-placeholder-1024x1024.webp';
 
   // Truncar título para exibição (limite de 50 caracteres)
@@ -35,7 +35,7 @@ const SingleProduct = ({ product, discountPrd = false }) => {
     if (text.length <= maxLength) return text;
     return text.substring(0, maxLength).trim() + '...';
   };
-  
+
   const displayTitle = truncateTitle(title, 50);
 
   // handle add product
@@ -70,9 +70,8 @@ const SingleProduct = ({ product, discountPrd = false }) => {
           {discount > 0 && (
             <div className="product__badge d-flex flex-column flex-wrap">
               <span
-                className={`product__badge-item ${
-                  discountPrd ? "has-offer" : "has-new"
-                }`}
+                className={`product__badge-item ${discountPrd ? "has-offer" : "has-new"
+                  }`}
               >
                 {discountPrd ? `-${discount}%` : "promoção"}
               </span>
@@ -87,7 +86,7 @@ const SingleProduct = ({ product, discountPrd = false }) => {
           <div className="product__action d-flex flex-column flex-wrap">
             <button
               type="button"
-              className={`product-action-btn ${isWishlistAdded?"active":""}`}
+              className={`product-action-btn ${isWishlistAdded ? "active" : ""}`}
               onClick={() => handleAddWishlist(product)}
             >
               <HeartTwo />
@@ -102,10 +101,10 @@ const SingleProduct = ({ product, discountPrd = false }) => {
               <span className="product-action-tooltip">Visualização Rápida</span>
             </button>
             <Link href={productUrl}>
-            <button type="button" className="product-action-btn">
-               <i className="fa-solid fa-link"></i>
-              <span className="product-action-tooltip">Detalhes do Produto</span>
-            </button>
+              <button type="button" className="product-action-btn">
+                <i className="fa-solid fa-link"></i>
+                <span className="product-action-tooltip">Detalhes do Produto</span>
+              </button>
             </Link>
           </div>
           <div className="product__add transition-3">

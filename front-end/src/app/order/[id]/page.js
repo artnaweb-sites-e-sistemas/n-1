@@ -2,7 +2,7 @@ import SingleOrderArea from "@components/order-area";
 
 
 export const metadata = {
-  title: "Single Order - Harri Shop",
+  title: "N-1 Edições - Pedido",
 };
 
 const OrderPage = async ({ params }) => {

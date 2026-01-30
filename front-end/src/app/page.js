@@ -3,7 +3,7 @@ import React from "react";
 import Header from "@layout/header";
 import Wrapper from "@layout/wrapper";
 import HeroBanner from "@components/hero-banner";
-import HomeShopContent from "@components/home/home-shop-content";
+import HomeShopContentInfinite from "@components/home/home-shop-content-infinite";
 import ShopFeature from "@components/shop-feature";
 import ShopCta from "@components/cta";
 import Footer from "@layout/footer";
@@ -17,7 +17,7 @@ const HomeShop = () => {
     <Wrapper>
       <Header />
       <HeroBanner />
-      <HomeShopContent />
+      <HomeShopContentInfinite />
       <ShopFeature />
       <ShopCta />
       <Footer />

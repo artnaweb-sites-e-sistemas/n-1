@@ -1,7 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-// internal
-import bg from "@assets/img/cta/13/cta-bg-1.jpg";
+import styles from './cta.module.scss';
 
 const ShopCta = () => {
   // Frases motivacionais relacionadas ao tema do projeto (editora, conhecimento, pensamento crítico)
@@ -28,15 +27,14 @@ const ShopCta = () => {
 
   return (
     <section
-      className="cta__area pt-50 pb-50 p-relative include-bg jarallax"
-      style={{ backgroundImage: `url(${bg.src})` }}
+      className={`cta__area pt-50 pb-50 p-relative ${styles.ctaArea}`}
     >
       <div className="container">
-        <div className="cta__inner-13 white-bg">
+        <div className={`cta__inner-13 ${styles.ctaInner}`}>
           <div className="row align-items-center justify-content-center">
             <div className="col-xl-12 col-lg-12">
               <div className="cta__content-13 text-center">
-                <h3 className="cta__title-13" style={{ 
+                <h3 className={`cta__title-13 ${styles.ctaTitle}`} style={{ 
                   fontSize: 'clamp(24px, 4vw, 36px)',
                   lineHeight: '1.4',
                   margin: 0,

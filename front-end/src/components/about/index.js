@@ -15,7 +15,7 @@ const About = () => {
         subtitle="About us"
         title={
           <>
-            Welcome to our <br /> Harri Shop
+            Bem-vindo à <br /> N-1 Edições
           </>
         }
       />

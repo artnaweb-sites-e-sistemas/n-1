@@ -5,7 +5,7 @@ import FaqBreadcrumb from "@components/faq/faq-breadcrumb";
 import FaqArea from "@components/faq/faq-area";
 
 export const metadata = {
-  title: "Faq - Harri Shop",
+  title: "N-1 Edições - FAQ",
 };
 
 export default function Faq() {

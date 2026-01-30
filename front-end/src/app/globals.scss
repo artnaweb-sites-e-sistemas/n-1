@@ -285,6 +285,17 @@
         overflow: hidden !important;
         background-color: #fff !important;
         transition: border-color 0.3s ease !important;
+        width: 110px !important;
+        height: 110px !important;
+        position: relative !important;
+        display: block !important;
+        
+        img {
+          width: 100% !important;
+          height: 100% !important;
+          object-fit: contain !important;
+          display: block !important;
+        }
         
         &:hover {
           border-color: #999 !important;
@@ -317,6 +328,27 @@
       background-color: #f8d7da !important;
       color: #721c24 !important;
     }
+  }
+}
+
+// Ajustes para metadados do produto - garantir quebra de linha e espaçamento
+.product__details-more {
+  margin-bottom: 8px !important;
+  
+  p {
+    display: inline-block !important;
+    margin-bottom: 0 !important;
+    margin-right: 8px !important;
+    font-weight: 600 !important;
+    font-size: 15px !important;
+    line-height: 1.2 !important;
+    color: var(--tp-common-black) !important;
+  }
+  
+  span {
+    font-size: 15px !important;
+    line-height: 1.2 !important;
+    color: var(--tp-text-1) !important;
   }
 }
 
