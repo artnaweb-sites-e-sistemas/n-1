@@ -15,8 +15,11 @@ const OrderDetails = ({
   selectedShippingId,
   isCalculatingShipping = false,
   shippingError = false,
+  subtotalOverride = null,
 }) => {
-  const { total } = useCartInfo();
+  const { total: cartTotalFromHook } = useCartInfo();
+  // Se houver subtotalOverride (checkout direto), usar ele, senão usar o do carrinho
+  const total = subtotalOverride !== null ? subtotalOverride : cartTotalFromHook;
 
   return (
     <React.Fragment>
@@ -160,7 +163,7 @@ const OrderDetails = ({
         <th>Custo do Frete</th>
         <td className="text-end">
           <strong>
-            <span className="amount">R$ {shippingCost.toFixed(2).replace('.', ',')}</span>
+            <span className="amount">R$ {Number(shippingCost || 0).toFixed(2).replace('.', ',')}</span>
           </strong>
         </td>
       </tr>
@@ -169,7 +172,7 @@ const OrderDetails = ({
         <th>Desconto</th>
         <td className="text-end">
           <strong>
-            <span className="amount">R$ {discountAmount.toFixed(2).replace('.', ',')}</span>
+            <span className="amount">R$ {Number(discountAmount || 0).toFixed(2).replace('.', ',')}</span>
           </strong>
         </td>
       </tr>
@@ -178,7 +181,7 @@ const OrderDetails = ({
         <th>Total do Pedido</th>
         <td className="text-end">
           <strong>
-            <span className="amount">R$ {cartTotal.toFixed(2).replace('.', ',')}</span>
+            <span className="amount">R$ {Number(cartTotal || 0).toFixed(2).replace('.', ',')}</span>
           </strong>
         </td>
       </tr>

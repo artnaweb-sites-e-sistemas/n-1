@@ -92,13 +92,17 @@ const ProductDetailsArea = ({ product }) => {
     router.push('/cart');
   };
 
-  // handle add product and go to checkout
+  // handle go to checkout with single product (direct checkout)
   const handleAddToCartAndCheckout = (prd) => {
-    dispatch(add_cart_product(prd));
-    // Pequeno delay para garantir que o produto foi adicionado ao carrinho
-    setTimeout(() => {
-      router.push('/checkout');
-    }, 300);
+    // Salvar produto no sessionStorage para checkout direto
+    // Garantir que tem orderQuantity
+    const productForCheckout = {
+      ...prd,
+      orderQuantity: prd.orderQuantity || 1
+    };
+    sessionStorage.setItem('directCheckoutProduct', JSON.stringify(productForCheckout));
+    // Redirecionar direto para checkout sem adicionar ao carrinho
+    router.push('/checkout?direct=true');
   };
 
   // handle add wishlist
@@ -252,27 +256,43 @@ const ProductDetailsArea = ({ product }) => {
                 <ProductQuantity />
                 {/* quantity */}
 
-                <div className="product__details-action">
+                <div className="product__details-action d-flex align-items-center gap-2" style={{ width: '100%' }}>
                   {isAddedToCart ? (
-                    <button
-                      onClick={handleGoToCart}
-                      type="button"
-                      className="product-add-cart-btn product-add-cart-btn-3 product-cart-btn-hover"
-                      style={{
-                        backgroundColor: '#10b981',
-                        borderColor: '#10b981',
-                        color: '#ffffff',
-                        opacity: 1,
-                        cursor: 'pointer',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        verticalAlign: 'middle'
-                      }}
-                    >
-                      Ir para o Carrinho
-                      <RightArrow />
-                    </button>
+                    <>
+                      <button
+                        onClick={handleGoToCart}
+                        type="button"
+                        className="product-add-cart-btn product-add-cart-btn-3 product-cart-btn-hover"
+                        style={{
+                          backgroundColor: '#10b981',
+                          borderColor: '#10b981',
+                          color: '#ffffff',
+                          opacity: 1,
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          verticalAlign: 'middle',
+                          flex: 1,
+                          justifyContent: 'center'
+                        }}
+                      >
+                        Ir para o Carrinho
+                        <RightArrow />
+                      </button>
+                      <button
+                        onClick={() => handleAddWishlist(product)}
+                        type="button"
+                        className={`product-action-btn ${isWishlistAdded ? "active" : ""
+                          }`}
+                        style={{ flexShrink: 0 }}
+                      >
+                        <HeartTwo />
+                        <span className="product-action-tooltip">
+                          Adicionar à Lista de Desejos
+                        </span>
+                      </button>
+                    </>
                   ) : (
                     <>
                       <div className="d-flex flex-column gap-2">
@@ -328,20 +348,6 @@ const ProductDetailsArea = ({ product }) => {
                         </button>
                       </div>
                     </>
-                  )}
-                  {isAddedToCart && (
-                    <button
-                      onClick={() => handleAddWishlist(product)}
-                      type="button"
-                      className={`product-action-btn ${isWishlistAdded ? "active" : ""
-                        }`}
-                      style={{ marginLeft: '10px' }}
-                    >
-                      <HeartTwo />
-                      <span className="product-action-tooltip">
-                        Adicionar à Lista de Desejos
-                      </span>
-                    </button>
                   )}
                 </div>
                 <div className="product__details-sku product__details-more">

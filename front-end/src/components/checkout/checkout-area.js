@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import BillingDetails from "./billing-details";
 import OrderArea from "./order-area";
 
-const CheckoutArea = ({handleSubmit,submitHandler,watch,isCalculatingShipping,setValue,...others}) => {
+const CheckoutArea = ({handleSubmit,submitHandler,watch,isCalculatingShipping,setValue,isDirectCheckout,onDirectProductRemove,...others}) => {
   return (
     <section className="checkout-area pb-85">
       <div className="container">
@@ -22,6 +22,8 @@ const CheckoutArea = ({handleSubmit,submitHandler,watch,isCalculatingShipping,se
               {/* order area start */}
               <OrderArea
                 {...others}
+                isDirectCheckout={isDirectCheckout}
+                onDirectProductRemove={onDirectProductRemove}
               />
               {/* order area end */}
             </div>

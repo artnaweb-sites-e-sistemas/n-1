@@ -22,8 +22,32 @@ const OrderArea = ({
   shippingError,
   paymentMethod,
   setPaymentMethod,
+  productsToUse,
+  isDirectCheckout = false,
+  onDirectProductRemove,
+  total,
 }) => {
-  const { cart_products } = useSelector((state) => state.cart);
+  // Usar produtos passados como prop ou do Redux como fallback
+  const { cart_products: fallbackProducts } = useSelector((state) => state.cart);
+  const cart_products = productsToUse || fallbackProducts;
+  
+  // Calcular subtotal baseado nos produtos que estão sendo usados
+  // Se for checkout direto, calcular apenas do produto direto (ignorar carrinho)
+  const calculateSubtotalOverride = () => {
+    if (isDirectCheckout && productsToUse && productsToUse.length > 0) {
+      const product = productsToUse[0];
+      const { originalPrice, orderQuantity = 1, discount } = product;
+      let itemPrice = originalPrice;
+      if (discount && discount > 0) {
+        itemPrice = originalPrice - (originalPrice * discount / 100);
+      }
+      return itemPrice * orderQuantity;
+    }
+    // Se não for checkout direto, usar null para usar o cálculo do useCartInfo (carrinho normal)
+    return null;
+  };
+  
+  const subtotalOverride = calculateSubtotalOverride();
   return (
     <div className="your-order mb-30 ">
       <h3>Seu pedido</h3>
@@ -39,9 +63,9 @@ const OrderArea = ({
             {cart_products?.map((item, i) => (
               <OrderSingleCartItem
                 key={i}
-                title={item.title}
-                quantity={item.quantity}
-                price={item.originalPrice}
+                item={item}
+                isDirectCheckout={isDirectCheckout}
+                onRemove={onDirectProductRemove}
               />
             ))}
           </tbody>
@@ -58,6 +82,7 @@ const OrderArea = ({
               selectedShippingId={selectedShippingId}
               isCalculatingShipping={isCalculatingShipping}
               shippingError={shippingError}
+              subtotalOverride={subtotalOverride}
             />
           </tfoot>
         </table>

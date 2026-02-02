@@ -19,7 +19,7 @@ import {
 } from "src/redux/features/order/orderApi";
 import { useUpdateProfileMutation } from "src/redux/features/auth/authApi";
 
-const useCheckoutSubmit = () => {
+const useCheckoutSubmit = (directProduct = null) => {
   const { data: offerCoupons, isError, isLoading } = useGetOfferCouponsQuery();
   const [addOrder, {}] = useAddOrderMutation();
   const [createPaymentIntent, {}] = useCreatePaymentIntentMutation();
@@ -45,9 +45,26 @@ const useCheckoutSubmit = () => {
   const { cart_products } = useSelector((state) => state.cart);
   const { user } = useSelector((state) => state.auth);
   const { shipping_info } = useSelector((state) => state.order);
+  
+  // Se houver produto direto, usar apenas ele, senão usar o carrinho
+  const productsToUse = directProduct ? [directProduct] : cart_products;
+  
+  // Calcular total manualmente se for produto direto
+  const calculateDirectTotal = () => {
+    if (!directProduct) return null;
+    const { originalPrice, orderQuantity = 1, discount } = directProduct;
+    let itemPrice = originalPrice;
+    if (discount && discount > 0) {
+      itemPrice = originalPrice - (originalPrice * discount / 100);
+    }
+    return itemPrice * orderQuantity;
+  };
+  
+  const directTotal = directProduct ? calculateDirectTotal() : null;
   const { total, setTotal } = useCartInfo();
+  const finalTotal = directTotal !== null ? directTotal : total;
   const [couponInfo, setCouponInfo] = useState({});
-  const [cartTotal, setCartTotal] = useState("");
+  const [cartTotal, setCartTotal] = useState(0);
   const [minimumAmount, setMinimumAmount] = useState(0);
   const [shippingCost, setShippingCost] = useState(0);
   const [discountAmount, setDiscountAmount] = useState(0);
@@ -89,17 +106,17 @@ const useCheckoutSubmit = () => {
   }, []);
 
   useEffect(() => {
-    if (minimumAmount - discountAmount > total || cart_products.length === 0) {
+    if (minimumAmount - discountAmount > finalTotal || productsToUse.length === 0) {
       setDiscountPercentage(0);
       localStorage.removeItem("couponInfo");
     }
-  }, [minimumAmount, total, discountAmount, cart_products]);
+  }, [minimumAmount, finalTotal, discountAmount, productsToUse]);
 
   //calculate total and discount value
   useEffect(() => {
     // Se não houver cupom aplicado, não calcular desconto
     if (!couponInfo || Object.keys(couponInfo).length === 0) {
-      let subTotal = Number((total + shippingCost).toFixed(2));
+      let subTotal = Number((finalTotal + shippingCost).toFixed(2));
       setDiscountAmount(0);
       setCartTotal(subTotal);
       return;
@@ -109,10 +126,10 @@ const useCheckoutSubmit = () => {
     let productsToDiscount = [];
     if (discountProductType === 'all' || !discountProductType) {
       // Se for 'all', aplicar em todos os produtos
-      productsToDiscount = cart_products || [];
+      productsToDiscount = productsToUse || [];
     } else {
       // Caso contrário, filtrar por tipo
-      productsToDiscount = cart_products?.filter((p) => p.type === discountProductType) || [];
+      productsToDiscount = productsToUse?.filter((p) => p.type === discountProductType) || [];
     }
 
     // Calcular total dos produtos que receberão desconto
@@ -132,7 +149,7 @@ const useCheckoutSubmit = () => {
       0
     );
 
-    let subTotal = Number((total + shippingCost).toFixed(2));
+    let subTotal = Number((finalTotal + shippingCost).toFixed(2));
     let discountTotal = 0;
 
     // Calcular desconto baseado no tipo
@@ -176,10 +193,10 @@ const useCheckoutSubmit = () => {
       totalValue
     });
   }, [
-    total,
+    finalTotal,
     shippingCost,
     discountPercentage,
-    cart_products,
+    productsToUse,
     discountProductType,
     couponInfo,
   ]);
@@ -352,7 +369,7 @@ const useCheckoutSubmit = () => {
     try {
       const result = await calculateShipping({
         postcode: cleanPostcode,
-        cart_products: cart_products,
+        cart_products: productsToUse,
       });
 
       console.log('[FRETE] Resultado completo:', result);
@@ -495,8 +512,8 @@ const useCheckoutSubmit = () => {
       cpf: cleanCpf, // CPF/CNPJ para Boleto
       shippingOption: data.shippingOption,
       status: "pending",
-      cart: cart_products,
-      subTotal: total,
+      cart: productsToUse,
+      subTotal: finalTotal,
       shippingCost: shippingCost,
       discount: discountAmount,
       totalAmount: cartTotal,
@@ -559,7 +576,7 @@ const useCheckoutSubmit = () => {
     
     // Preparar dados no formato esperado pelo backend
     const orderData = {
-      cart_products: order.cart || cart_products,
+      cart_products: order.cart || productsToUse,
       shipping_info: {
         firstName: order.name ? order.name.split(' ')[0] : shipping_info.firstName || '',
         lastName: order.name ? order.name.split(' ').slice(1).join(' ') : shipping_info.lastName || '',
@@ -928,6 +945,10 @@ const useCheckoutSubmit = () => {
         } else {
           router.push(`/order/${orderId}`);
         }
+        // Limpar sessionStorage se foi checkout direto
+        if (directProduct) {
+          sessionStorage.removeItem('directCheckoutProduct');
+        }
         notifySuccess("Seu pedido foi confirmado!");
         setIsCheckoutSubmit(false);
       }
@@ -944,7 +965,7 @@ const useCheckoutSubmit = () => {
     handleShippingCost,
     calculateShippingByPostcode,
     discountAmount,
-    total,
+    total: finalTotal,
     shippingCost,
     shippingOptions,
     selectedShippingId,
@@ -955,6 +976,7 @@ const useCheckoutSubmit = () => {
     discountProductType,
     isCheckoutSubmit,
     setTotal,
+    productsToUse,
     register,
     watch,
     setValue,
