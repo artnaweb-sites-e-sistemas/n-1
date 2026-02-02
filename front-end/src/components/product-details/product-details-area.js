@@ -3,7 +3,7 @@ import Image from "next/image";
 import { useDispatch, useSelector } from "react-redux";
 import { useRouter } from "next/navigation";
 // internal
-import { HeartTwo, CartTwo, RightArrow } from "@svg/index";
+import { HeartTwo, CartTwo, RightArrow, Payment } from "@svg/index";
 import { SocialShare } from "@components/social";
 import ProductDetailsPrice from "./product-details-price";
 import ProductQuantity from "./product-quantity";
@@ -92,6 +92,15 @@ const ProductDetailsArea = ({ product }) => {
     router.push('/cart');
   };
 
+  // handle add product and go to checkout
+  const handleAddToCartAndCheckout = (prd) => {
+    dispatch(add_cart_product(prd));
+    // Pequeno delay para garantir que o produto foi adicionado ao carrinho
+    setTimeout(() => {
+      router.push('/checkout');
+    }, 300);
+  };
+
   // handle add wishlist
   const handleAddWishlist = (prd) => {
     dispatch(add_to_wishlist(prd));
@@ -123,6 +132,35 @@ const ProductDetailsArea = ({ product }) => {
         }
         .product-cart-btn-hover:active svg {
           transform: translateY(-1px) translateX(2px);
+        }
+        .product-checkout-btn-hover svg {
+          display: inline-block;
+          vertical-align: middle;
+          transform: translateY(-1px);
+          transition: transform 0.3s ease-in-out;
+        }
+        .product-checkout-btn-hover:hover svg {
+          transform: translateY(-1px) translateX(5px);
+        }
+        .product-checkout-btn-hover:active svg {
+          transform: translateY(-1px) translateX(2px);
+        }
+        @keyframes gentleBounce {
+          0%, 100% { transform: translateY(0) scale(1); }
+          50% { transform: translateY(-2px) scale(1.05); }
+        }
+        .product-cart-icon-shake:hover svg {
+          animation: gentleBounce 0.5s ease-in-out;
+        }
+        .product-cart-icon-shake:hover {
+          background-color: var(--tp-common-black) !important;
+          color: var(--tp-common-white) !important;
+        }
+        .product-cart-icon-shake svg,
+        .product-checkout-btn-hover svg {
+          width: 20px;
+          height: 20px;
+          flex-shrink: 0;
         }
       `}} />
       <section className="product__details-area pb-115">
@@ -214,7 +252,7 @@ const ProductDetailsArea = ({ product }) => {
                 <ProductQuantity />
                 {/* quantity */}
 
-                <div className="product__details-action d-flex flex-wrap align-items-center">
+                <div className="product__details-action">
                   {isAddedToCart ? (
                     <button
                       onClick={handleGoToCart}
@@ -236,31 +274,75 @@ const ProductDetailsArea = ({ product }) => {
                       <RightArrow />
                     </button>
                   ) : (
+                    <>
+                      <div className="d-flex flex-column gap-2">
+                        <div className="d-flex align-items-center gap-2">
+                          <button
+                            onClick={() => handleAddProduct(product)}
+                            type="button"
+                            className="product-add-cart-btn product-add-cart-btn-3 product-cart-icon-shake"
+                            disabled={!inStock}
+                            style={{
+                              opacity: inStock ? 1 : 0.5,
+                              cursor: inStock ? 'pointer' : 'not-allowed',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '8px'
+                            }}
+                          >
+                            <CartTwo />
+                            {inStock ? 'Adicionar ao Carrinho' : 'Fora de Estoque'}
+                          </button>
+                          <button
+                            onClick={() => handleAddWishlist(product)}
+                            type="button"
+                            className={`product-action-btn ${isWishlistAdded ? "active" : ""
+                              }`}
+                          >
+                            <HeartTwo />
+                            <span className="product-action-tooltip">
+                              Adicionar à Lista de Desejos
+                            </span>
+                          </button>
+                        </div>
+                        <button
+                          onClick={() => handleAddToCartAndCheckout(product)}
+                          type="button"
+                          className="product-add-cart-btn product-add-cart-btn-3 product-checkout-btn-hover"
+                          disabled={!inStock}
+                          style={{
+                            opacity: inStock ? 1 : 0.5,
+                            cursor: inStock ? 'pointer' : 'not-allowed',
+                            backgroundColor: '#10b981',
+                            borderColor: '#10b981',
+                            color: '#ffffff',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '8px'
+                          }}
+                        >
+                          Ir direto para o pagamento
+                          <Payment />
+                        </button>
+                      </div>
+                    </>
+                  )}
+                  {isAddedToCart && (
                     <button
-                      onClick={() => handleAddProduct(product)}
+                      onClick={() => handleAddWishlist(product)}
                       type="button"
-                      className="product-add-cart-btn product-add-cart-btn-3"
-                      disabled={!inStock}
-                      style={{
-                        opacity: inStock ? 1 : 0.5,
-                        cursor: inStock ? 'pointer' : 'not-allowed'
-                      }}
+                      className={`product-action-btn ${isWishlistAdded ? "active" : ""
+                        }`}
+                      style={{ marginLeft: '10px' }}
                     >
-                      <CartTwo />
-                      {inStock ? 'Adicionar ao Carrinho' : 'Fora de Estoque'}
+                      <HeartTwo />
+                      <span className="product-action-tooltip">
+                        Adicionar à Lista de Desejos
+                      </span>
                     </button>
                   )}
-                  <button
-                    onClick={() => handleAddWishlist(product)}
-                    type="button"
-                    className={`product-action-btn ${isWishlistAdded ? "active" : ""
-                      }`}
-                  >
-                    <HeartTwo />
-                    <span className="product-action-tooltip">
-                      Adicionar à Lista de Desejos
-                    </span>
-                  </button>
                 </div>
                 <div className="product__details-sku product__details-more">
                   <p>SKU:</p>
