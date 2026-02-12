@@ -4,8 +4,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { useSelector } from "react-redux";
 // internal
-import Menus from "./menus";
 import logo from "@assets/img/logo/logo-n-1-black.png";
+import menu_data from "@layout/menu-data";
 import { Cart, Heart, Search, User } from "@svg/index";
 import useSticky from "@hooks/use-sticky";
 import CartSidebar from "@components/common/sidebar/cart-sidebar";
@@ -17,6 +17,7 @@ const Header = ({ style_2 = false }) => {
   const { sticky } = useSticky();
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isOffCanvasOpen, setIsOffCanvasOpen] = useState(false);
+  const [isHeaderMenuOpen, setIsHeaderMenuOpen] = useState(false);
   const { quantity } = useCartInfo();
   const { wishlist } = useSelector((state) => state.wishlist);
   const { user: userInfo } = useSelector((state) => state.auth);
@@ -47,9 +48,46 @@ const Header = ({ style_2 = false }) => {
                     </div>
                   </div>
                   <div className="col-xxl-4 col-xl-5 d-none d-xl-block">
-                    <div className="main-menu main-menu-13 pl-20 main-menu-ff-space">
-                      <nav id="mobile-menu-3">
-                        <Menus />
+                    <div className="header-menu-inline">
+                      <button
+                        type="button"
+                        className="header-menu-inline__trigger"
+                        onClick={() => setIsHeaderMenuOpen((open) => !open)}
+                        aria-expanded={isHeaderMenuOpen}
+                        aria-controls="header-menu-inline-links"
+                      >
+                        Menu
+                      </button>
+                      <nav
+                        id="header-menu-inline-links"
+                        className={`header-menu-inline__links ${isHeaderMenuOpen ? 'header-menu-inline__links--open' : ''}`}
+                        aria-label="Menu principal"
+                      >
+                        <ul className="header-menu-inline__list">
+                          {menu_data.map((menu, i) => (
+                            <li key={i} className="header-menu-inline__item">
+                              {menu.isExternal ? (
+                                <a
+                                  href={menu.link}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="header-menu-inline__link"
+                                  onClick={() => setIsHeaderMenuOpen(false)}
+                                >
+                                  {menu.title}
+                                </a>
+                              ) : (
+                                <Link
+                                  href={menu.link}
+                                  className="header-menu-inline__link"
+                                  onClick={() => setIsHeaderMenuOpen(false)}
+                                >
+                                  {menu.title}
+                                </Link>
+                              )}
+                            </li>
+                          ))}
+                        </ul>
                       </nav>
                     </div>
                   </div>

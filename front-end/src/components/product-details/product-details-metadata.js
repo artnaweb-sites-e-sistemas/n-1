@@ -13,9 +13,7 @@ const ProductDetailsMetadata = ({ product }) => {
     year,
     pages,
     dimensions,
-    isbn,
-    price,
-    priceText
+    isbn
   } = product || {};
 
   // Se não houver metadados, não renderizar nada
@@ -95,37 +93,6 @@ const ProductDetailsMetadata = ({ product }) => {
         <div className="product__details-metadata product__details-more">
           <p>ISBN:</p>
           <span>{isbn}</span>
-        </div>
-      )}
-      {(priceText || price) && (
-        <div className="product__details-metadata product__details-more">
-          <p>Preço:</p>
-          <span>
-            {(() => {
-              if (priceText) return priceText;
-              if (!price) return '';
-              
-              // Se price é número, formatar
-              if (typeof price === 'number') {
-                return `R$ ${price.toFixed(2).replace('.', ',')}`;
-              }
-              
-              // Se price é string, verificar se já tem R$ ou se precisa formatar
-              const priceStr = String(price);
-              if (priceStr.includes('R$')) {
-                return priceStr;
-              }
-              
-              // Tentar converter para número e formatar
-              const priceNum = parseFloat(priceStr.replace(',', '.'));
-              if (!isNaN(priceNum)) {
-                return `R$ ${priceNum.toFixed(2).replace('.', ',')}`;
-              }
-              
-              // Se não conseguir converter, retornar como está
-              return `R$ ${priceStr}`;
-            })()}
-          </span>
         </div>
       )}
     </>

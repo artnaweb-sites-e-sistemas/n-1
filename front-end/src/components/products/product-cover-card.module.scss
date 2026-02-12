@@ -1,7 +1,7 @@
 .productCoverCard {
   position: relative;
   width: 100%;
-  margin-bottom: 2rem;
+  margin-bottom: 0;
   
   .productLink {
     display: block;
@@ -18,9 +18,9 @@
   .imageContainer {
     position: relative;
     width: 100%;
-    aspect-ratio: 2 / 3; // Proporção típica de capa de livro
+    aspect-ratio: 2 / 2;
     overflow: hidden;
-    background-color: transparent; // Removido background cinza
+    background-color: transparent;
     
     .productImage {
       object-fit: contain; // Mantém proporção sem cortar
@@ -31,64 +31,47 @@
 
   .overlay {
     position: absolute;
-    top: 0;
+    top: 50%;
     left: 0;
     right: 0;
-    bottom: 0;
-    // Gradiente sutil de cima para baixo para melhor legibilidade
-    background: linear-gradient(
-      to bottom,
-      rgba(0, 0, 0, 0.3) 0%,
-      rgba(0, 0, 0, 0.5) 50%,
-      rgba(0, 0, 0, 0.4) 100%
-    );
-    backdrop-filter: blur(2px); // Efeito de blur sutil
+    transform: translateY(-50%);
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 1.5rem;
-    opacity: 0;
-    transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
-                backdrop-filter 0.4s ease; // Transição mais suave
+    padding: 0 1rem;
     pointer-events: none;
     z-index: 1;
+    overflow: hidden;
   }
 
   // Hover effect no desktop
   @media (min-width: 769px) {
     &:hover {
-      .overlay {
-        opacity: 1;
-        backdrop-filter: blur(3px); // Aumenta o blur no hover
-      }
-      
       .productTitle {
         opacity: 1;
-        transform: translateY(0);
-      }
-      
-      .productImage {
-        transform: scale(1.05);
+        transform: translateX(0);
       }
     }
   }
 
   .productTitle {
     color: #fff;
-    font-size: 1.1rem;
+    font-size: 0.8rem;
     font-weight: 500;
-    text-align: center;
-    line-height: 1.5;
+    text-align: left;
+    line-height: 1.35;
     margin: 0;
     word-wrap: break-word;
-    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3); // Sombra sutil no texto para melhor legibilidade
     letter-spacing: 0.02em;
-    padding: 0.5rem;
-    // Efeito de fade-in no texto
+    padding: 0.6rem 1rem;
+    background-color: rgba(0, 0, 0, 0.95);
+    width: 90%;
+    max-width: 90%;
+    box-sizing: border-box;
+    white-space: normal;
     opacity: 0;
-    transform: translateY(10px);
-    transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1) 0.1s,
-                transform 0.4s cubic-bezier(0.4, 0, 0.2, 1) 0.1s;
+    transform: translateX(-100%);
+    transition: opacity 0.35s ease, transform 0.35s ease;
   }
 
   .mobileTitle {

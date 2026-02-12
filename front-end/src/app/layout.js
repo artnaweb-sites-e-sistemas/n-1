@@ -8,6 +8,7 @@ import {
   Roboto,
   Space_Grotesk,
   Syne,
+  Permanent_Marker,
 } from "next/font/google";
 
 const poppins = Poppins({
@@ -45,6 +46,11 @@ const syne = Syne({
   subsets: ["latin"],
   variable: "--tp-ff-syne",
 });
+const permanentMarker = Permanent_Marker({
+  weight: ["400"],
+  subsets: ["latin"],
+  variable: "--tp-ff-permanent-marker",
+});
 
 export const metadata = {
   title: "N-1 Edições",
@@ -55,7 +61,7 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${poppins.variable} ${inter.variable} ${oswald.variable} ${rajdhani.variable}  ${roboto.variable} ${space.variable} ${syne.variable}`}
+        className={`${poppins.variable} ${inter.variable} ${oswald.variable} ${rajdhani.variable} ${roboto.variable} ${space.variable} ${syne.variable} ${permanentMarker.variable}`}
         suppressHydrationWarning
       >
         <MainProvider>{children}</MainProvider>

@@ -1,35 +1,40 @@
 .homeShopArea {
   .productGrid {
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-    gap: 2rem;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    column-gap: 0.6rem;
+    row-gap: 0.35rem;
     width: 100%;
     margin: 0;
     padding: 0;
 
-    @media (max-width: 1400px) {
-      grid-template-columns: repeat(4, minmax(0, 1fr));
+    @media (max-width: 1200px) {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 
     @media (max-width: 992px) {
       grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 1.5rem;
+      column-gap: 0.5rem;
+      row-gap: 0.3rem;
     }
 
     @media (max-width: 768px) {
       grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 1rem;
+      column-gap: 0.5rem;
+      row-gap: 0.3rem;
     }
 
     @media (max-width: 576px) {
       grid-template-columns: repeat(1, minmax(0, 1fr));
+      column-gap: 0;
+      row-gap: 0.35rem;
     }
   }
 
   .productItem {
     width: 100%;
     min-width: 0;
-    background: transparent; // Garantir que não há background
+    background: transparent;
   }
 
   .sentinel {

@@ -1,5 +1,6 @@
 import React from "react";
 import Loader from "./loader";
+import styles from "./shop-loader.module.scss";
 
 // product single loader - simula o tamanho de um produto
 function ProductGridLoader({ loading }) {
@@ -10,22 +11,9 @@ function ProductGridLoader({ loading }) {
           className="d-flex align-items-center justify-content-center"
           style={{ 
             height: "100%", 
-            minHeight: "400px",
             width: "100%",
-            backgroundColor: "#f8f8f8",
-            aspectRatio: "960/1125"
-          }}
-        >
-          <Loader loading={loading} />
-        </div>
-      </div>
-      <div className="product__content">
-        <div
-          className="d-flex align-items-center justify-content-center"
-          style={{ 
-            minHeight: "60px",
-            width: "100%",
-            padding: "10px 0"
+            backgroundColor: "#f0f0f0",
+            aspectRatio: "2 / 3"
           }}
         >
           <Loader loading={loading} />
@@ -36,9 +24,9 @@ function ProductGridLoader({ loading }) {
 }
 
 const ShopLoader = ({ loading }) => {
-  // Criar array com 25 loaders (5 colunas x 5 linhas)
-  const loaders = Array.from({ length: 25 }, (_, index) => (
-    <div key={index}>
+  // 20 loaders (4 colunas x 5 linhas) - alinhado ao grid do catálogo
+  const loaders = Array.from({ length: 20 }, (_, index) => (
+    <div key={index} className={styles.item}>
       <ProductGridLoader loading={loading} />
     </div>
   ));
@@ -47,23 +35,9 @@ const ShopLoader = ({ loading }) => {
     <section className="shop__area pt-100 pb-60">
       <div className="container">
         <div className="shop__main">
-          <div className="row">
-            <div className="col-12">
-              <div className="shop__tab-content mb-40">
-                <div className="tab-content" id="shop_tab_content">
-                  <div
-                    className="tab-pane fade show active"
-                    id="nav-grid"
-                    role="tabpanel"
-                    aria-labelledby="nav-grid-tab"
-                  >
-                    {/* shop grid com 25 loaders */}
-                    <div className="row shop-grid-5-columns">
-                      {loaders}
-                    </div>
-                  </div>
-                </div>
-              </div>
+          <div className="col-12">
+            <div className={styles.shopLoaderGrid}>
+              {loaders}
             </div>
           </div>
         </div>

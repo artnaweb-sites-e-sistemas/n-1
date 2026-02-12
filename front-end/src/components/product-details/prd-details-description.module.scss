@@ -1,10 +1,10 @@
 .catalogContent {
   margin-bottom: 2rem;
+  margin-left: auto;
+  margin-right: auto;
   line-height: 1.8;
   color: #333;
   max-width: 800px; // Largura máxima para melhor leitura
-  margin-left: 0; // Alinhar à esquerda
-  margin-right: auto; // Manter espaço à direita
   overflow: visible; // Permitir que iframes sejam exibidos
 
   // Resetar todos os estilos problemáticos do tema antigo
@@ -432,8 +432,8 @@
 .descriptionContent {
   padding: 2rem 0;
   max-width: 800px; // Largura máxima para melhor leitura
-  margin-left: 0; // Alinhar à esquerda
-  margin-right: auto; // Manter espaço à direita
+  margin-left: auto;
+  margin-right: auto;
   overflow: visible; // Permitir que iframes sejam exibidos
   
   @media (max-width: 768px) {

@@ -5,7 +5,7 @@ const Loader = ({ loading }) => {
   return (
     <div className="text-center">
       <BarLoader
-        color="#F21C83"
+        color="#000000"
         loading={loading}
         height={8}
         width={100}

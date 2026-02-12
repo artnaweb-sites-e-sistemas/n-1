@@ -67,6 +67,24 @@ const ProductDetailsArea = ({ product }) => {
     productImages = [...validImages, ...uniqueCatalogImages];
   }
 
+  // Remover imagens duplicadas na galeria (por URL exata e por nome base do arquivo)
+  const normalizeImageKey = (url) => {
+    if (!url || typeof url !== 'string') return '';
+    // Extrair nome do arquivo (ex: internal_9786561190626_2_Design-sem-nome12.png ou Design-sem-nome15-300x169.png)
+    const path = url.split('/').pop() || url;
+    // Remover sufixos de tamanho (-300x169, -150x150, etc.) para tratar como mesma imagem
+    const baseName = path.replace(/-\d+x\d+(\.[a-zA-Z0-9]+)$/i, '$1');
+    return baseName.toLowerCase();
+  };
+  const seenKeys = new Set();
+  productImages = productImages.filter((img) => {
+    if (!img || typeof img !== 'string' || img.trim() === '') return false;
+    const key = normalizeImageKey(img);
+    if (seenKeys.has(key)) return false;
+    seenKeys.add(key);
+    return true;
+  });
+
   const [activeImg, setActiveImg] = useState(mainImage);
   useEffect(() => {
     // Atualizar imagem ativa quando mainImage mudar
@@ -128,8 +146,8 @@ const ProductDetailsArea = ({ product }) => {
         }
         .product-cart-btn-hover:hover {
           transform: translateY(-2px) !important;
-          box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4) !important;
-          background-color: #059669 !important;
+          box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3) !important;
+          background-color: #000000 !important;
         }
         .product-cart-btn-hover:active {
           transform: translateY(0) !important;
@@ -148,6 +166,14 @@ const ProductDetailsArea = ({ product }) => {
         }
         .product-checkout-btn-hover:active svg {
           transform: translateY(-1px) translateX(2px);
+        }
+        .product-checkout-btn-hover {
+          transition: background-color 0.3s ease, color 0.3s ease, transform 0.2s ease !important;
+        }
+        .product-checkout-btn-hover:hover {
+          background-color: #000000 !important;
+          border-color: #000000 !important;
+          color: #ffffff !important;
         }
         @keyframes gentleBounce {
           0%, 100% { transform: translateY(0) scale(1); }
@@ -234,13 +260,11 @@ const ProductDetailsArea = ({ product }) => {
             </div>
             <div className="col-xl-5 col-lg-6">
               <div className="product__details-wrapper">
-                <div className="product__details-stock">
-                  <span className={inStock ? "in-stock" : "out-of-stock"}>
-                    {inStock
-                      ? (quantity !== null && quantity !== undefined ? `${quantity} Em Estoque` : "Em Estoque")
-                      : "Fora de Estoque"}
-                  </span>
-                </div>
+                {!inStock && (
+                  <div className="product__details-stock">
+                    <span className="out-of-stock">Sem Estoque</span>
+                  </div>
+                )}
                 <h3 className="product__details-title">{title}</h3>
 
                 <p className="mt-20">
@@ -264,8 +288,8 @@ const ProductDetailsArea = ({ product }) => {
                         type="button"
                         className="product-add-cart-btn product-add-cart-btn-3 product-cart-btn-hover"
                         style={{
-                          backgroundColor: '#10b981',
-                          borderColor: '#10b981',
+                          backgroundColor: '#000000',
+                          borderColor: '#000000',
                           color: '#ffffff',
                           opacity: 1,
                           cursor: 'pointer',
@@ -334,9 +358,9 @@ const ProductDetailsArea = ({ product }) => {
                           style={{
                             opacity: inStock ? 1 : 0.5,
                             cursor: inStock ? 'pointer' : 'not-allowed',
-                            backgroundColor: '#10b981',
-                            borderColor: '#10b981',
-                            color: '#ffffff',
+                            backgroundColor: '#ffffff',
+                            border: '1px solid #000000',
+                            color: '#000000',
                             display: 'inline-flex',
                             alignItems: 'center',
                             justifyContent: 'center',
@@ -349,10 +373,6 @@ const ProductDetailsArea = ({ product }) => {
                       </div>
                     </>
                   )}
-                </div>
-                <div className="product__details-sku product__details-more">
-                  <p>SKU:</p>
-                  <span>{sku}</span>
                 </div>
                 {/* ProductDetailsCategories */}
                 <ProductDetailsCategories name={product?.category?.name} />
