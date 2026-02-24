@@ -3,15 +3,14 @@ import React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { getProductUrl } from "src/utils/product-url";
+import { getListingImageUrl } from "src/utils/product-page-main-image";
 import styles from './product-cover-card.module.scss';
 
 const ProductCoverCard = ({ product }) => {
-  const { _id, image, title } = product || {};
+  const { _id, title } = product || {};
   const productUrl = getProductUrl(product, _id);
 
-  const productImage = image && image.trim() !== ''
-    ? image
-    : 'https://n-1.artnaweb.com.br/wp-content/uploads/woocommerce-placeholder-1024x1024.webp';
+  const productImage = getListingImageUrl(product) || '/images/placeholder.webp';
 
   // Determine if the image is local to use unoptimized prop
   const isLocalImage = productImage.startsWith('/images/');

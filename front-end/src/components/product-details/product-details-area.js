@@ -12,6 +12,8 @@ import ProductDetailsTags from "./product-details-tags";
 import ProductDetailsMetadata from "./product-details-metadata";
 import { add_cart_product } from "src/redux/features/cartSlice";
 import { add_to_wishlist } from "src/redux/features/wishlist-slice";
+import { getFirstParagraphAndRest } from "src/utils/description-paragraphs";
+import { getProductPageMainImageUrl } from "src/utils/product-page-main-image";
 
 const ProductDetailsArea = ({ product }) => {
   const {
@@ -28,22 +30,10 @@ const ProductDetailsArea = ({ product }) => {
     sku,
   } = product || {};
 
-  // Garantir que a imagem principal existe, senão usar placeholder
-  // Priorizar o campo 'image' que é a capa principal
-  let mainImage = '';
-  
-  if (product?.image && product.image.trim() !== '') {
-    // Usar o campo image primeiro (capa principal)
-    mainImage = product.image;
-  } else if (image && image.trim() !== '') {
-    // Se product.image não existir, usar o image desestruturado
-    mainImage = image;
-  } else if (images && images.length > 0) {
-    // Se não tiver image, usar a primeira do array
-    mainImage = images[0];
-  } else {
-    // Fallback para placeholder
-    mainImage = 'https://n-1.artnaweb.com.br/wp-content/uploads/woocommerce-placeholder-1024x1024.webp';
+  // Imagem principal = primeira imagem da descrição (capa reta). Quando catalogImages vazio, extraída do HTML.
+  let mainImage = getProductPageMainImageUrl(product);
+  if (!mainImage || mainImage.trim() === "") {
+    mainImage = image && image.trim() !== "" ? image : (images && images[0]) || "/images/placeholder.webp";
   }
   
 
@@ -204,9 +194,9 @@ const ProductDetailsArea = ({ product }) => {
                           objectFit: "contain",
                         }}
                         priority
+                        unoptimized={mainImage.startsWith("/images/")}
                         onError={(e) => {
-                          // Fallback se a imagem falhar
-                          e.target.src = 'https://n-1.artnaweb.com.br/wp-content/uploads/woocommerce-placeholder-1024x1024.webp';
+                          e.target.src = "/images/placeholder.webp";
                         }}
                       />
                     )}
@@ -222,6 +212,13 @@ const ProductDetailsArea = ({ product }) => {
                   </div>
                 )}
                 <h3 className="product__details-title">{title}</h3>
+
+                {(() => {
+                  const rawContent = product?.catalogContent || product?.description || "";
+                  const isHtml = !!product?.catalogContent;
+                  const { firstParagraph } = getFirstParagraphAndRest(rawContent, isHtml);
+                  return firstParagraph ? <p className="mt-20">{firstParagraph}</p> : null;
+                })()}
 
                 {/* Product Details Price */}
                 <ProductDetailsPrice price={originalPrice} discount={discount} />

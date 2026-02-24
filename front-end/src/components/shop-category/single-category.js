@@ -9,7 +9,7 @@ const SingleCategory = ({ item }) => {
   // Garantir que a imagem existe, senão usar placeholder
   const categoryImage = (item?.img && item.img.trim() !== '') 
     ? item.img 
-    : 'https://n-1.artnaweb.com.br/wp-content/uploads/woocommerce-placeholder-1024x1024.webp';
+    : '/images/placeholder.webp';
   
   const categoryName = item?.parent || item?.name || 'Categoria';
   

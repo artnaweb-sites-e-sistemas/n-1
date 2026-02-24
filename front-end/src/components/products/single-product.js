@@ -14,9 +14,10 @@ import {
 import { add_to_wishlist } from "src/redux/features/wishlist-slice";
 import { setProduct } from "src/redux/features/productSlice";
 import { getProductUrl } from "src/utils/product-url";
+import { getListingImageUrl } from "src/utils/product-page-main-image";
 
 const SingleProduct = ({ product, discountPrd = false }) => {
-  const { _id, image, title, price, discount, originalPrice, inStock } = product || {};
+  const { _id, title, price, discount, originalPrice, inStock } = product || {};
   const productUrl = getProductUrl(product, _id);
   const dispatch = useDispatch();
   const { cart_products } = useSelector((state) => state.cart);
@@ -24,10 +25,8 @@ const SingleProduct = ({ product, discountPrd = false }) => {
   const isWishlistAdded = wishlist.some(item => item._id === _id);
   const isAddedToCart = cart_products.some((prd) => prd._id === _id);
 
-  // Garantir que a imagem existe, senão usar placeholder
-  const productImage = image && image.trim() !== ''
-    ? image
-    : 'https://n-1.artnaweb.com.br/wp-content/uploads/woocommerce-placeholder-1024x1024.webp';
+  // Listagem: mockup (não capa reta)
+  const productImage = getListingImageUrl(product) || '/images/placeholder.webp';
 
   // Truncar título para exibição (limite de 50 caracteres)
   const truncateTitle = (text, maxLength = 50) => {

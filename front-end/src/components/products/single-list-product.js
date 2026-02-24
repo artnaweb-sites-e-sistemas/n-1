@@ -8,17 +8,15 @@ import { useDispatch } from "react-redux";
 import { initialOrderQuantity } from "src/redux/features/cartSlice";
 import { setProduct } from "src/redux/features/productSlice";
 import { getProductUrl } from "src/utils/product-url";
+import { getListingImageUrl } from "src/utils/product-page-main-image";
 
 const SingleListProduct = ({ product }) => {
-  const { _id, image, title, price, discount, inStock } = product || {};
+  const { _id, title, price, discount, inStock } = product || {};
   const productUrl = getProductUrl(product, _id);
-  // handle dispatch
   const dispatch = useDispatch();
   
-  // Garantir que a imagem existe, senão usar placeholder
-  const productImage = image && image.trim() !== '' 
-    ? image 
-    : 'https://n-1.artnaweb.com.br/wp-content/uploads/woocommerce-placeholder-1024x1024.webp';
+  // Listagem: mockup (não capa reta)
+  const productImage = getListingImageUrl(product) || '/images/placeholder.webp';
 
   // handle quick view
   const handleQuickView = (prd) => {

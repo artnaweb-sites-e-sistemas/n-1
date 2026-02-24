@@ -14,16 +14,15 @@ import Link from "next/link";
 import { add_to_wishlist } from "src/redux/features/wishlist-slice";
 import { Modal } from "react-bootstrap";
 import { handleModalShow } from "src/redux/features/productSlice";
+import { getListingImageUrl } from "src/utils/product-page-main-image";
 
 const ProductModal = () => {
   const { product, isShow } = useSelector((state) => state.product);
   const { wishlist } = useSelector((state) => state.wishlist);
-  const { _id, image, relatedImages, images, title, tags, SKU, price, discount, originalPrice, sku, inStock } = product || {};
+  const { _id, relatedImages, images, title, tags, SKU, price, discount, originalPrice, sku, inStock } = product || {};
   
-  // Garantir que a imagem principal existe, senão usar placeholder
-  const mainImage = image && image.trim() !== '' 
-    ? image 
-    : (images && images.length > 0 ? images[0] : 'https://n-1.artnaweb.com.br/wp-content/uploads/woocommerce-placeholder-1024x1024.webp');
+  // Listagem/modal: mockup (não capa reta)
+  const mainImage = getListingImageUrl(product) || '/images/placeholder.webp';
   
   // Usar images se relatedImages não existir
   const productImages = (relatedImages && Array.isArray(relatedImages) && relatedImages.length > 0) 

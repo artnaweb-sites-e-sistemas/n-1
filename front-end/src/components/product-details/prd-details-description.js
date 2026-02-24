@@ -1,15 +1,23 @@
 import React from "react";
 import Image from "next/image";
 import styles from './prd-details-description.module.scss';
+import { getFirstParagraphAndRest } from "src/utils/description-paragraphs";
+import { removeMainImageFromCatalogHtml } from "src/utils/product-page-main-image";
 
-const PrdDetailsDescription = ({product}) => {
+const PrdDetailsDescription = ({ product, mainImageUrl }) => {
   const catalogContent = product?.catalogContent;
   const catalogImages = product?.catalogImages || [];
   const catalogPdf = product?.catalogPdf;
   const description = product?.description;
 
-  // Se não houver conteúdo do catálogo, usar descrição padrão
-  const displayContent = catalogContent || description || '';
+  // Conteúdo sem o primeiro parágrafo (já exibido abaixo do título)
+  const rawContent = catalogContent || description || '';
+  const isHtml = !!catalogContent;
+  let { restContent } = getFirstParagraphAndRest(rawContent, isHtml);
+  // Remover a imagem principal (capa) da descrição para não duplicar com a da página do produto
+  if (catalogContent && mainImageUrl && restContent) {
+    restContent = removeMainImageFromCatalogHtml(restContent, mainImageUrl);
+  }
 
   return (
     <div className={`product__details-description pt-95 ${styles.descriptionWrapper}`}>
@@ -19,17 +27,19 @@ const PrdDetailsDescription = ({product}) => {
                 <h3 className="product-desc-title">{product?.title}</h3>
               )}
               
-              {/* Conteúdo editorial do catálogo ou descrição padrão */}
-              {catalogContent ? (
-                <div 
-                  className={styles.catalogContent}
-                  dangerouslySetInnerHTML={{ __html: catalogContent }}
-                />
-              ) : (
-                <div className={styles.defaultDescription}>
-                  <p>{description}</p>
-                </div>
-              )}
+              {/* Conteúdo editorial do catálogo ou descrição (sem o primeiro parágrafo) */}
+              {restContent ? (
+                catalogContent ? (
+                  <div 
+                    className={styles.catalogContent}
+                    dangerouslySetInnerHTML={{ __html: restContent }}
+                  />
+                ) : (
+                  <div className={styles.defaultDescription}>
+                    <p>{restContent}</p>
+                  </div>
+                )
+              ) : null}
 
               {/* Galeria de imagens internas do catálogo - removida pois já está no HTML */}
               {/* As imagens já vêm no catalogContent, então não precisamos duplicar */}
