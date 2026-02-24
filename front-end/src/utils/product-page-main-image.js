@@ -40,21 +40,20 @@ export function getProductPageMainImageUrl(product) {
   const images = product.images || [];
 
   if (product.source === "catalog") {
-    // 1) Primeira imagem da descrição = primeira <img> no HTML (capa reta)
+    // 1) Exceção: "Nas brechas..." usa a segunda imagem da descrição (catalog_xxx_1_catalog_image_product_2.png)
+    const nasBrechasId = "catalog-nas-brechas-futuros-cancelados";
+    const isNasBrechas =
+      product._id === nasBrechasId ||
+      product.id === nasBrechasId ||
+      (product.slug && product.slug.includes("nas-brechas-de-futuros-cancelados"));
+    if (isNasBrechas && catalogImages.length > 1) return catalogImages[1].trim();
+
+    // 2) Primeira imagem da descrição = primeira <img> no HTML (capa reta)
     const firstFromHtml = getFirstImageSrcFromHtml(catalogContent);
     if (firstFromHtml && firstFromHtml.startsWith("/images/")) return firstFromHtml;
 
-    // 2) Se não tem img no HTML, usar catalogImages (exceção: Nas brechas usa a segunda)
-    if (catalogImages.length > 0) {
-      const nasBrechasId = "catalog-nas-brechas-futuros-cancelados";
-      const isNasBrechas =
-        product._id === nasBrechasId ||
-        product.id === nasBrechasId ||
-        (product.slug && product.slug.includes("nas-brechas-de-futuros-cancelados"));
-
-      if (isNasBrechas && catalogImages.length > 1) return catalogImages[1].trim();
-      return catalogImages[0].trim();
-    }
+    // 3) Se não tem img no HTML, usar catalogImages[0]
+    if (catalogImages.length > 0 && catalogImages[0]) return catalogImages[0].trim();
 
     // 3) Fallback
     if (image && String(image).trim() !== "") return String(image).trim();
