@@ -12,8 +12,8 @@
       "/images/internal_9786561190763_2_catalog_image_product_2.png",
       "/images/internal_9786561190763_3_catalog_image_product_3.png"
     ],
-    "price": 79.9,
-    "originalPrice": 79.9,
+    "price": 83.9,
+    "originalPrice": 83.9,
     "discount": 0,
     "sku": "9786561190763",
     "stock": null,
@@ -43,7 +43,7 @@
     "year": "2026",
     "pages": "160",
     "isbn": "978-65-6119-076-3",
-    "priceText": "R$ 79,90",
+    "priceText": "R$ 83,90",
     "authors": "Renan Porto",
     "preparation": "Flavio Taam",
     "revision": "Fernanda Mello",
@@ -64,8 +64,8 @@
       "/images/internal_9786561190626_4_Design-sem-nome17-300x169.png",
       "/images/internal_9786561190626_5_Design-sem-nome18-300x169.png"
     ],
-    "price": "R$ 90",
-    "originalPrice": 90.0,
+    "price": 94.5,
+    "originalPrice": 94.5,
     "discount": 0,
     "sku": "9786561190626",
     "stock": null,
@@ -105,7 +105,8 @@
     "year": "2026",
     "pages": "450",
     "dimensions": "21 x 12 cm",
-    "isbn": "978-65-6119-062-6"
+    "isbn": "978-65-6119-062-6",
+    "priceText": "R$ 94,50"
   },
   {
     "_id": "catalog-ueinzz-territorio-de-transmutacao-poetica-e-politica",
@@ -117,8 +118,8 @@
     "images": [
       "/images/cover_9786561190732.jpg"
     ],
-    "price": "R$ 95,00",
-    "originalPrice": 95.0,
+    "price": 99.75,
+    "originalPrice": 99.75,
     "discount": 0,
     "sku": "9786561190732",
     "stock": null,
@@ -146,7 +147,8 @@
     "pages": "288",
     "dimensions": "14 x 21 cm",
     "isbn": "978-65-6119-073-2",
-    "authors": "Jayme Valarelli Menezes"
+    "authors": "Jayme Valarelli Menezes",
+    "priceText": "R$ 99,75"
   },
   {
     "_id": "catalog-pensar-gaza-entrevista-com-etienne-balibar",
@@ -158,8 +160,8 @@
     "images": [
       "/images/cover_9786561190718.jpg"
     ],
-    "price": "R$ 34,90",
-    "originalPrice": 34.9,
+    "price": 36.65,
+    "originalPrice": 36.65,
     "discount": 0,
     "sku": "9786561190718",
     "stock": null,
@@ -188,7 +190,8 @@
     "pages": "72",
     "dimensions": "15 x 12 cm",
     "isbn": "978-65-6119-071-8",
-    "authors": "Luca Salza"
+    "authors": "Luca Salza",
+    "priceText": "R$ 36,65"
   },
   {
     "_id": "catalog-psicanalise-e-amefricanidade",
@@ -200,8 +203,8 @@
     "images": [
       "/images/cover_9786561190688.jpg"
     ],
-    "price": "R$ 119,90",
-    "originalPrice": 119.9,
+    "price": 125.9,
+    "originalPrice": 125.9,
     "discount": 0,
     "sku": "9786561190688",
     "stock": null,
@@ -229,7 +232,8 @@
     "year": "2025",
     "pages": "320",
     "dimensions": "16 x 23 cm",
-    "isbn": "97865-6119-068-8"
+    "isbn": "97865-6119-068-8",
+    "priceText": "R$ 125,90"
   },
   {
     "_id": "catalog-involuntarios-da-patria",
@@ -244,8 +248,8 @@
       "/images/catalog_N1-00006_1_mockupsfrente-e-verso2.png",
       "/images/catalog_N1-00006_2_mockupinvoluntarios3d-scaled.png"
     ],
-    "price": 104.9,
-    "originalPrice": 104.9,
+    "price": 110.15,
+    "originalPrice": 110.15,
     "discount": 0,
     "sku": "9786561190671",
     "stock": null,
@@ -276,7 +280,7 @@
     "year": "2025",
     "dimensions": "23 x 15 cm",
     "isbn": "978-65-6119-067-1",
-    "priceText": "R$ 104,90",
+    "priceText": "R$ 110,15",
     "preparation": "Ana Godoy",
     "revision": "Fernanda Mello"
   },
@@ -293,8 +297,8 @@
       "/images/catalog_N1-00007_1_SONHOSEMSERIE3DMOCKUP-scaled.png",
       "/images/catalog_N1-00007_2_sonhosemseriemockupfrenteverso2.png"
     ],
-    "price": 56.9,
-    "originalPrice": 56.9,
+    "price": 59.75,
+    "originalPrice": 59.75,
     "discount": 0,
     "sku": "N1-00007",
     "stock": null,
@@ -324,7 +328,7 @@
     "year": "2025",
     "dimensions": "22,5 x 14,5 cm",
     "isbn": "978",
-    "priceText": "R$ 56,90",
+    "priceText": "R$ 59,75",
     "preparation": "José Camilo Carlos Júnior, Silke Kapp",
     "revision": "Alexandre Bomfim"
   },
@@ -338,8 +342,8 @@
     "images": [
       "/images/cover_9786561190657.jpg"
     ],
-    "price": "R$ 89,90",
-    "originalPrice": 89.9,
+    "price": 94.4,
+    "originalPrice": 94.4,
     "discount": 0,
     "sku": "9786561190657",
     "stock": null,
@@ -369,7 +373,8 @@
     "pages": "272",
     "dimensions": "20 x 13,5 cm",
     "isbn": "978-65-6119-065-7",
-    "authors": "Eduardo Duarte"
+    "authors": "Eduardo Duarte",
+    "priceText": "R$ 94,40"
   },
   {
     "_id": "catalog-a-comunidade-terrestre",
@@ -381,8 +386,8 @@
     "images": [
       "/images/cover_9786561190572.jpg"
     ],
-    "price": 84.9,
-    "originalPrice": 84.9,
+    "price": 89.15,
+    "originalPrice": 89.15,
     "discount": 0,
     "sku": "9786561190572",
     "stock": null,
@@ -419,7 +424,7 @@
     "pages": "232",
     "dimensions": "14 x 21 cm",
     "isbn": "978-65-6119-057-2",
-    "priceText": ""
+    "priceText": "R$ 89,15"
   },
   {
     "_id": "catalog-sobre-a-pintura",
@@ -436,8 +441,8 @@
       "/images/catalog_N1-00010_3_SOBREAPINTURA6FOTOS.png",
       "/images/catalog_N1-00010_4_SOBREAPINTURA7FOTOS.png"
     ],
-    "price": 104.9,
-    "originalPrice": 104.9,
+    "price": 110.15,
+    "originalPrice": 110.15,
     "discount": 0,
     "sku": "9786561190565",
     "stock": null,
@@ -470,7 +475,7 @@
     "year": "2025",
     "dimensions": "14 x 21 cm",
     "isbn": "978-65-6119-056-5",
-    "priceText": "R$ 104,90",
+    "priceText": "R$ 110,15",
     "preparation": "Fernanda Mello",
     "revision": "Nicole Marcello"
   },
@@ -484,8 +489,8 @@
     "images": [
       "/images/cover_9786561190541.jpg"
     ],
-    "price": "R$ 67,90",
-    "originalPrice": 67.9,
+    "price": 71.3,
+    "originalPrice": 71.3,
     "discount": 0,
     "sku": "9786561190541",
     "stock": null,
@@ -515,7 +520,8 @@
     "pages": "300",
     "dimensions": "12,5 x 18,5 cm",
     "isbn": "978-65-6119-054-1",
-    "authors": "Renata Oliveira"
+    "authors": "Renata Oliveira",
+    "priceText": "R$ 71,30"
   },
   {
     "_id": "catalog-h%e2%82%82o-e-as-aguas-do-esquecimento",
@@ -532,8 +538,8 @@
       "/images/catalog_N1-00012_3_H2OEASAGUAS6FOTO.png",
       "/images/catalog_N1-00012_4_H2OEASAGUAS4FOTO-1-scaled.png"
     ],
-    "price": 89.9,
-    "originalPrice": 89.9,
+    "price": 94.9,
+    "originalPrice": 94.9,
     "discount": 0,
     "sku": "9786561190558",
     "stock": null,
@@ -566,7 +572,7 @@
     "year": "2025",
     "dimensions": "12,5 x 18,5 cm",
     "isbn": "978-65-6119-055-8",
-    "priceText": "R$ 89,90",
+    "priceText": "R$ 94,90",
     "preparation": "Silke Kapp e José Camilo Carlos Júnior",
     "revision": "Alexandre Bomfim"
   },
@@ -583,8 +589,8 @@
       "/images/catalog_N1-00013_1_desencadeamentofrente-e-verso-1.png",
       "/images/catalog_N1-00013_2_desencadeamentodomundomockup.png"
     ],
-    "price": 89.9,
-    "originalPrice": 89.9,
+    "price": 94.4,
+    "originalPrice": 94.4,
     "discount": 0,
     "sku": "9786561190473",
     "stock": null,
@@ -615,7 +621,7 @@
     "year": "2025",
     "dimensions": "14 x 21 cm",
     "isbn": "978-65-6119-047-3",
-    "priceText": "R$ 89,90",
+    "priceText": "R$ 94,40",
     "preparation": "Flavio Taam",
     "revision": "Fernanda Mello"
   },
@@ -634,8 +640,8 @@
       "/images/catalog_N1-00014_3_ANIMACIDADES2FOTOS-scaled.png",
       "/images/catalog_N1-00014_4_ANIMACIDADES6FOTOS-scaled.png"
     ],
-    "price": 109.9,
-    "originalPrice": 109.9,
+    "price": 115.4,
+    "originalPrice": 115.4,
     "discount": 0,
     "sku": "9786561190398",
     "stock": null,
@@ -668,7 +674,7 @@
     "year": "2025",
     "dimensions": "21 x 14 cm",
     "isbn": "978-65-6119-039-8",
-    "priceText": "R$ 109,90",
+    "priceText": "R$ 115,40",
     "preparation": "Graziela Marcolin",
     "revision": "Nicole Marcello"
   },
@@ -692,8 +698,8 @@
       "/images/catalog_9786586941968_8_brotacao-iv-mockup-300x236.png",
       "/images/catalog_9786586941968_9_brotacao-v-mockup-300x236.png"
     ],
-    "price": 140.0,
-    "originalPrice": 140.0,
+    "price": 147,
+    "originalPrice": 147,
     "discount": 0,
     "sku": "9786586941968",
     "stock": null,
@@ -734,7 +740,8 @@
     "pages": "412",
     "dimensions": "21 x 14 cm",
     "isbn": "978-65-86941-96-8",
-    "authors": "Anna Tsing"
+    "authors": "Anna Tsing",
+    "priceText": "R$ 147,00"
   },
   {
     "_id": "catalog-o-menino-e-o-gato-na-floresta-de-aco",
@@ -746,8 +753,8 @@
     "images": [
       "/images/cover_9786561190510.jpg"
     ],
-    "price": 49.9,
-    "originalPrice": 49.9,
+    "price": 27.45,
+    "originalPrice": 27.45,
     "discount": 0,
     "sku": "9786561190510",
     "stock": null,
@@ -782,7 +789,7 @@
     "pages": "54",
     "dimensions": "23 x 21,6 cm",
     "isbn": "978-65-6119-051-0",
-    "priceText": ""
+    "priceText": "R$ 27,45"
   },
   {
     "_id": "catalog-futuros-menores",
@@ -901,8 +908,8 @@
       "/images/catalog_N1-00019_3_CARTASAUMVELHOTERAPEUTA1FOTOS-scaled.png",
       "/images/catalog_N1-00019_4_CARTASAUMVELHOTERAPEUTA2FOTOS-scaled.png"
     ],
-    "price": 68.0,
-    "originalPrice": 68.0,
+    "price": 71.4,
+    "originalPrice": 71.4,
     "discount": 0,
     "sku": "9786561190527",
     "stock": null,
@@ -935,7 +942,7 @@
     "year": "2025",
     "dimensions": "18 x 11 cm",
     "isbn": "978-65-6119-052-7",
-    "priceText": "R$ 68,00",
+    "priceText": "R$ 71,40",
     "preparation": "Fernanda Mello",
     "revision": "Gabriel Rath Kolyniak"
   },
@@ -949,8 +956,8 @@
     "images": [
       "/images/cover_9786561190381.jpg"
     ],
-    "price": 69.9,
-    "originalPrice": 69.9,
+    "price": 73.4,
+    "originalPrice": 73.4,
     "discount": 0,
     "sku": "9786561190381",
     "stock": null,
@@ -986,7 +993,7 @@
     "pages": "176",
     "dimensions": "14 x 21 cm",
     "isbn": "978-65-6119-038-1",
-    "priceText": ""
+    "priceText": "R$ 73,40"
   },
   {
     "_id": "catalog-pensar-apos-gaza-ensaio-sobre-a-ferocidade-e-o-fim-do-humano",
@@ -1002,8 +1009,8 @@
       "/images/catalog_9786561190428_2_PENSARAPOSGAZA6FOTOS.png",
       "/images/catalog_9786561190428_3_PENSARAPOSGAZA3FOTOS-1-scaled.png"
     ],
-    "price": "R$ 84,90",
-    "originalPrice": 84.9,
+    "price": 89.15,
+    "originalPrice": 89.15,
     "discount": 0,
     "sku": "9786561190428",
     "stock": null,
@@ -1037,7 +1044,7 @@
     "pages": "222",
     "dimensions": "29,7 x 21 cm",
     "isbn": "978-65-6119-042-8",
-    "priceText": "R$ 84,90",
+    "priceText": "R$ 89,15",
     "authors": "Franco Berardi “Bifo”"
   },
   {
@@ -1053,8 +1060,8 @@
       "/images/catalog_9786561190404_1_mockupperspectivismodeitado.png",
       "/images/catalog_9786561190404_2_mockupperspectivismofrente.png"
     ],
-    "price": "R$ 68,90",
-    "originalPrice": 68.9,
+    "price": 72.35,
+    "originalPrice": 72.35,
     "discount": 0,
     "sku": "9786561190404",
     "stock": null,
@@ -1086,7 +1093,7 @@
     "pages": "122",
     "dimensions": "23 x 15 cm",
     "isbn": "978-65-6119-040-4",
-    "priceText": "R$ 68,90",
+    "priceText": "R$ 72,35",
     "authors": "Oswaldo Giacoia Jr."
   },
   {
@@ -1104,8 +1111,8 @@
       "/images/catalog_9786561190466_3_racaverso.png",
       "/images/catalog_9786561190466_4_racainternas2.png"
     ],
-    "price": "R$ 89,90",
-    "originalPrice": 89.9,
+    "price": 94.4,
+    "originalPrice": 94.4,
     "discount": 0,
     "sku": "9786561190466",
     "stock": null,
@@ -1142,7 +1149,7 @@
     "pages": "256",
     "dimensions": "21 x 14 cm",
     "isbn": "978-65-6119-046-6",
-    "priceText": "R$ 89,90",
+    "priceText": "R$ 94,40",
     "authors": "Thamy Ayouch"
   },
   {
@@ -1160,8 +1167,8 @@
       "/images/catalog_9786561190374_3_EUSOUUMMONSTRO5FOTOS.png",
       "/images/catalog_9786561190374_4_EUSOUUMMONSTRO6FOTOS.png"
     ],
-    "price": "R$ 94,90",
-    "originalPrice": 94.9,
+    "price": 99.65,
+    "originalPrice": 99.65,
     "discount": 0,
     "sku": "9786561190374",
     "stock": null,
@@ -1197,7 +1204,7 @@
     "pages": "120",
     "dimensions": "21 x 21 cm",
     "isbn": "978-65-6119-037-4",
-    "priceText": "R$ 94,90",
+    "priceText": "R$ 99,65",
     "authors": "Fause Haten"
   },
   {
@@ -1213,8 +1220,8 @@
       "/images/catalog_N1-00025_1_mockup-pequeno-2-floresta-de-cristal.png",
       "/images/catalog_N1-00025_2_verso.png"
     ],
-    "price": 130.0,
-    "originalPrice": 130.0,
+    "price": 136.5,
+    "originalPrice": 136.5,
     "discount": 0,
     "sku": "9786561190336",
     "stock": null,
@@ -1245,7 +1252,7 @@
     "year": "2024",
     "dimensions": "23 x 15 cm",
     "isbn": "978-65-6119-033-6",
-    "priceText": "R$ 130,00",
+    "priceText": "R$ 136,50",
     "preparation": "Ana Godoy",
     "revision": "Fernanda Mello"
   },
@@ -1265,8 +1272,8 @@
       "/images/catalog_9786561190350_4_foto-deitado-com-sombra.png",
       "/images/catalog_9786561190350_5_tca_ilustracao_sobre2-1-233x300.png"
     ],
-    "price": "R$ 130,00",
-    "originalPrice": 130.0,
+    "price": 136.5,
+    "originalPrice": 136.5,
     "discount": 0,
     "sku": "9786561190350",
     "stock": null,
@@ -1303,7 +1310,7 @@
     "pages": "335",
     "dimensions": "15 x 23 cm",
     "isbn": "978-65-6119-035-0",
-    "priceText": "R$ 130,00",
+    "priceText": "R$ 136,50",
     "authors": "Silke Kapp"
   },
   {
@@ -1321,8 +1328,8 @@
       "/images/catalog_9786561190411_3_DEMOCRACIACOMOCOMUNIDADE3FOTO.png",
       "/images/catalog_9786561190411_4_DEMOCRACIACOMOCOMUNIDADE4FOTO.png"
     ],
-    "price": "R$ 29,90",
-    "originalPrice": 29.9,
+    "price": 31.4,
+    "originalPrice": 31.4,
     "discount": 0,
     "sku": "9786561190411",
     "stock": null,
@@ -1360,7 +1367,7 @@
     "pages": "23",
     "dimensions": "17 x 12 cm",
     "isbn": "978-65-6119-041-1",
-    "priceText": "R$ 29,90",
+    "priceText": "R$ 31,40",
     "authors": "Achille Mbembe"
   },
   {
@@ -1378,8 +1385,8 @@
       "/images/catalog_9786561190329_3_MULHERESFILOSOFAS5FOTOS.png",
       "/images/catalog_9786561190329_4_MULHERESFILOSOFAS4FOTOS.png"
     ],
-    "price": "R$ 89,90",
-    "originalPrice": 89.9,
+    "price": 94.4,
+    "originalPrice": 94.4,
     "discount": 0,
     "sku": "9786561190329",
     "stock": null,
@@ -1414,7 +1421,7 @@
     "pages": "264",
     "dimensions": "21 x 13,8 cm",
     "isbn": "978-65-6119-032-9",
-    "priceText": "R$ 89,90"
+    "priceText": "R$ 94,40"
   },
   {
     "_id": "catalog-a-chuva-desmancha-todos-os-fatos-ensaios-de-filosofia",
@@ -1429,8 +1436,8 @@
       "/images/catalog_9786561190343_1_frente-1-200x300.png",
       "/images/catalog_9786561190343_2_verso-1-200x300.png"
     ],
-    "price": 120.0,
-    "originalPrice": 120.0,
+    "price": 126,
+    "originalPrice": 126,
     "discount": 0,
     "sku": "9786561190343",
     "stock": null,
@@ -1464,7 +1471,8 @@
     "pages": "370",
     "dimensions": "23 x 15 cm",
     "isbn": "978-65-6119-034-3",
-    "authors": "Déborah Danowski"
+    "authors": "Déborah Danowski",
+    "priceText": "R$ 126,00"
   },
   {
     "_id": "catalog-racismo-cinico",
@@ -1479,8 +1487,8 @@
       "/images/catalog_9786561190312_1_racismo-cinico-pequeno.png",
       "/images/catalog_9786561190312_2_verso-2.png"
     ],
-    "price": 98.0,
-    "originalPrice": 98.0,
+    "price": 112.7,
+    "originalPrice": 112.7,
     "discount": 0,
     "sku": "9786561190312",
     "stock": null,
@@ -1512,7 +1520,8 @@
     "pages": "192",
     "dimensions": "23 x 16 cm",
     "isbn": "978-65-6119-031-2",
-    "authors": "Fídias Siqueira"
+    "authors": "Fídias Siqueira",
+    "priceText": "R$ 112,70"
   },
   {
     "_id": "catalog-a-pequena-prisao",
@@ -1529,8 +1538,8 @@
       "/images/catalog_9786561190251_3_IMG_1787-copiar.jpg",
       "/images/catalog_9786561190251_4_IMG_1788-copiar.jpg"
     ],
-    "price": 110.0,
-    "originalPrice": 110.0,
+    "price": 110,
+    "originalPrice": 110,
     "discount": 0,
     "sku": "9786561190251",
     "stock": null,
@@ -1564,7 +1573,8 @@
     "pages": "296",
     "dimensions": "14 x 21 cm",
     "isbn": "978-65-6119-025-1",
-    "authors": "Igor Mendes"
+    "authors": "Igor Mendes",
+    "priceText": "R$ 110,00"
   },
   {
     "_id": "catalog-trialogos",
@@ -1580,8 +1590,8 @@
       "/images/catalog_N1-00032_2_IMG_1691-copiar-e1724439724451-199x300.jpg",
       "/images/catalog_N1-00032_3_IMG_1698-copiar.jpg"
     ],
-    "price": 77.6,
-    "originalPrice": 77.6,
+    "price": 81.48,
+    "originalPrice": 81.48,
     "discount": 0,
     "sku": "9786561190145",
     "stock": null,
@@ -1613,7 +1623,7 @@
     "year": "2024",
     "dimensions": "20 x 13 cm",
     "isbn": "978-65-6119-014-5",
-    "priceText": "R$ 77,60"
+    "priceText": "R$ 81,48"
   },
   {
     "_id": "catalog-assim-e-a-mulher-por-tras-de-seu-veu-temas-feministas-em-psicanalise",
@@ -1629,8 +1639,8 @@
       "/images/catalog_9786561190220_2_IMG_1701-copiar-2.jpg",
       "/images/catalog_9786561190220_3_IMG_1710-copiar.jpg"
     ],
-    "price": 98.0,
-    "originalPrice": 98.0,
+    "price": 102.9,
+    "originalPrice": 102.9,
     "discount": 0,
     "sku": "9786561190220",
     "stock": null,
@@ -1664,7 +1674,8 @@
     "dimensions": "23 x 16 cm",
     "isbn": "978-65-6119-022-0",
     "authors": "Léa Silveira",
-    "edition": "psilacs"
+    "edition": "psilacs",
+    "priceText": "R$ 102,90"
   },
   {
     "_id": "catalog-um-altar-que-se-coma",
@@ -1679,8 +1690,8 @@
       "/images/catalog_9786561190107_1_IMG_1562-copiar.jpg",
       "/images/catalog_9786561190107_2_IMG_1558-copiar.jpg"
     ],
-    "price": 78.0,
-    "originalPrice": 78.0,
+    "price": 81.9,
+    "originalPrice": 81.9,
     "discount": 0,
     "sku": "9786561190107",
     "stock": null,
@@ -1712,7 +1723,8 @@
     "pages": "142",
     "dimensions": "17 x 12 cm",
     "isbn": "978-65-6119-010-7",
-    "authors": "Ana Luiza Braga"
+    "authors": "Ana Luiza Braga",
+    "priceText": "R$ 81,90"
   },
   {
     "_id": "catalog-tratado-do-todo-mundo",
@@ -1727,8 +1739,8 @@
       "/images/catalog_9786561190176_1_IMG_1582.jpg",
       "/images/catalog_9786561190176_2_IMG_1585.jpg"
     ],
-    "price": 69.9,
-    "originalPrice": 69.9,
+    "price": 90.87,
+    "originalPrice": 90.87,
     "discount": 0,
     "sku": "9786561190176",
     "stock": null,
@@ -1762,7 +1774,8 @@
     "pages": "232",
     "dimensions": "20,8 x 14 cm",
     "isbn": "978-65-6119-017-6",
-    "authors": "Édouard Glissant"
+    "authors": "Édouard Glissant",
+    "priceText": "R$ 90,87"
   },
   {
     "_id": "catalog-jesus-o-homem-que-preferia-as-mulheres",
@@ -1777,8 +1790,8 @@
       "/images/catalog_9786561190022_1_IMG_1322-copiar-2.jpg",
       "/images/catalog_9786561190022_2_IMG_1315-copiar-2.jpg"
     ],
-    "price": 75.0,
-    "originalPrice": 75.0,
+    "price": 78.75,
+    "originalPrice": 78.75,
     "discount": 0,
     "sku": "9786561190022",
     "stock": null,
@@ -1812,7 +1825,8 @@
     "pages": "129",
     "dimensions": "14 x 21 cm",
     "isbn": "978-65-6119-002-2",
-    "authors": "Christine Pedotti"
+    "authors": "Christine Pedotti",
+    "priceText": "R$ 78,75"
   },
   {
     "_id": "catalog-o-judeu-pos-judeu-judaicidade-e-etnocentrismo",
@@ -1827,8 +1841,8 @@
       "/images/catalog_9786561190084_1_judeuposjudeu3d-scaled.png",
       "/images/catalog_9786561190084_2_judeuposjudeu-frente.png"
     ],
-    "price": 84.9,
-    "originalPrice": 84.9,
+    "price": 81.9,
+    "originalPrice": 81.9,
     "discount": 0,
     "sku": "9786561190084",
     "stock": null,
@@ -1860,7 +1874,8 @@
     "pages": "224",
     "dimensions": "21 x 14 cm",
     "isbn": "978-65-6119-008-4",
-    "authors": "Bentzi Laor e Peter Pál Pelbart"
+    "authors": "Bentzi Laor e Peter Pál Pelbart",
+    "priceText": "R$ 81,90"
   },
   {
     "_id": "catalog-ficar-com-o-problema-fazer-parentes-no-chthluceno",
@@ -1877,8 +1892,8 @@
       "/images/catalog_9786581097585_3_Ficar-com-o-problema3.jpeg",
       "/images/catalog_9786581097585_4_Ficar-com-o-problema4.jpeg"
     ],
-    "price": 115.0,
-    "originalPrice": 115.0,
+    "price": 120.75,
+    "originalPrice": 120.75,
     "discount": 0,
     "sku": "9786581097585",
     "stock": null,
@@ -1914,7 +1929,8 @@
     "pages": "364",
     "dimensions": "21 x 14cm",
     "isbn": "978-65-81097-58-5",
-    "authors": "Donna J. Haraway"
+    "authors": "Donna J. Haraway",
+    "priceText": "R$ 120,75"
   },
   {
     "_id": "catalog-esparsas-viagem-aos-papeis-do-gueto-de-varsovia",
@@ -1926,8 +1942,8 @@
     "images": [
       "/images/cover_9786581097561.jpg"
     ],
-    "price": 85.0,
-    "originalPrice": 85.0,
+    "price": 89.25,
+    "originalPrice": 89.25,
     "discount": 0,
     "sku": "9786581097561",
     "stock": null,
@@ -1963,7 +1979,7 @@
     "pages": "135",
     "dimensions": "14 x 21cm",
     "isbn": "978-65-81097-56-1",
-    "priceText": ""
+    "priceText": "R$ 89,25"
   },
   {
     "_id": "catalog-artaud-pensamento-e-corpo",
@@ -1975,8 +1991,8 @@
     "images": [
       "/images/cover_9786586941821.jpg"
     ],
-    "price": 94.0,
-    "originalPrice": 94.0,
+    "price": 98.7,
+    "originalPrice": 98.7,
     "discount": 0,
     "sku": "9786586941821",
     "stock": null,
@@ -2011,7 +2027,7 @@
     "pages": "273",
     "dimensions": "21 x 14cm",
     "isbn": "978-65-86941-82-1",
-    "priceText": ""
+    "priceText": "R$ 98,70"
   },
   {
     "_id": "catalog-por-uma-etica-queer",
@@ -2026,8 +2042,8 @@
       "/images/catalog_N1-00041_1_Porumaeticaqueer2.jpeg",
       "/images/catalog_N1-00041_2_Porumaeticaqueer1.jpeg"
     ],
-    "price": 70.0,
-    "originalPrice": 70.0,
+    "price": 70,
+    "originalPrice": 70,
     "discount": 0,
     "sku": "9786581097738",
     "stock": null,
@@ -2070,8 +2086,8 @@
     "images": [
       "/images/cover_9786581097219.jpg"
     ],
-    "price": 69.0,
-    "originalPrice": 69.0,
+    "price": 72.45,
+    "originalPrice": 72.45,
     "discount": 0,
     "sku": "9786581097219",
     "stock": null,
@@ -2108,7 +2124,7 @@
     "pages": "140",
     "dimensions": "12 x 21cm",
     "isbn": "978-65-81097-21-9",
-    "priceText": ""
+    "priceText": "R$ 72,45"
   },
   {
     "_id": "catalog-heliogabalo-ou-o-anarquista-coroado",
@@ -2120,8 +2136,8 @@
     "images": [
       "/images/cover_9786586941838.jpg"
     ],
-    "price": 68.0,
-    "originalPrice": 68.0,
+    "price": 74.8,
+    "originalPrice": 74.8,
     "discount": 0,
     "sku": "9786586941838",
     "stock": null,
@@ -2156,7 +2172,7 @@
     "pages": "168",
     "dimensions": "21 x 14cm",
     "isbn": "978-65-86941-83-8",
-    "priceText": ""
+    "priceText": "R$ 74,80"
   },
   {
     "_id": "catalog-a-nota-fervorosa",
@@ -2168,8 +2184,8 @@
     "images": [
       "/images/cover_9786581097288.jpg"
     ],
-    "price": 38.0,
-    "originalPrice": 38.0,
+    "price": 39.9,
+    "originalPrice": 39.9,
     "discount": 0,
     "sku": "9786581097288",
     "stock": null,
@@ -2204,7 +2220,7 @@
     "pages": "43",
     "dimensions": "11 x 18cm",
     "isbn": "978-65-81097-28-8",
-    "priceText": ""
+    "priceText": "R$ 39,90"
   },
   {
     "_id": "catalog-um-brinde-aos-mortos-historias-daqueles-que-ficam",
@@ -2216,8 +2232,8 @@
     "images": [
       "/images/cover_9786581097431.jpg"
     ],
-    "price": 75.0,
-    "originalPrice": 75.0,
+    "price": 82.5,
+    "originalPrice": 82.5,
     "discount": 0,
     "sku": "9786581097431",
     "stock": null,
@@ -2252,7 +2268,7 @@
     "pages": "130",
     "dimensions": "17 x 23cm",
     "isbn": "978-65-81097-43-1",
-    "priceText": ""
+    "priceText": "R$ 82,50"
   },
   {
     "_id": "catalog-caixa-pandemia-das-bordas",
@@ -2264,8 +2280,8 @@
     "images": [
       "/images/cover_9786581097974.jpg"
     ],
-    "price": 79.9,
-    "originalPrice": 79.9,
+    "price": 84,
+    "originalPrice": 84,
     "discount": 0,
     "sku": "9786581097974",
     "stock": null,
@@ -2302,7 +2318,7 @@
     "pages": "544",
     "dimensions": "14 x 22 cm",
     "isbn": "978-65-81097-97-4",
-    "priceText": ""
+    "priceText": "R$ 84,00"
   },
   {
     "_id": "catalog-amefrica",
@@ -2318,8 +2334,8 @@
       "/images/catalog_9786561190213_2_IMG_1744-copiar.jpg",
       "/images/catalog_9786561190213_3_IMG_1747-copiar.jpg"
     ],
-    "price": 77.69,
-    "originalPrice": 77.69,
+    "price": 81.57,
+    "originalPrice": 81.57,
     "discount": 0,
     "sku": "9786561190213",
     "stock": null,
@@ -2353,7 +2369,8 @@
     "pages": "194",
     "dimensions": "21 x 14 cm",
     "isbn": "978-65-6119-021-3",
-    "authors": "Coletivo Legítima Defesa"
+    "authors": "Coletivo Legítima Defesa",
+    "priceText": "R$ 81,57"
   },
   {
     "_id": "catalog-filosofia-para-aranhas",
@@ -2371,8 +2388,8 @@
       "/images/catalog_9786561190183_4_IMG_1604-copiar.jpg",
       "/images/catalog_9786561190183_5_IMG_1607-copiar.jpg"
     ],
-    "price": 95.0,
-    "originalPrice": 95.0,
+    "price": 99.75,
+    "originalPrice": 99.75,
     "discount": 0,
     "sku": "9786561190183",
     "stock": null,
@@ -2410,7 +2427,8 @@
     "dimensions": "21 x 14 cm",
     "isbn": "978-65-6119-018-3",
     "authors": "Mckenzie Wark",
-    "edition": "Revista Rosa"
+    "edition": "Revista Rosa",
+    "priceText": "R$ 99,75"
   },
   {
     "_id": "catalog-colecao-clinicas-de-borda",
@@ -2425,8 +2443,8 @@
       "/images/catalog_9786581097981_1_Colecao-Clinicas-de-Borda3.jpeg",
       "/images/catalog_9786581097981_2_Colecao-Clinicas-de-Borda2.jpeg"
     ],
-    "price": 330.0,
-    "originalPrice": 330.0,
+    "price": 330,
+    "originalPrice": 330,
     "discount": 0,
     "sku": "9786581097981",
     "stock": null,
@@ -2472,8 +2490,8 @@
       "/images/catalog_9786561190015_1_IMG_1298-copiar-2.jpg",
       "/images/catalog_9786561190015_2_IMG_1296-copiar-2.jpg"
     ],
-    "price": 87.0,
-    "originalPrice": 87.0,
+    "price": 91.35,
+    "originalPrice": 91.35,
     "discount": 0,
     "sku": "9786561190015",
     "stock": null,
@@ -2507,7 +2525,8 @@
     "pages": "274",
     "dimensions": "14 x 21 cm",
     "isbn": "978-65-6119-001-5",
-    "authors": "Ivan Illich"
+    "authors": "Ivan Illich",
+    "priceText": "R$ 91,35"
   },
   {
     "_id": "catalog-em-que-ponto-estamos",
@@ -2522,8 +2541,8 @@
       "/images/catalog_9786586941555_1_Em-que-ponto-estamos2.jpeg",
       "/images/catalog_9786586941555_2_Em-que-ponto-estamos1.jpeg"
     ],
-    "price": 72.0,
-    "originalPrice": 72.0,
+    "price": 75.6,
+    "originalPrice": 75.6,
     "discount": 0,
     "sku": "9786586941555",
     "stock": null,
@@ -2557,7 +2576,8 @@
     "pages": "128",
     "dimensions": "21 x 14cm",
     "isbn": "978-65-86941-55-5",
-    "authors": "Giorgio Agamben"
+    "authors": "Giorgio Agamben",
+    "priceText": "R$ 75,60"
   },
   {
     "_id": "catalog-homo-inc-orporated",
@@ -2572,8 +2592,8 @@
       "/images/catalog_N1-00052_1_HomoIncOrporated2.jpeg",
       "/images/catalog_N1-00052_2_HomoIncOrporated1.jpeg"
     ],
-    "price": 71.5,
-    "originalPrice": 71.5,
+    "price": 75.08,
+    "originalPrice": 75.08,
     "discount": 0,
     "sku": "9786586941012",
     "stock": null,
@@ -2604,7 +2624,7 @@
     "year": "2020",
     "dimensions": "29,6 x 21cm",
     "isbn": "978-65-86941-01-2",
-    "priceText": "R$ 71,50"
+    "priceText": "R$ 75,08"
   },
   {
     "_id": "catalog-para-dar-um-fim-no-juizo-e-deus",
@@ -2619,8 +2639,8 @@
       "/images/catalog_N1-00053_1_Paradarumfimnojuizo2.jpeg",
       "/images/catalog_N1-00053_2_Paradarumfimnojuizo1.jpeg"
     ],
-    "price": 0,
-    "originalPrice": 0,
+    "price": 54.6,
+    "originalPrice": 54.6,
     "discount": 0,
     "sku": "9786586941845",
     "stock": null,
@@ -2650,7 +2670,8 @@
     "authors": "Antonin Artaud",
     "year": "2022",
     "dimensions": "21 x 14cm",
-    "isbn": "978-65-86941-84-5"
+    "isbn": "978-65-86941-84-5",
+    "priceText": "R$ 54,60"
   },
   {
     "_id": "catalog-brutalismo",
@@ -2662,8 +2683,8 @@
     "images": [
       "/images/cover_9786581097271.jpg"
     ],
-    "price": 98.0,
-    "originalPrice": 98.0,
+    "price": 102.9,
+    "originalPrice": 102.9,
     "discount": 0,
     "sku": "9786581097271",
     "stock": null,
@@ -2698,7 +2719,7 @@
     "pages": "256",
     "dimensions": "21 x 14cm",
     "isbn": "978-65-81097-27-1",
-    "priceText": ""
+    "priceText": "R$ 102,90"
   },
   {
     "_id": "catalog-a-cosmopoli",
@@ -2714,8 +2735,8 @@
       "/images/catalog_N1-00055_2_acosmopoliticadosanimais3.jpeg",
       "/images/catalog_N1-00055_3_acosmopoliticadosanimais4.jpeg"
     ],
-    "price": 80.0,
-    "originalPrice": 80.0,
+    "price": 84,
+    "originalPrice": 84,
     "discount": 0,
     "sku": "N1-00055",
     "stock": null,
@@ -2746,7 +2767,7 @@
     "authors": "Juliana Fausto",
     "year": "2020",
     "dimensions": "21 x 14cm",
-    "priceText": "R$ 80,00"
+    "priceText": "R$ 84,00"
   },
   {
     "_id": "catalog-nao-existe-revolucao-infeliz",
@@ -2762,8 +2783,8 @@
       "/images/catalog_9786561190091_2_IMG_1739-copiar.jpg",
       "/images/catalog_9786561190091_3_IMG_1741-copiar-1.jpg"
     ],
-    "price": "",
-    "originalPrice": 0.0,
+    "price": 78.75,
+    "originalPrice": 78.75,
     "discount": 0,
     "sku": "9786561190091",
     "stock": null,
@@ -2798,7 +2819,8 @@
     "pages": "200",
     "dimensions": "19 x 12 cm",
     "isbn": "978-65-6119-009-1",
-    "authors": "Marcello Tarí"
+    "authors": "Marcello Tarí",
+    "priceText": "R$ 78,75"
   },
   {
     "_id": "catalog-antigos-caminhos-queer-uma-exploracao-decolonial",
@@ -2812,8 +2834,8 @@
       "/images/catalog_9786561190114_0_AntigosCaminhosQueer1.jpeg",
       "/images/catalog_9786561190114_1_AntigosCaminhosQueer2.jpeg"
     ],
-    "price": 80.0,
-    "originalPrice": 80.0,
+    "price": 84,
+    "originalPrice": 84,
     "discount": 0,
     "sku": "9786561190114",
     "stock": null,
@@ -2846,7 +2868,8 @@
     "pages": "270",
     "dimensions": "21 x 14 cm",
     "isbn": "978-65-6119-011-4",
-    "authors": "Zairong Xiang"
+    "authors": "Zairong Xiang",
+    "priceText": "R$ 84,00"
   },
   {
     "_id": "catalog-diferentes-modos-de-existencia",
@@ -2861,8 +2884,8 @@
       "/images/catalog_9786586941197_1_Diferentes-modos-de-existencia2.jpeg",
       "/images/catalog_9786586941197_2_Diferentes-modos-de-existencia1.jpeg"
     ],
-    "price": 75.0,
-    "originalPrice": 75.0,
+    "price": 78.75,
+    "originalPrice": 78.75,
     "discount": 0,
     "sku": "9786586941197",
     "stock": null,
@@ -2896,7 +2919,8 @@
     "pages": "192",
     "dimensions": "21 x 14cm",
     "isbn": "978-65-86941-19-7",
-    "authors": "Etienne Souriau"
+    "authors": "Etienne Souriau",
+    "priceText": "R$ 78,75"
   },
   {
     "_id": "catalog-povo-em-lagrimas-povo-em-armas",
@@ -2911,8 +2935,8 @@
       "/images/catalog_9786586941180_1_Povo-em-lagrimas2.jpeg",
       "/images/catalog_9786586941180_2_Povo-em-lagrimas1.jpeg"
     ],
-    "price": "",
-    "originalPrice": 0.0,
+    "price": 136.5,
+    "originalPrice": 136.5,
     "discount": 0,
     "sku": "9786586941180",
     "stock": null,
@@ -2946,7 +2970,8 @@
     "pages": "520",
     "dimensions": "21 x 14cm",
     "isbn": "978-65-86941-18-0",
-    "authors": "Georges Didi-Huberman"
+    "authors": "Georges Didi-Huberman",
+    "priceText": "R$ 136,50"
   },
   {
     "_id": "catalog-gravidade",
@@ -2958,8 +2983,8 @@
     "images": [
       "/images/cover_9786586941715.jpg"
     ],
-    "price": 80.0,
-    "originalPrice": 80.0,
+    "price": 84,
+    "originalPrice": 84,
     "discount": 0,
     "sku": "9786586941715",
     "stock": null,
@@ -2994,7 +3019,7 @@
     "pages": "104",
     "dimensions": "14 x 21cm",
     "isbn": "978-65-86941-71-5",
-    "priceText": ""
+    "priceText": "R$ 84,00"
   },
   {
     "_id": "catalog-artaud-o-momo",
@@ -3006,8 +3031,8 @@
     "images": [
       "/images/cover_9786581097295.jpg"
     ],
-    "price": 59.0,
-    "originalPrice": 59.0,
+    "price": 61.95,
+    "originalPrice": 61.95,
     "discount": 0,
     "sku": "9786581097295",
     "stock": null,
@@ -3043,7 +3068,7 @@
     "pages": "78",
     "dimensions": "14 x 21cm",
     "isbn": "978-65-81097-29-5",
-    "priceText": ""
+    "priceText": "R$ 61,95"
   },
   {
     "_id": "catalog-e-se-eu-fosse-puta",
@@ -3055,8 +3080,8 @@
     "images": [
       "/images/cover_9786581097721.jpg"
     ],
-    "price": 80.0,
-    "originalPrice": 80.0,
+    "price": 84,
+    "originalPrice": 84,
     "discount": 0,
     "sku": "9786581097721",
     "stock": null,
@@ -3091,7 +3116,7 @@
     "pages": "148",
     "dimensions": "21 x 14cm",
     "isbn": "978-65-81097-72-1",
-    "priceText": ""
+    "priceText": "R$ 84,00"
   },
   {
     "_id": "catalog-walter-benjamim-os-cacos-da-historia",
@@ -3142,7 +3167,7 @@
     "pages": "112",
     "dimensions": "14 x 21cm",
     "isbn": "978-85-66943-62-7",
-    "priceText": ""
+    "priceText": "R$ 63,50"
   },
   {
     "_id": "catalog-upp-a-reducao-da-favela-a-tres-letras",
@@ -3208,8 +3233,8 @@
       "/images/catalog_N1-00065_3_agamben2.jpeg",
       "/images/catalog_N1-00065_4_agamben4.jpeg"
     ],
-    "price": 0,
-    "originalPrice": 0,
+    "price": 79.8,
+    "originalPrice": 79.8,
     "discount": 0,
     "sku": "9788566943603",
     "stock": null,
@@ -3241,7 +3266,8 @@
     "authors": "Osvaldo Giacoia Jr.",
     "year": "2018",
     "dimensions": "14 x 21 cm",
-    "isbn": "978-85-66943-60-3"
+    "isbn": "978-85-66943-60-3",
+    "priceText": "R$ 79,80"
   },
   {
     "_id": "catalog-cinco-dias-em-marco",
@@ -3253,8 +3279,8 @@
     "images": [
       "/images/cover_9788566943719.jpg"
     ],
-    "price": 35.0,
-    "originalPrice": 35.0,
+    "price": 36.75,
+    "originalPrice": 36.75,
     "discount": 0,
     "sku": "9788566943719",
     "stock": null,
@@ -3298,7 +3324,7 @@
     "pages": "72",
     "dimensions": "12 x 17cm",
     "isbn": "978-856-694-371-9",
-    "priceText": ""
+    "priceText": "R$ 36,75"
   },
   {
     "_id": "catalog-esferas-da-insurreicao",
@@ -3310,8 +3336,8 @@
     "images": [
       "/images/cover_9788566943597.jpg"
     ],
-    "price": 79.0,
-    "originalPrice": 79.0,
+    "price": 82.95,
+    "originalPrice": 82.95,
     "discount": 0,
     "sku": "9788566943597",
     "stock": null,
@@ -3355,7 +3381,7 @@
     "pages": "208",
     "dimensions": "14 x 21cm",
     "isbn": "978-85-66943-59-7",
-    "priceText": ""
+    "priceText": "R$ 82,95"
   },
   {
     "_id": "catalog-hijikata-tatsumi-pensar-um-corpo-esgotado",
@@ -3367,8 +3393,8 @@
     "images": [
       "/images/cover_9788566943528.jpg"
     ],
-    "price": 79.9,
-    "originalPrice": 79.9,
+    "price": 96.6,
+    "originalPrice": 96.6,
     "discount": 0,
     "sku": "9788566943528",
     "stock": null,
@@ -3412,7 +3438,7 @@
     "pages": "272",
     "dimensions": "16 x 21cm",
     "isbn": "978-85-66943-52-8",
-    "priceText": ""
+    "priceText": "R$ 96,60"
   },
   {
     "_id": "catalog-spartakus",
@@ -3424,8 +3450,8 @@
     "images": [
       "/images/cover_9788566943580.jpg"
     ],
-    "price": 58.0,
-    "originalPrice": 58.0,
+    "price": 60.9,
+    "originalPrice": 60.9,
     "discount": 0,
     "sku": "9788566943580",
     "stock": null,
@@ -3463,7 +3489,7 @@
     "pages": "224",
     "dimensions": "12 x 17 cm",
     "isbn": "978-85-66943-58-0",
-    "priceText": ""
+    "priceText": "R$ 60,90"
   },
   {
     "_id": "catalog-o-universo-inacabado",
@@ -3475,8 +3501,8 @@
     "images": [
       "/images/cover_9788566943559.jpg"
     ],
-    "price": 75.0,
-    "originalPrice": 75.0,
+    "price": 78.75,
+    "originalPrice": 78.75,
     "discount": 0,
     "sku": "9788566943559",
     "stock": null,
@@ -3513,7 +3539,7 @@
     "pages": "208",
     "dimensions": "14 x 21cm",
     "isbn": "978-85-6694-355-9",
-    "priceText": ""
+    "priceText": "R$ 78,75"
   },
   {
     "_id": "catalog-cartas-e-outros-textos",
@@ -3525,8 +3551,8 @@
     "images": [
       "/images/cover_9788566943542.jpg"
     ],
-    "price": 79.0,
-    "originalPrice": 79.0,
+    "price": 82.95,
+    "originalPrice": 82.95,
     "discount": 0,
     "sku": "9788566943542",
     "stock": null,
@@ -3564,7 +3590,7 @@
     "pages": "320",
     "dimensions": "15 x 23cm",
     "isbn": "978-856-6943-54-2",
-    "priceText": ""
+    "priceText": "R$ 82,95"
   },
   {
     "_id": "catalog-caixa-pandemia-serie-de-cordeis-3",
@@ -3584,8 +3610,8 @@
       "/images/catalog_N1-00072_6_caixapandemia5.jpeg",
       "/images/catalog_N1-00072_7_caixapandemia6.jpeg"
     ],
-    "price": 0,
-    "originalPrice": 0,
+    "price": 84,
+    "originalPrice": 84,
     "discount": 0,
     "sku": "9788566943917",
     "stock": null,
@@ -3620,7 +3646,8 @@
     "authors": "Eduardo Viveiros de Castro, Achille Mbembe, Carmem Silva, Antonio Negri, Cristina Ribas, Jean Tible, Tatiana Nascimento, Tiqqun, Eduardo Passos e Danichi Hausen Mizoguchi, Yuk Hui",
     "year": "2019",
     "dimensions": "11x16cm",
-    "isbn": "978-85-66943-91-7"
+    "isbn": "978-85-66943-91-7",
+    "priceText": "R$ 84,00"
   },
   {
     "_id": "catalog-nietzsche-e-a-filosofia",
@@ -3632,8 +3659,8 @@
     "images": [
       "/images/cover_9788566943566.jpg"
     ],
-    "price": 75.0,
-    "originalPrice": 75.0,
+    "price": 78.75,
+    "originalPrice": 78.75,
     "discount": 0,
     "sku": "9788566943566",
     "stock": null,
@@ -3672,7 +3699,7 @@
     "pages": "256",
     "dimensions": "15 x 23cm",
     "isbn": "978-856-694-356-6",
-    "priceText": ""
+    "priceText": "R$ 78,75"
   },
   {
     "_id": "catalog-brazuca-negao-e-sebento",
@@ -3792,8 +3819,8 @@
     "images": [
       "/images/cover_9788566943511.jpg"
     ],
-    "price": 98.0,
-    "originalPrice": 98.0,
+    "price": 102.9,
+    "originalPrice": 102.9,
     "discount": 0,
     "sku": "9788566943511",
     "stock": null,
@@ -3836,7 +3863,7 @@
     "pages": "320",
     "dimensions": "14 x 21cm",
     "isbn": "978-85-66943-51-1",
-    "priceText": ""
+    "priceText": "R$ 102,90"
   },
   {
     "_id": "catalog-necropolitica",
@@ -3848,8 +3875,8 @@
     "images": [
       "/images/cover_9788566943504.jpg"
     ],
-    "price": 52.0,
-    "originalPrice": 52.0,
+    "price": 54.6,
+    "originalPrice": 54.6,
     "discount": 0,
     "sku": "9788566943504",
     "stock": null,
@@ -3886,7 +3913,7 @@
     "pages": "80",
     "dimensions": "13 x 17cm",
     "isbn": "978-85-6694-350-4",
-    "priceText": ""
+    "priceText": "R$ 54,60"
   },
   {
     "_id": "catalog-4524",
@@ -3904,8 +3931,8 @@
       "/images/catalog_N1-00078_4_asexigenciasminimas2.jpeg",
       "/images/catalog_N1-00078_5_asexigenciasminimas6.png"
     ],
-    "price": 64.0,
-    "originalPrice": 64.0,
+    "price": 71.68,
+    "originalPrice": 71.68,
     "discount": 0,
     "sku": "9788566943467",
     "stock": null,
@@ -3938,7 +3965,8 @@
     "authors": "David Lapoujade",
     "year": "2017",
     "dimensions": "14 x 21cm",
-    "isbn": "978-85-66943-46-7"
+    "isbn": "978-85-66943-46-7",
+    "priceText": "R$ 71,68"
   },
   {
     "_id": "catalog-o-governo-do-homem-endividado",
@@ -3998,8 +4026,8 @@
     "images": [
       "/images/cover_9788566943481.jpg"
     ],
-    "price": 69.0,
-    "originalPrice": 69.0,
+    "price": 96.6,
+    "originalPrice": 96.6,
     "discount": 0,
     "sku": "9788566943481",
     "stock": null,
@@ -4041,7 +4069,7 @@
     "pages": "128",
     "dimensions": "16 x 23cm",
     "isbn": "978-85-66943-48-1",
-    "priceText": ""
+    "priceText": "R$ 96,60"
   },
   {
     "_id": "catalog-o-que-os-animais-nos-ensinam-sobre-politica",
@@ -4053,8 +4081,8 @@
     "images": [
       "/images/cover_9788566943474.jpg"
     ],
-    "price": 68.0,
-    "originalPrice": 68.0,
+    "price": 74.8,
+    "originalPrice": 74.8,
     "discount": 0,
     "sku": "9788566943474",
     "stock": null,
@@ -4091,7 +4119,7 @@
     "pages": "192",
     "dimensions": "14 x 21cm",
     "isbn": "978-85-66943-47-4",
-    "priceText": ""
+    "priceText": "R$ 74,80"
   },
   {
     "_id": "catalog-caixa-pandemia-serie-cordeis",
@@ -4103,8 +4131,8 @@
     "images": [
       "/images/cover_9788566943351.jpg"
     ],
-    "price": 79.9,
-    "originalPrice": 79.9,
+    "price": 84,
+    "originalPrice": 84,
     "discount": 0,
     "sku": "9788566943351",
     "stock": null,
@@ -4146,7 +4174,7 @@
     "pages": "160",
     "dimensions": "11x16cm",
     "isbn": "978-85-66943-35-1",
-    "priceText": ""
+    "priceText": "R$ 84,00"
   },
   {
     "_id": "catalog-treino-em-poema",
@@ -4158,8 +4186,8 @@
     "images": [
       "/images/cover_9788566943153.jpg"
     ],
-    "price": 79.9,
-    "originalPrice": 79.9,
+    "price": 90,
+    "originalPrice": 90,
     "discount": 0,
     "sku": "9788566943153",
     "stock": null,
@@ -4201,7 +4229,7 @@
     "pages": "256",
     "dimensions": "16x21cm",
     "isbn": "978-85-66943-15-3",
-    "priceText": ""
+    "priceText": "R$ 90,00"
   },
   {
     "_id": "catalog-william-james-a-construcao-da-experiencia",
@@ -4213,8 +4241,8 @@
     "images": [
       "/images/cover_97885669433313.jpg"
     ],
-    "price": 55.0,
-    "originalPrice": 55.0,
+    "price": 55,
+    "originalPrice": 55,
     "discount": 0,
     "sku": "97885669433313",
     "stock": null,
@@ -4268,8 +4296,8 @@
     "images": [
       "/images/cover_9788566943412.jpg"
     ],
-    "price": 64.0,
-    "originalPrice": 64.0,
+    "price": 67.2,
+    "originalPrice": 67.2,
     "discount": 0,
     "sku": "9788566943412",
     "stock": null,
@@ -4308,7 +4336,7 @@
     "pages": "160",
     "dimensions": "14x21cm",
     "isbn": "978-85-66943-41-2",
-    "priceText": ""
+    "priceText": "R$ 67,20"
   },
   {
     "_id": "catalog-o-que-a-guerra-da-ucrania-tem-a-nos-ensinar",
@@ -4320,8 +4348,8 @@
     "images": [
       "/images/cover_9786581097424.jpg"
     ],
-    "price": 68.0,
-    "originalPrice": 68.0,
+    "price": 71.4,
+    "originalPrice": 71.4,
     "discount": 0,
     "sku": "9786581097424",
     "stock": null,
@@ -4356,7 +4384,7 @@
     "pages": "134",
     "dimensions": "21 x 14cm",
     "isbn": "978-65-81097-42-4",
-    "priceText": ""
+    "priceText": "R$ 71,40"
   },
   {
     "_id": "catalog-cartas-do-latao",
@@ -4368,8 +4396,8 @@
     "images": [
       "/images/cover_9786581097530.jpg"
     ],
-    "price": 69.0,
-    "originalPrice": 69.0,
+    "price": 72.45,
+    "originalPrice": 72.45,
     "discount": 0,
     "sku": "9786581097530",
     "stock": null,
@@ -4406,7 +4434,7 @@
     "pages": "176",
     "dimensions": "18 x 11cm",
     "isbn": "978-65-81097-53-0",
-    "priceText": ""
+    "priceText": "R$ 72,45"
   },
   {
     "_id": "catalog-filosofia-primeira-tratado-de-ucronia-pos-metafisica",
@@ -4418,8 +4446,8 @@
     "images": [
       "/images/cover_9786581097455.jpg"
     ],
-    "price": 72.0,
-    "originalPrice": 72.0,
+    "price": 75.6,
+    "originalPrice": 75.6,
     "discount": 0,
     "sku": "9786581097455",
     "stock": null,
@@ -4454,7 +4482,7 @@
     "pages": "190",
     "dimensions": "23 x 16cm",
     "isbn": "978-65-81097-45-5",
-    "priceText": ""
+    "priceText": "R$ 75,60"
   },
   {
     "_id": "catalog-teatro-e-os-povos-indigenas-janelas-abertas-para-a-possibilidade",
@@ -4466,8 +4494,8 @@
     "images": [
       "/images/cover_9786581097684.jpg"
     ],
-    "price": 120.0,
-    "originalPrice": 120.0,
+    "price": 126,
+    "originalPrice": 126,
     "discount": 0,
     "sku": "9786581097684",
     "stock": null,
@@ -4500,7 +4528,7 @@
     "pages": "188",
     "dimensions": "23 x 15cm",
     "isbn": "978-65-81097-68-4",
-    "priceText": ""
+    "priceText": "R$ 126,00"
   },
   {
     "_id": "catalog-politica-selvagem",
@@ -4512,8 +4540,8 @@
     "images": [
       "/images/cover_9786581097400.jpg"
     ],
-    "price": 60.0,
-    "originalPrice": 60.0,
+    "price": 96,
+    "originalPrice": 96,
     "discount": 0,
     "sku": "9786581097400",
     "stock": null,
@@ -4548,7 +4576,7 @@
     "pages": "320",
     "dimensions": "21 x 14 cm",
     "isbn": "978-65-81097-40-0",
-    "priceText": ""
+    "priceText": "R$ 96,00"
   },
   {
     "_id": "catalog-ocupar-a-psicanalise-por-uma-clinica-antirracista-e-decolonial",
@@ -4560,8 +4588,8 @@
     "images": [
       "/images/cover_9786581097523.jpg"
     ],
-    "price": 95.0,
-    "originalPrice": 95.0,
+    "price": 99.75,
+    "originalPrice": 99.75,
     "discount": 0,
     "sku": "9786581097523",
     "stock": null,
@@ -4594,7 +4622,7 @@
     "pages": "238",
     "dimensions": "16x 23cm",
     "isbn": "978-65-81097-52-3",
-    "priceText": ""
+    "priceText": "R$ 99,75"
   },
   {
     "_id": "catalog-acompanhamento-terapeutico",
@@ -4606,8 +4634,8 @@
     "images": [
       "/images/cover_9786581097387.jpg"
     ],
-    "price": 87.0,
-    "originalPrice": 87.0,
+    "price": 91.35,
+    "originalPrice": 91.35,
     "discount": 0,
     "sku": "9786581097387",
     "stock": null,
@@ -4642,7 +4670,7 @@
     "pages": "222",
     "dimensions": "21 x 14cm",
     "isbn": "978-65-81097-38-7",
-    "priceText": ""
+    "priceText": "R$ 91,35"
   },
   {
     "_id": "catalog-junho-febril",
@@ -4654,8 +4682,8 @@
     "images": [
       "/images/cover_9786581097639.jpg"
     ],
-    "price": 89.0,
-    "originalPrice": 89.0,
+    "price": 93.45,
+    "originalPrice": 93.45,
     "discount": 0,
     "sku": "9786581097639",
     "stock": null,
@@ -4690,7 +4718,7 @@
     "pages": "364",
     "dimensions": "21x 19cm",
     "isbn": "978-65-81097-63-9",
-    "priceText": ""
+    "priceText": "R$ 93,45"
   },
   {
     "_id": "catalog-composto-escola",
@@ -4702,8 +4730,8 @@
     "images": [
       "/images/cover_9786581097257.jpg"
     ],
-    "price": 60.0,
-    "originalPrice": 60.0,
+    "price": 63,
+    "originalPrice": 63,
     "discount": 0,
     "sku": "9786581097257",
     "stock": null,
@@ -4736,7 +4764,7 @@
     "pages": "100",
     "dimensions": "21 x 14cm",
     "isbn": "978-65-81097-25-7",
-    "priceText": ""
+    "priceText": "R$ 63,00"
   },
   {
     "_id": "catalog-psicanalise-e-esquizoanalise",
@@ -4748,8 +4776,8 @@
     "images": [
       "/images/cover_9786581097394.jpg"
     ],
-    "price": 110.0,
-    "originalPrice": 110.0,
+    "price": 115.5,
+    "originalPrice": 115.5,
     "discount": 0,
     "sku": "9786581097394",
     "stock": null,
@@ -4782,7 +4810,7 @@
     "pages": "340",
     "dimensions": "21 x 14cm",
     "isbn": "978-65-81097-39-4",
-    "priceText": ""
+    "priceText": "R$ 115,50"
   },
   {
     "_id": "catalog-direito-de-sequencia-esquizoanalitica",
@@ -4794,8 +4822,8 @@
     "images": [
       "/images/cover_9786581097370.jpg"
     ],
-    "price": 140.0,
-    "originalPrice": 140.0,
+    "price": 147,
+    "originalPrice": 147,
     "discount": 0,
     "sku": "9786581097370",
     "stock": null,
@@ -4830,7 +4858,7 @@
     "pages": "348",
     "dimensions": "21 x 14cm",
     "isbn": "978-65-81097-37-0",
-    "priceText": ""
+    "priceText": "R$ 147,00"
   },
   {
     "_id": "catalog-sujeito-suposto-suspeito",
@@ -4842,8 +4870,8 @@
     "images": [
       "/images/cover_9786586941951.jpg"
     ],
-    "price": 85.0,
-    "originalPrice": 85.0,
+    "price": 89.25,
+    "originalPrice": 89.25,
     "discount": 0,
     "sku": "9786586941951",
     "stock": null,
@@ -4878,7 +4906,7 @@
     "pages": "182",
     "dimensions": "21 x 14 cm",
     "isbn": "978-65-86941-95-1",
-    "priceText": ""
+    "priceText": "R$ 89,25"
   },
   {
     "_id": "catalog-os-anos-de-inverno-1980-1985",
@@ -4893,8 +4921,8 @@
       "/images/catalog_N1-00098_1_Os-anos-de-inverno2.jpeg",
       "/images/catalog_N1-00098_2_Os-anos-de-inverno1.jpeg"
     ],
-    "price": 98.0,
-    "originalPrice": 98.0,
+    "price": 102.9,
+    "originalPrice": 102.9,
     "discount": 0,
     "sku": "9786581097363",
     "stock": null,
@@ -4925,7 +4953,7 @@
     "year": "2022",
     "dimensions": "21x 14cm",
     "isbn": "978-65-81097-36-3",
-    "priceText": "R$ 98,00"
+    "priceText": "R$ 102,90"
   },
   {
     "_id": "catalog-van-gogh-nao-existe",
@@ -4973,7 +5001,7 @@
     "pages": "180",
     "dimensions": "21 x 14cm",
     "isbn": "978-65-81097-33-2",
-    "priceText": ""
+    "priceText": "R$ 69,70"
   },
   {
     "_id": "catalog-potencias-da-suavidade",
@@ -4985,8 +5013,8 @@
     "images": [
       "/images/cover_9786581097356.jpg"
     ],
-    "price": 67.0,
-    "originalPrice": 67.0,
+    "price": 70.35,
+    "originalPrice": 70.35,
     "discount": 0,
     "sku": "9786581097356",
     "stock": null,
@@ -5022,7 +5050,7 @@
     "pages": "100",
     "dimensions": "21 x 14 cm",
     "isbn": "978-65-81097-35-6",
-    "priceText": ""
+    "priceText": "R$ 70,35"
   },
   {
     "_id": "catalog-a-vida-da-literatura",
@@ -5034,8 +5062,8 @@
     "images": [
       "/images/cover_9786581097240.jpg"
     ],
-    "price": 68.0,
-    "originalPrice": 68.0,
+    "price": 71.4,
+    "originalPrice": 71.4,
     "discount": 0,
     "sku": "9786581097240",
     "stock": null,
@@ -5068,7 +5096,7 @@
     "pages": "110",
     "dimensions": "17 x 10cm",
     "isbn": "978-65-81097-24-0",
-    "priceText": ""
+    "priceText": "R$ 71,40"
   },
   {
     "_id": "catalog-manifesto-cosmico-i-e-ii",
@@ -5080,8 +5108,8 @@
     "images": [
       "/images/cover_9786581097301.jpg"
     ],
-    "price": 55.0,
-    "originalPrice": 55.0,
+    "price": 57.75,
+    "originalPrice": 57.75,
     "discount": 0,
     "sku": "9786581097301",
     "stock": null,
@@ -5116,7 +5144,7 @@
     "pages": "91",
     "dimensions": "18 x 11cm",
     "isbn": "978-65-81097-30-1",
-    "priceText": ""
+    "priceText": "R$ 57,75"
   },
   {
     "_id": "catalog-o-soldado-antropofagico",
@@ -5128,8 +5156,8 @@
     "images": [
       "/images/cover_9786586941944.jpg"
     ],
-    "price": 79.9,
-    "originalPrice": 79.9,
+    "price": 102.9,
+    "originalPrice": 102.9,
     "discount": 0,
     "sku": "9786586941944",
     "stock": null,
@@ -5164,7 +5192,7 @@
     "pages": "334",
     "dimensions": "14 x 21cm",
     "isbn": "978-65-86941-94-4",
-    "priceText": ""
+    "priceText": "R$ 102,90"
   },
   {
     "_id": "catalog-quatro-cantos",
@@ -5222,8 +5250,8 @@
     "images": [
       "/images/cover_9786586941913.jpg"
     ],
-    "price": 98.0,
-    "originalPrice": 98.0,
+    "price": 102.9,
+    "originalPrice": 102.9,
     "discount": 0,
     "sku": "9786586941913",
     "stock": null,
@@ -5258,7 +5286,7 @@
     "pages": "264",
     "dimensions": "21 x 14cm",
     "isbn": "978-65-86941-91-3",
-    "priceText": ""
+    "priceText": "R$ 102,90"
   },
   {
     "_id": "catalog-contos-de-uma-mulher-liberta",
@@ -5270,8 +5298,8 @@
     "images": [
       "/images/cover_9786586941814.jpg"
     ],
-    "price": 23.0,
-    "originalPrice": 23.0,
+    "price": 23,
+    "originalPrice": 23,
     "discount": 0,
     "sku": "9786586941814",
     "stock": null,
@@ -5318,8 +5346,8 @@
     "images": [
       "/images/cover_9786586941876.jpg"
     ],
-    "price": 85.0,
-    "originalPrice": 85.0,
+    "price": 89.25,
+    "originalPrice": 89.25,
     "discount": 0,
     "sku": "9786586941876",
     "stock": null,
@@ -5354,7 +5382,7 @@
     "pages": "208",
     "dimensions": "21 x 12cm",
     "isbn": "978-65-86941-87-6",
-    "priceText": ""
+    "priceText": "R$ 89,25"
   },
   {
     "_id": "catalog-o-intoleravel-do-presente-a-urgencia-da-revolucao-minorias-e-classes",
@@ -5367,8 +5395,8 @@
       "/images/cover_9786586941920.jpg",
       "/images/catalog_9786586941920_0_O-intoleravel-do-presente1.jpeg"
     ],
-    "price": 115.0,
-    "originalPrice": 115.0,
+    "price": 120.75,
+    "originalPrice": 120.75,
     "discount": 0,
     "sku": "9786586941920",
     "stock": null,
@@ -5403,7 +5431,7 @@
     "pages": "352",
     "dimensions": "14 x 21cm",
     "isbn": "978-65-86941-92-0",
-    "priceText": ""
+    "priceText": "R$ 120,75"
   },
   {
     "_id": "catalog-maquina-kafka",
@@ -5415,8 +5443,8 @@
     "images": [
       "/images/cover_9789526611006.jpg"
     ],
-    "price": 65.0,
-    "originalPrice": 65.0,
+    "price": 68.25,
+    "originalPrice": 68.25,
     "discount": 0,
     "sku": "9789526611006",
     "stock": null,
@@ -5458,7 +5486,7 @@
     "pages": "76",
     "dimensions": "12 x 21 cm",
     "isbn": "978-952-6611-00-6",
-    "priceText": ""
+    "priceText": "R$ 68,25"
   },
   {
     "_id": "catalog-quando-o-sol-aqui-nao-mais-brilhar-a-falencia-da-negritude",
@@ -5470,8 +5498,8 @@
     "images": [
       "/images/cover_9786586941906.jpg"
     ],
-    "price": 55.0,
-    "originalPrice": 55.0,
+    "price": 57.75,
+    "originalPrice": 57.75,
     "discount": 0,
     "sku": "9786586941906",
     "stock": null,
@@ -5508,7 +5536,7 @@
     "pages": "112",
     "dimensions": "12 x 21cm",
     "isbn": "978-65-86941-90-6",
-    "priceText": ""
+    "priceText": "R$ 57,75"
   },
   {
     "_id": "catalog-lucio-costa-era-racista",
@@ -5520,8 +5548,8 @@
     "images": [
       "/images/cover_9786586941760.jpg"
     ],
-    "price": 78.0,
-    "originalPrice": 78.0,
+    "price": 81.9,
+    "originalPrice": 81.9,
     "discount": 0,
     "sku": "9786586941760",
     "stock": null,
@@ -5556,7 +5584,7 @@
     "pages": "128",
     "dimensions": "19 x 14cm",
     "isbn": "978-65-86941-76-0",
-    "priceText": ""
+    "priceText": "R$ 81,90"
   },
   {
     "_id": "catalog-ficcoes-do-pragmatismo",
@@ -5568,8 +5596,8 @@
     "images": [
       "/images/cover_9786586941852.jpg"
     ],
-    "price": 120.0,
-    "originalPrice": 120.0,
+    "price": 126,
+    "originalPrice": 126,
     "discount": 0,
     "sku": "9786586941852",
     "stock": null,
@@ -5604,7 +5632,7 @@
     "pages": "384",
     "dimensions": "21 x 12cm",
     "isbn": "978-65-86941-85-2",
-    "priceText": ""
+    "priceText": "R$ 126,00"
   },
   {
     "_id": "catalog-chixinakax-utxiwa-uma-reflexao-sobre-praticas-e-discursos-descolonizadores",
@@ -5616,8 +5644,8 @@
     "images": [
       "/images/cover_9786586941692.jpg"
     ],
-    "price": 68.0,
-    "originalPrice": 68.0,
+    "price": 71.4,
+    "originalPrice": 71.4,
     "discount": 0,
     "sku": "9786586941692",
     "stock": null,
@@ -5656,7 +5684,7 @@
     "pages": "128",
     "dimensions": "17 x 12cm",
     "isbn": "978-65-86941-69-2",
-    "priceText": ""
+    "priceText": "R$ 71,40"
   },
   {
     "_id": "catalog-pandemia-critica-outono-2020",
@@ -5668,8 +5696,8 @@
     "images": [
       "/images/cover_9786586941296.jpg"
     ],
-    "price": 85.0,
-    "originalPrice": 85.0,
+    "price": 89.25,
+    "originalPrice": 89.25,
     "discount": 0,
     "sku": "9786586941296",
     "stock": null,
@@ -5702,7 +5730,7 @@
     "pages": "474",
     "dimensions": "16 x 32cm",
     "isbn": "978-65-86941-29-6",
-    "priceText": ""
+    "priceText": "R$ 89,25"
   },
   {
     "_id": "catalog-o-corpo-utopico-as-heterotopias",
@@ -5714,8 +5742,8 @@
     "images": [
       "/images/cover_9788566943078.jpg"
     ],
-    "price": 64.0,
-    "originalPrice": 64.0,
+    "price": 67.2,
+    "originalPrice": 67.2,
     "discount": 0,
     "sku": "9788566943078",
     "stock": null,
@@ -5754,7 +5782,7 @@
     "pages": "112",
     "dimensions": "145 x 210mm (paperback/brochur",
     "isbn": "978-85-66943-07-8",
-    "priceText": ""
+    "priceText": "R$ 67,20"
   },
   {
     "_id": "catalog-a-potencia-das-fendas",
@@ -5766,8 +5794,8 @@
     "images": [
       "/images/cover_9786586941470.jpg"
     ],
-    "price": 64.0,
-    "originalPrice": 64.0,
+    "price": 67.2,
+    "originalPrice": 67.2,
     "discount": 0,
     "sku": "9786586941470",
     "stock": null,
@@ -5802,7 +5830,7 @@
     "pages": "120",
     "dimensions": "21x 14 cm",
     "isbn": "978-65-86941-47-0",
-    "priceText": ""
+    "priceText": "R$ 67,20"
   },
   {
     "_id": "catalog-pandemia-critica-inverno-2020",
@@ -5814,8 +5842,8 @@
     "images": [
       "/images/cover_9786586941289.jpg"
     ],
-    "price": 85.0,
-    "originalPrice": 85.0,
+    "price": 89.25,
+    "originalPrice": 89.25,
     "discount": 0,
     "sku": "9786586941289",
     "stock": null,
@@ -5848,7 +5876,7 @@
     "pages": "474",
     "dimensions": "16 x 32cm",
     "isbn": "978-65-86941-28-9",
-    "priceText": ""
+    "priceText": "R$ 89,25"
   },
   {
     "_id": "catalog-summa-cosmologiae-breve-tratado-politico-de-iimortalidade",
@@ -5863,8 +5891,8 @@
       "/images/catalog_N1-00118_1_SummaCosmologiae2.jpeg",
       "/images/catalog_N1-00118_2_SummaCosmologiae1.jpeg"
     ],
-    "price": 74.0,
-    "originalPrice": 74.0,
+    "price": 77.7,
+    "originalPrice": 77.7,
     "discount": 0,
     "sku": "9786586941494",
     "stock": null,
@@ -5894,7 +5922,7 @@
     "year": "2021",
     "dimensions": "23 x 16cm",
     "isbn": "978-65-86941-49-4",
-    "priceText": "R$ 74,00"
+    "priceText": "R$ 77,70"
   },
   {
     "_id": "catalog-caixa-fora",
@@ -5906,8 +5934,8 @@
     "images": [
       "/images/cover_9786586941487.jpg"
     ],
-    "price": 85.0,
-    "originalPrice": 85.0,
+    "price": 89.25,
+    "originalPrice": 89.25,
     "discount": 0,
     "sku": "9786586941487",
     "stock": null,
@@ -5944,7 +5972,7 @@
     "pages": "355",
     "dimensions": "16x 11 cm",
     "isbn": "978-65-86941-48-7",
-    "priceText": ""
+    "priceText": "R$ 89,25"
   },
   {
     "_id": "catalog-desejos-ingovernaveis-rimbaud-e-a-comuna-de-paris-uma-estacao-no-inferno",
@@ -5956,8 +5984,8 @@
     "images": [
       "/images/cover_9786586941524.jpg"
     ],
-    "price": 72.0,
-    "originalPrice": 72.0,
+    "price": 75.6,
+    "originalPrice": 75.6,
     "discount": 0,
     "sku": "9786586941524",
     "stock": null,
@@ -5992,7 +6020,7 @@
     "pages": "196",
     "dimensions": "19 x 20cm",
     "isbn": "978-65-86941-52-4",
-    "priceText": ""
+    "priceText": "R$ 75,60"
   },
   {
     "_id": "catalog-o-avesso-do-niilismo",
@@ -6004,8 +6032,8 @@
     "images": [
       "/images/cover_9788566943252.jpg"
     ],
-    "price": 120.0,
-    "originalPrice": 120.0,
+    "price": 129.6,
+    "originalPrice": 129.6,
     "discount": 0,
     "sku": "9788566943252",
     "stock": null,
@@ -6047,7 +6075,7 @@
     "pages": "448",
     "dimensions": "14 x 21cm",
     "isbn": "978-85-66943-25-2",
-    "priceText": ""
+    "priceText": "R$ 129,60"
   },
   {
     "_id": "catalog-sociedades-do-desaparecimento",
@@ -6059,8 +6087,8 @@
     "images": [
       "/images/cover_9786586941432.jpg"
     ],
-    "price": 70.0,
-    "originalPrice": 70.0,
+    "price": 73.5,
+    "originalPrice": 73.5,
     "discount": 0,
     "sku": "9786586941432",
     "stock": null,
@@ -6097,7 +6125,7 @@
     "pages": "80",
     "dimensions": "11 x 18 cm",
     "isbn": "978-65-86941-43-2",
-    "priceText": ""
+    "priceText": "R$ 73,50"
   },
   {
     "_id": "catalog-sobre-a-fabricacao-gradativa-de-pensamentos-durante-a-fala",
@@ -6109,8 +6137,8 @@
     "images": [
       "/images/cover_9786586941449.jpg"
     ],
-    "price": 60.0,
-    "originalPrice": 60.0,
+    "price": 63,
+    "originalPrice": 63,
     "discount": 0,
     "sku": "9786586941449",
     "stock": null,
@@ -6147,7 +6175,7 @@
     "pages": "80",
     "dimensions": "11 x 18cm",
     "isbn": "978-65-86941-44-9",
-    "priceText": ""
+    "priceText": "R$ 63,00"
   },
   {
     "_id": "catalog-uma-baleia-na-montanha",
@@ -6159,8 +6187,8 @@
     "images": [
       "/images/cover_9786586941326.jpg"
     ],
-    "price": 92.0,
-    "originalPrice": 92.0,
+    "price": 96.6,
+    "originalPrice": 96.6,
     "discount": 0,
     "sku": "9786586941326",
     "stock": null,
@@ -6193,7 +6221,7 @@
     "pages": "288",
     "dimensions": "14 x 21cm",
     "isbn": "978-65-86941-32-6",
-    "priceText": ""
+    "priceText": "R$ 96,60"
   },
   {
     "_id": "catalog-antropofagia-zumbi",
@@ -6205,8 +6233,8 @@
     "images": [
       "/images/cover_9786586941630.jpg"
     ],
-    "price": 60.0,
-    "originalPrice": 60.0,
+    "price": 63,
+    "originalPrice": 63,
     "discount": 0,
     "sku": "9786586941630",
     "stock": null,
@@ -6242,7 +6270,7 @@
     "pages": "112",
     "dimensions": "18 x 11cm",
     "isbn": "978-65-86941-63-0",
-    "priceText": ""
+    "priceText": "R$ 63,00"
   },
   {
     "_id": "catalog-a-psicanalise-em-elipse-decolonial",
@@ -6254,8 +6282,8 @@
     "images": [
       "/images/cover_9786586941579.jpg"
     ],
-    "price": 95.0,
-    "originalPrice": 95.0,
+    "price": 109.25,
+    "originalPrice": 109.25,
     "discount": 0,
     "sku": "9786586941579",
     "stock": null,
@@ -6288,7 +6316,7 @@
     "pages": "288",
     "dimensions": "23 x 16cm",
     "isbn": "978-65-86941-57-9",
-    "priceText": ""
+    "priceText": "R$ 109,25"
   },
   {
     "_id": "catalog-des-habitat",
@@ -6300,8 +6328,8 @@
     "images": [
       "/images/cover_9786586941395.jpg"
     ],
-    "price": 70.0,
-    "originalPrice": 70.0,
+    "price": 73.5,
+    "originalPrice": 73.5,
     "discount": 0,
     "sku": "9786586941395",
     "stock": null,
@@ -6336,7 +6364,7 @@
     "pages": "97",
     "dimensions": "33 x 23,5cm",
     "isbn": "978-65-86941-39-5",
-    "priceText": ""
+    "priceText": "R$ 73,50"
   },
   {
     "_id": "catalog-tempos-modernos-arte-tempo-politica",
@@ -6348,8 +6376,8 @@
     "images": [
       "/images/cover_9786586941401.jpg"
     ],
-    "price": 70.0,
-    "originalPrice": 70.0,
+    "price": 73.5,
+    "originalPrice": 73.5,
     "discount": 0,
     "sku": "9786586941401",
     "stock": null,
@@ -6384,7 +6412,7 @@
     "pages": "160",
     "dimensions": "17 x 12cm",
     "isbn": "978-65-86941-40-1",
-    "priceText": ""
+    "priceText": "R$ 73,50"
   },
   {
     "_id": "catalog-no-silencio-que-as-palavras-guardam",
@@ -6396,8 +6424,8 @@
     "images": [
       "/images/cover_9786586941265.jpg"
     ],
-    "price": 65.0,
-    "originalPrice": 65.0,
+    "price": 68.25,
+    "originalPrice": 68.25,
     "discount": 0,
     "sku": "9786586941265",
     "stock": null,
@@ -6432,7 +6460,7 @@
     "pages": "125",
     "dimensions": "21 x 13,5cm",
     "isbn": "978-65-86941-26-5",
-    "priceText": ""
+    "priceText": "R$ 68,25"
   },
   {
     "_id": "catalog-uma-vida-politica",
@@ -6444,8 +6472,8 @@
     "images": [
       "/images/cover_9786586941272.jpg"
     ],
-    "price": 75.0,
-    "originalPrice": 75.0,
+    "price": 78.75,
+    "originalPrice": 78.75,
     "discount": 0,
     "sku": "9786586941272",
     "stock": null,
@@ -6480,7 +6508,7 @@
     "pages": "176",
     "dimensions": "21x 13,5 cm",
     "isbn": "978-65-86941-27-2",
-    "priceText": ""
+    "priceText": "R$ 78,75"
   },
   {
     "_id": "catalog-abebe-caixa-pretas",
@@ -6492,8 +6520,8 @@
     "images": [
       "/images/cover_9786586941210.jpg"
     ],
-    "price": 80.0,
-    "originalPrice": 80.0,
+    "price": 84,
+    "originalPrice": 84,
     "discount": 0,
     "sku": "9786586941210",
     "stock": null,
@@ -6530,7 +6558,7 @@
     "pages": "355",
     "dimensions": "11 x 16cm",
     "isbn": "978-65-86941-21-0",
-    "priceText": ""
+    "priceText": "R$ 84,00"
   },
   {
     "_id": "catalog-semente-de-crapula",
@@ -6542,8 +6570,8 @@
     "images": [
       "/images/cover_9786581097097.jpg"
     ],
-    "price": 60.0,
-    "originalPrice": 60.0,
+    "price": 63,
+    "originalPrice": 63,
     "discount": 0,
     "sku": "9786581097097",
     "stock": null,
@@ -6580,7 +6608,7 @@
     "pages": "96",
     "dimensions": "18 x 11cm",
     "isbn": "978-65-81097-09-7",
-    "priceText": ""
+    "priceText": "R$ 63,00"
   },
   {
     "_id": "catalog-ritornelos",
@@ -6592,8 +6620,8 @@
     "images": [
       "/images/cover_9786581097028.jpg"
     ],
-    "price": 55.0,
-    "originalPrice": 55.0,
+    "price": 57.75,
+    "originalPrice": 57.75,
     "discount": 0,
     "sku": "9786581097028",
     "stock": null,
@@ -6628,7 +6656,7 @@
     "pages": "134",
     "dimensions": "11 x 18cm",
     "isbn": "978-65-81097-02-8",
-    "priceText": ""
+    "priceText": "R$ 57,75"
   },
   {
     "_id": "catalog-aos-nossos-amigos",
@@ -6640,8 +6668,8 @@
     "images": [
       "/images/cover_9788566943207.jpg"
     ],
-    "price": 44.0,
-    "originalPrice": 44.0,
+    "price": 46.2,
+    "originalPrice": 46.2,
     "discount": 0,
     "sku": "9788566943207",
     "stock": null,
@@ -6678,7 +6706,7 @@
     "pages": "288",
     "dimensions": "12 x 17cm",
     "isbn": "978-85-66943-20-7",
-    "priceText": ""
+    "priceText": "R$ 46,20"
   },
   {
     "_id": "catalog-nietzsche-o-bufao-dos-deuses",
@@ -6690,8 +6718,8 @@
     "images": [
       "/images/cover_9788566943382.jpg"
     ],
-    "price": 55.0,
-    "originalPrice": 55.0,
+    "price": 55,
+    "originalPrice": 55,
     "discount": 0,
     "sku": "9788566943382",
     "stock": null,
@@ -6731,7 +6759,7 @@
     "pages": "256",
     "dimensions": "16x21cm",
     "isbn": "978-85-66943-38-2",
-    "priceText": ""
+    "priceText": "R$ 55,00"
   },
   {
     "_id": "catalog-quando-e-como-eu-li-foucault",
@@ -6743,8 +6771,8 @@
     "images": [
       "/images/cover_9788566943306.jpg"
     ],
-    "price": 58.0,
-    "originalPrice": 58.0,
+    "price": 60.9,
+    "originalPrice": 60.9,
     "discount": 0,
     "sku": "9788566943306",
     "stock": null,
@@ -6783,7 +6811,7 @@
     "pages": "224",
     "dimensions": "14x20cm",
     "isbn": "978-85-66943-30-6",
-    "priceText": ""
+    "priceText": "R$ 60,90"
   },
   {
     "_id": "catalog-metafisicas-canibais",
@@ -6795,8 +6823,8 @@
     "images": [
       "/images/cover_9788566943177.jpg"
     ],
-    "price": 79.9,
-    "originalPrice": 79.9,
+    "price": 73.4,
+    "originalPrice": 73.4,
     "discount": 0,
     "sku": "9788566943177",
     "stock": null,
@@ -6832,7 +6860,7 @@
     "pages": "288",
     "dimensions": "13 x 20 cm",
     "isbn": "978-85-66943-17-7",
-    "priceText": ""
+    "priceText": "R$ 73,40"
   },
   {
     "_id": "catalog-o-aracniano-e-outros-textos",
@@ -7058,8 +7086,8 @@
     "images": [
       "/images/cover_9786586941203.jpg"
     ],
-    "price": 110.0,
-    "originalPrice": 110.0,
+    "price": 115.5,
+    "originalPrice": 115.5,
     "discount": 0,
     "sku": "9786586941203",
     "stock": null,
@@ -7094,7 +7122,7 @@
     "pages": "176",
     "dimensions": "25 x 17,5cm",
     "isbn": "978-65-86941-20-3",
-    "priceText": ""
+    "priceText": "R$ 115,50"
   },
   {
     "_id": "catalog-a-dama-do-mar",
@@ -7157,8 +7185,8 @@
     "images": [
       "/images/cover_97885669433399.jpg"
     ],
-    "price": 79.9,
-    "originalPrice": 79.9,
+    "price": 60.9,
+    "originalPrice": 60.9,
     "discount": 0,
     "sku": "97885669433399",
     "stock": null,
@@ -7195,7 +7223,7 @@
     "pages": "240",
     "dimensions": "14x21cm",
     "isbn": "97885669433399",
-    "priceText": ""
+    "priceText": "R$ 60,90"
   },
   {
     "_id": "catalog-deleuze-os-movimentos-aberrantes",
@@ -7207,8 +7235,8 @@
     "images": [
       "/images/cover_9788566943191.jpg"
     ],
-    "price": 79.9,
-    "originalPrice": 79.9,
+    "price": 72.45,
+    "originalPrice": 72.45,
     "discount": 0,
     "sku": "9788566943191",
     "stock": null,
@@ -7247,7 +7275,7 @@
     "pages": "320",
     "dimensions": "14×21 cm",
     "isbn": "978-85-66943-19-1",
-    "priceText": ""
+    "priceText": "R$ 72,45"
   },
   {
     "_id": "catalog-signos-maquinas-subjetividades",
@@ -7361,8 +7389,8 @@
     "images": [
       "/images/cover_9786586941128.jpg"
     ],
-    "price": 65.0,
-    "originalPrice": 65.0,
+    "price": 68.25,
+    "originalPrice": 68.25,
     "discount": 0,
     "sku": "9786586941128",
     "stock": null,
@@ -7397,7 +7425,7 @@
     "pages": "180",
     "dimensions": "21 x 14cm",
     "isbn": "978-65-86941-12-8",
-    "priceText": ""
+    "priceText": "R$ 68,25"
   },
   {
     "_id": "catalog-o-clarao-de-espinosa",
@@ -7409,8 +7437,8 @@
     "images": [
       "/images/cover_9786581097080.jpg"
     ],
-    "price": 60.0,
-    "originalPrice": 60.0,
+    "price": 63,
+    "originalPrice": 63,
     "discount": 0,
     "sku": "9786581097080",
     "stock": null,
@@ -7447,7 +7475,7 @@
     "pages": "96",
     "dimensions": "18x 11cm",
     "isbn": "978-65-81097-08-0",
-    "priceText": ""
+    "priceText": "R$ 63,00"
   },
   {
     "_id": "catalog-leituras-do-corpo-no-japao",
@@ -7459,8 +7487,8 @@
     "images": [
       "/images/cover_9788566943153.jpg"
     ],
-    "price": 79.9,
-    "originalPrice": 79.9,
+    "price": 94.5,
+    "originalPrice": 94.5,
     "discount": 0,
     "sku": "9788566943153",
     "stock": null,
@@ -7496,7 +7524,7 @@
     "pages": "224",
     "dimensions": "14×21 cm",
     "isbn": "978-85-66943-15-3",
-    "priceText": ""
+    "priceText": "R$ 94,50"
   },
   {
     "_id": "catalog-negri-no-tropico-23o2614",
@@ -7513,8 +7541,8 @@
       "/images/catalog_N1-00151_3_negrinotropico3-scaled-340x444.jpeg",
       "/images/catalog_N1-00151_4_negrinotropico4.png"
     ],
-    "price": 40.0,
-    "originalPrice": 40.0,
+    "price": 40,
+    "originalPrice": 40,
     "discount": 0,
     "sku": "9788566943450",
     "stock": null,
@@ -7718,8 +7746,8 @@
       "/images/catalog_9786561190190_2_MOCKUP-CORPOGERUNDIO-4.png",
       "/images/catalog_9786561190190_3_MOCKUP-CORPOGERUNDIO-3.png"
     ],
-    "price": 60.0,
-    "originalPrice": 60.0,
+    "price": 63,
+    "originalPrice": 63,
     "discount": 0,
     "sku": "9786561190190",
     "stock": null,
@@ -7752,7 +7780,8 @@
     "pages": "188",
     "dimensions": "12 x 17 cm",
     "isbn": "978-65-6119-019-0",
-    "authors": "Luaa Gabanini"
+    "authors": "Luaa Gabanini",
+    "priceText": "R$ 63,00"
   },
   {
     "_id": "catalog-a-economia-contra-si-mesma",
@@ -7768,8 +7797,8 @@
       "/images/catalog_9786561190169_2_IMG_1718-copiar.jpg",
       "/images/catalog_9786561190169_3_IMG_1730-copiar.jpg"
     ],
-    "price": 78.0,
-    "originalPrice": 78.0,
+    "price": 81.9,
+    "originalPrice": 81.9,
     "discount": 0,
     "sku": "9786561190169",
     "stock": null,
@@ -7803,7 +7832,8 @@
     "pages": "168",
     "dimensions": "21 x 14 cm",
     "isbn": "978-65-6119-016-9",
-    "authors": "Brian Massumi"
+    "authors": "Brian Massumi",
+    "priceText": "R$ 81,90"
   },
   {
     "_id": "catalog-o-reino-e-o-jardim",
@@ -7819,8 +7849,8 @@
       "/images/catalog_9786586941722_2_O-reino-e-o-Jardim1.jpeg",
       "/images/catalog_9786586941722_3_O-reino-e-o-Jardim3.jpeg"
     ],
-    "price": 68.0,
-    "originalPrice": 68.0,
+    "price": 71.4,
+    "originalPrice": 71.4,
     "discount": 0,
     "sku": "9786586941722",
     "stock": null,
@@ -7855,7 +7885,8 @@
     "pages": "114",
     "dimensions": "21 x 14cm",
     "isbn": "978-65-86941-72-2",
-    "authors": "Giorgio Agamben"
+    "authors": "Giorgio Agamben",
+    "priceText": "R$ 71,40"
   },
   {
     "_id": "catalog-politicas-da-inimizade",
@@ -7867,8 +7898,8 @@
     "images": [
       "/images/cover_9786586941173.jpg"
     ],
-    "price": 88.0,
-    "originalPrice": 88.0,
+    "price": 92.4,
+    "originalPrice": 92.4,
     "discount": 0,
     "sku": "9786586941173",
     "stock": null,
@@ -7903,7 +7934,7 @@
     "pages": "218",
     "dimensions": "21 x 14cm",
     "isbn": "978-65-86941-17-3",
-    "priceText": ""
+    "priceText": "R$ 92,40"
   },
   {
     "_id": "catalog-na-quebra",
@@ -7915,8 +7946,8 @@
     "images": [
       "/images/cover_9786581097417.jpg"
     ],
-    "price": 98.9,
-    "originalPrice": 98.9,
+    "price": 103.85,
+    "originalPrice": 103.85,
     "discount": 0,
     "sku": "9786581097417",
     "stock": null,
@@ -7951,7 +7982,7 @@
     "pages": "368",
     "dimensions": "21 x 13cm",
     "isbn": "978-65-81097-41-7",
-    "priceText": ""
+    "priceText": "R$ 103,85"
   },
   {
     "_id": "catalog-corpos-crip",
@@ -7963,8 +7994,8 @@
     "images": [
       "/images/cover_9786581097745.jpg"
     ],
-    "price": 48.0,
-    "originalPrice": 48.0,
+    "price": 50.4,
+    "originalPrice": 50.4,
     "discount": 0,
     "sku": "9786581097745",
     "stock": null,
@@ -8000,7 +8031,7 @@
     "pages": "88",
     "dimensions": "17 x 12cm",
     "isbn": "978-65-81097-74-5",
-    "priceText": ""
+    "priceText": "R$ 50,40"
   },
   {
     "_id": "catalog-teoria-king-kong",
@@ -8012,8 +8043,8 @@
     "images": [
       "/images/cover_9788566943269.jpg"
     ],
-    "price": 84.9,
-    "originalPrice": 84.9,
+    "price": 68.25,
+    "originalPrice": 68.25,
     "discount": 0,
     "sku": "9788566943269",
     "stock": null,
@@ -8050,7 +8081,7 @@
     "pages": "128",
     "dimensions": "13x20cm",
     "isbn": "978-85-66943-26-9",
-    "priceText": ""
+    "priceText": "R$ 68,25"
   },
   {
     "_id": "catalog-a-ameaca-atomica",
@@ -8062,8 +8093,8 @@
     "images": [
       "/images/cover_9786581097912.jpg"
     ],
-    "price": 98.0,
-    "originalPrice": 98.0,
+    "price": 98,
+    "originalPrice": 98,
     "discount": 0,
     "sku": "9786581097912",
     "stock": null,
@@ -8099,7 +8130,7 @@
     "pages": "260",
     "dimensions": "21 x 14 cm",
     "isbn": "978-65-81097-91-2",
-    "priceText": ""
+    "priceText": "R$ 98,00"
   },
   {
     "_id": "catalog-nao-se-dissolve-um-levante",
@@ -8111,8 +8142,8 @@
     "images": [
       "/images/cover_9786581097950.jpg"
     ],
-    "price": 75.0,
-    "originalPrice": 75.0,
+    "price": 78.75,
+    "originalPrice": 78.75,
     "discount": 0,
     "sku": "9786581097950",
     "stock": null,
@@ -8147,7 +8178,7 @@
     "pages": "192",
     "dimensions": "21 x 14 cm",
     "isbn": "978-65-81097-95-0",
-    "priceText": ""
+    "priceText": "R$ 78,75"
   },
   {
     "_id": "catalog-o-passado-ainda-esta-por-vir",
@@ -8159,8 +8190,8 @@
     "images": [
       "/images/cover_9786581097929.jpg"
     ],
-    "price": 25.0,
-    "originalPrice": 25.0,
+    "price": 26.25,
+    "originalPrice": 26.25,
     "discount": 0,
     "sku": "9786581097929",
     "stock": null,
@@ -8195,7 +8226,7 @@
     "pages": "28",
     "dimensions": "17 x 11,5 cm",
     "isbn": "978-65-81097-92-9",
-    "priceText": ""
+    "priceText": "R$ 26,25"
   },
   {
     "_id": "catalog-lugares-do-delirio",
@@ -8210,8 +8241,8 @@
       "/images/catalog_N1-00165_1_IMG_1682-copiar.jpg",
       "/images/catalog_N1-00165_2_IMG_1684-copiar.jpg"
     ],
-    "price": 130.0,
-    "originalPrice": 130.0,
+    "price": 136.5,
+    "originalPrice": 136.5,
     "discount": 0,
     "sku": "9786581097479",
     "stock": null,
@@ -8242,7 +8273,7 @@
     "year": "2023",
     "dimensions": "21 x 14 cm",
     "isbn": "978-65-81097-47-9",
-    "priceText": "R$ 130,00"
+    "priceText": "R$ 136,50"
   },
   {
     "_id": "catalog-cartilha-de-mezinhagem",
@@ -8254,8 +8285,8 @@
     "images": [
       "/images/cover_9786581097714.jpg"
     ],
-    "price": 100.0,
-    "originalPrice": 100.0,
+    "price": 105,
+    "originalPrice": 105,
     "discount": 0,
     "sku": "9786581097714",
     "stock": null,
@@ -8294,7 +8325,7 @@
     "pages": "132",
     "dimensions": "21 x 14 cm",
     "isbn": "978-65-81097-71-4",
-    "priceText": ""
+    "priceText": "R$ 105,00"
   },
   {
     "_id": "catalog-ubuntu-psicanalise-e-heranca-colonial",
@@ -8306,8 +8337,8 @@
     "images": [
       "/images/cover_9786581097844.jpg"
     ],
-    "price": 95.0,
-    "originalPrice": 95.0,
+    "price": 95,
+    "originalPrice": 95,
     "discount": 0,
     "sku": "9786581097844",
     "stock": null,
@@ -8342,7 +8373,7 @@
     "pages": "240",
     "dimensions": "16 x 23 cm",
     "isbn": "978-65-81097-84-4",
-    "priceText": "",
+    "priceText": "R$ 95,00",
     "edition": "psilacs"
   },
   {
@@ -8355,8 +8386,8 @@
     "images": [
       "/images/cover_9786581097790.jpg"
     ],
-    "price": 65.0,
-    "originalPrice": 65.0,
+    "price": 68.25,
+    "originalPrice": 68.25,
     "discount": 0,
     "sku": "9786581097790",
     "stock": null,
@@ -8391,7 +8422,7 @@
     "pages": "136",
     "dimensions": "14 x 21 cm",
     "isbn": "978-65-81097-79-0",
-    "priceText": ""
+    "priceText": "R$ 68,25"
   },
   {
     "_id": "catalog-ainda-a-arte-contemporanea",
@@ -8403,8 +8434,8 @@
     "images": [
       "/images/cover_9786581097806.jpg"
     ],
-    "price": 115.0,
-    "originalPrice": 115.0,
+    "price": 120.75,
+    "originalPrice": 120.75,
     "discount": 0,
     "sku": "9786581097806",
     "stock": null,
@@ -8439,7 +8470,7 @@
     "pages": "304",
     "dimensions": "14 x 21 cm",
     "isbn": "978-65-81097-80-6",
-    "priceText": ""
+    "priceText": "R$ 120,75"
   },
   {
     "_id": "catalog-negritude-sem-identidade",
@@ -8451,8 +8482,8 @@
     "images": [
       "/images/cover_9786581097752.jpg"
     ],
-    "price": 65.0,
-    "originalPrice": 65.0,
+    "price": 68.25,
+    "originalPrice": 68.25,
     "discount": 0,
     "sku": "9786581097752",
     "stock": null,
@@ -8487,7 +8518,7 @@
     "pages": "172",
     "dimensions": "21 x 14cm",
     "isbn": "978-65-81097-75-2",
-    "priceText": ""
+    "priceText": "R$ 68,25"
   },
   {
     "_id": "catalog-jupau",
@@ -8499,8 +8530,8 @@
     "images": [
       "/images/cover_9786581097592.jpg"
     ],
-    "price": 130.0,
-    "originalPrice": 130.0,
+    "price": 136.5,
+    "originalPrice": 136.5,
     "discount": 0,
     "sku": "9786581097592",
     "stock": null,
@@ -8533,7 +8564,7 @@
     "pages": "148",
     "dimensions": "15,7x 23cm",
     "isbn": "978-65-81097-59-2",
-    "priceText": ""
+    "priceText": "R$ 136,50"
   },
   {
     "_id": "catalog-4206",
@@ -8549,8 +8580,8 @@
       "/images/catalog_N1-00172_2_potenciasdotempo-3.jpg",
       "/images/catalog_N1-00172_3_potenciasdotempo-4.jpg"
     ],
-    "price": 65.0,
-    "originalPrice": 65.0,
+    "price": 68.25,
+    "originalPrice": 68.25,
     "discount": 0,
     "sku": "9788566943443",
     "stock": null,
@@ -8582,7 +8613,7 @@
     "year": "2013",
     "dimensions": "14 x 21cm",
     "isbn": "978-85-66943-44-3",
-    "priceText": "R$ 65,00",
+    "priceText": "R$ 68,25",
     "translation": "Hortencia Santos Lencastre"
   },
   {
@@ -8595,8 +8626,8 @@
     "images": [
       "/images/cover_9786586941111.jpg"
     ],
-    "price": 76.0,
-    "originalPrice": 76.0,
+    "price": 79.8,
+    "originalPrice": 79.8,
     "discount": 0,
     "sku": "9786586941111",
     "stock": null,
@@ -8633,7 +8664,7 @@
     "pages": "240",
     "dimensions": "16 x 23cm",
     "isbn": "978-65-86941-11-1",
-    "priceText": ""
+    "priceText": "R$ 79,80"
   },
   {
     "_id": "catalog-riot-days",
@@ -8651,8 +8682,8 @@
       "/images/catalog_N1-00174_4_riotdays5.jpeg",
       "/images/catalog_N1-00174_5_riotdays3.jpeg"
     ],
-    "price": 99.0,
-    "originalPrice": 99.0,
+    "price": 103.95,
+    "originalPrice": 103.95,
     "discount": 0,
     "sku": "9786581097134",
     "stock": null,
@@ -8686,7 +8717,7 @@
     "year": "2019",
     "dimensions": "21 x 14cm",
     "isbn": "978-65-81097-13-4",
-    "priceText": "R$ 99,00",
+    "priceText": "R$ 103,95",
     "translation": "Marina DarmarosProjeto gráfico:Lucas KröeffCoedição:Jorge Sallum e Felipe MusettiAno:2019 | 1ª ediçãoN˚ de páginas:216Dimensões:21 x 14cmISBN:978-65-81097-13-4"
   },
   {
@@ -8699,8 +8730,8 @@
     "images": [
       "/images/cover_9786581097059.jpg"
     ],
-    "price": 20.0,
-    "originalPrice": 20.0,
+    "price": 21,
+    "originalPrice": 21,
     "discount": 0,
     "sku": "9786581097059",
     "stock": null,
@@ -8735,7 +8766,7 @@
     "pages": "64",
     "dimensions": "21 x 14 cm",
     "isbn": "978-65-81097-05-9",
-    "priceText": ""
+    "priceText": "R$ 21,00"
   },
   {
     "_id": "catalog-um-piano-nas-barricadas",
@@ -8747,8 +8778,8 @@
     "images": [
       "/images/cover_9786580421046.jpg"
     ],
-    "price": 65.0,
-    "originalPrice": 65.0,
+    "price": 68.25,
+    "originalPrice": 68.25,
     "discount": 0,
     "sku": "9786580421046",
     "stock": null,
@@ -8786,7 +8817,7 @@
     "pages": "384",
     "dimensions": "21 x 14 cm",
     "isbn": "978-65-80421-04-6",
-    "priceText": ""
+    "priceText": "R$ 68,25"
   },
   {
     "_id": "catalog-pragmatismo-pulsional",
@@ -8798,8 +8829,8 @@
     "images": [
       "/images/cover_9786581097066.jpg"
     ],
-    "price": 79.9,
-    "originalPrice": 79.9,
+    "price": 81.9,
+    "originalPrice": 81.9,
     "discount": 0,
     "sku": "9786581097066",
     "stock": null,
@@ -8837,7 +8868,7 @@
     "pages": "336",
     "dimensions": "14 x 21cm",
     "isbn": "978-65-81097-06-6",
-    "priceText": ""
+    "priceText": "R$ 81,90"
   },
   {
     "_id": "catalog-corpos-que-importam",
@@ -8849,8 +8880,8 @@
     "images": [
       "/images/cover_9786581097042.jpg"
     ],
-    "price": 170.0,
-    "originalPrice": 170.0,
+    "price": 178.5,
+    "originalPrice": 178.5,
     "discount": 0,
     "sku": "9786581097042",
     "stock": null,
@@ -8886,7 +8917,7 @@
     "pages": "400",
     "dimensions": "21 x 14cm",
     "isbn": "978-65-81097-04-2",
-    "priceText": ""
+    "priceText": "R$ 178,50"
   },
   {
     "_id": "catalog-fascismo-ou-revolucao",
@@ -8898,8 +8929,8 @@
     "images": [
       "/images/cover_9788566943818.jpg"
     ],
-    "price": 79.9,
-    "originalPrice": 79.9,
+    "price": 84,
+    "originalPrice": 84,
     "discount": 0,
     "sku": "9788566943818",
     "stock": null,
@@ -8937,7 +8968,7 @@
     "pages": "208",
     "dimensions": "21 x 14cm",
     "isbn": "978-856-694-381-8",
-    "priceText": ""
+    "priceText": "R$ 84,00"
   },
   {
     "_id": "catalog-somos-nosso-cerebro",
@@ -9005,8 +9036,8 @@
       "/images/catalog_N1-00181_2_lampejos3.jpeg",
       "/images/catalog_N1-00181_3_lampejos4.jpeg"
     ],
-    "price": 50.0,
-    "originalPrice": 50.0,
+    "price": 52.5,
+    "originalPrice": 52.5,
     "discount": 0,
     "sku": "9786581097035",
     "stock": null,
@@ -9038,7 +9069,7 @@
     "year": "2019",
     "dimensions": "11 x 18cm",
     "isbn": "978-65-81097-03-5",
-    "priceText": "R$ 50,00"
+    "priceText": "R$ 52,50"
   },
   {
     "_id": "catalog-afrotopia",
@@ -9050,8 +9081,8 @@
     "images": [
       "/images/cover_9788566943979.jpg"
     ],
-    "price": 80.0,
-    "originalPrice": 80.0,
+    "price": 84,
+    "originalPrice": 84,
     "discount": 0,
     "sku": "9788566943979",
     "stock": null,
@@ -9091,7 +9122,7 @@
     "pages": "160",
     "dimensions": "14 x 21cm",
     "isbn": "978-85-66943-97-9",
-    "priceText": ""
+    "priceText": "R$ 84,00"
   },
   {
     "_id": "catalog-as-voltas-com-lautreamont",
@@ -9103,8 +9134,8 @@
     "images": [
       "/images/cover_9788566943962.jpg"
     ],
-    "price": 55.0,
-    "originalPrice": 55.0,
+    "price": 57.75,
+    "originalPrice": 57.75,
     "discount": 0,
     "sku": "9788566943962",
     "stock": null,
@@ -9144,7 +9175,7 @@
     "pages": "224",
     "dimensions": "13 x 21cm",
     "isbn": "978-85-66943-96-2",
-    "priceText": ""
+    "priceText": "R$ 57,75"
   },
   {
     "_id": "catalog-ruptura",
@@ -9156,8 +9187,8 @@
     "images": [
       "/images/cover_9788566943931.jpg"
     ],
-    "price": 55.0,
-    "originalPrice": 55.0,
+    "price": 57.75,
+    "originalPrice": 57.75,
     "discount": 0,
     "sku": "9788566943931",
     "stock": null,
@@ -9197,7 +9228,7 @@
     "pages": "120",
     "dimensions": "12 x 17cm",
     "isbn": "978-856-694-393-1",
-    "priceText": ""
+    "priceText": "R$ 57,75"
   },
   {
     "_id": "catalog-as-maquinas-celibatarias",
@@ -9209,8 +9240,8 @@
     "images": [
       "/images/cover_9788566786965.jpg"
     ],
-    "price": 65.0,
-    "originalPrice": 65.0,
+    "price": 68.25,
+    "originalPrice": 68.25,
     "discount": 0,
     "sku": "9788566786965",
     "stock": null,
@@ -9253,7 +9284,7 @@
     "pages": "288",
     "dimensions": "16 x 23cm",
     "isbn": "978-85-66786-96-5",
-    "priceText": ""
+    "priceText": "R$ 68,25"
   },
   {
     "_id": "catalog-ensaios-do-assombro",
@@ -9265,8 +9296,8 @@
     "images": [
       "/images/cover_9788566943849.jpg"
     ],
-    "price": 81.0,
-    "originalPrice": 81.0,
+    "price": 85.05,
+    "originalPrice": 85.05,
     "discount": 0,
     "sku": "9788566943849",
     "stock": null,
@@ -9304,7 +9335,7 @@
     "pages": "304",
     "dimensions": "14 x 21cm",
     "isbn": "978-856-694-384-9",
-    "priceText": ""
+    "priceText": "R$ 85,05"
   },
   {
     "_id": "catalog-etica-bixa",
@@ -9317,8 +9348,8 @@
       "/images/cover_9788566943801.jpg",
       "/images/catalog_9788566943801_0_9788566943801-Etica-bixa-Paco-Vidarte-Pablo-Cardellino-Soto-Maria-Selenir-Nunes-dos-Santos.jpeg"
     ],
-    "price": 79.9,
-    "originalPrice": 79.9,
+    "price": 78.75,
+    "originalPrice": 78.75,
     "discount": 0,
     "sku": "9788566943801",
     "stock": null,
@@ -9353,7 +9384,7 @@
     "pages": "184",
     "dimensions": "14 x 21cm",
     "isbn": "978-856-694-380-1",
-    "priceText": ""
+    "priceText": "R$ 78,75"
   },
   {
     "_id": "catalog-contribuicao-para-a-guerra-em-curso",
@@ -9365,8 +9396,8 @@
     "images": [
       "/images/cover_9788566943764.jpg"
     ],
-    "price": 63.5,
-    "originalPrice": 63.5,
+    "price": 66.68,
+    "originalPrice": 66.68,
     "discount": 0,
     "sku": "9788566943764",
     "stock": null,
@@ -9403,7 +9434,7 @@
     "pages": "272",
     "dimensions": "12 x 17cm",
     "isbn": "978-85-66943-76-4",
-    "priceText": ""
+    "priceText": "R$ 66,68"
   },
   {
     "_id": "catalog-arqueofeminismo",
@@ -9467,8 +9498,8 @@
     "images": [
       "/images/cover_9788566943740.jpg"
     ],
-    "price": 79.9,
-    "originalPrice": 79.9,
+    "price": 68.25,
+    "originalPrice": 68.25,
     "discount": 0,
     "sku": "9788566943740",
     "stock": null,
@@ -9506,7 +9537,7 @@
     "pages": "144",
     "dimensions": "14 x 21cm",
     "isbn": "978-85-66943-74-0",
-    "priceText": ""
+    "priceText": "R$ 68,25"
   },
   {
     "_id": "catalog-os-vagabundos-eficazes",
@@ -9518,8 +9549,8 @@
     "images": [
       "/images/cover_9788566943641.jpg"
     ],
-    "price": 52.0,
-    "originalPrice": 52.0,
+    "price": 54.6,
+    "originalPrice": 54.6,
     "discount": 0,
     "sku": "9788566943641",
     "stock": null,
@@ -9557,7 +9588,7 @@
     "pages": "160",
     "dimensions": "12 x 17cm",
     "isbn": "978-856-694-3641",
-    "priceText": ""
+    "priceText": "R$ 54,60"
   },
   {
     "_id": "catalog-caixa-de-dramaturgias-indigenas",
@@ -9569,8 +9600,8 @@
     "images": [
       "/images/cover_9786581097691.jpg"
     ],
-    "price": 79.9,
-    "originalPrice": 79.9,
+    "price": 89.25,
+    "originalPrice": 89.25,
     "discount": 0,
     "sku": "9786581097691",
     "stock": null,
@@ -9605,7 +9636,7 @@
     "pages": "544",
     "dimensions": "14x 22cm",
     "isbn": "978-65-81097-69-1",
-    "priceText": ""
+    "priceText": "R$ 89,25"
   },
   {
     "_id": "catalog-fragmentos-de-memorias-malditas-invencao-de-si-e-de-mundos",
@@ -9617,8 +9648,8 @@
     "images": [
       "/images/cover_9786586941388.jpg"
     ],
-    "price": 60.0,
-    "originalPrice": 60.0,
+    "price": 63,
+    "originalPrice": 63,
     "discount": 0,
     "sku": "9786586941388",
     "stock": null,
@@ -9655,7 +9686,7 @@
     "pages": "192",
     "dimensions": "18 x 11cm",
     "isbn": "978-65-86941-38-8",
-    "priceText": ""
+    "priceText": "R$ 63,00"
   },
   {
     "_id": "catalog-salto-no-escuro",
@@ -9667,8 +9698,8 @@
     "images": [
       "/images/cover_9786586941302.jpg"
     ],
-    "price": 87.0,
-    "originalPrice": 87.0,
+    "price": 91.35,
+    "originalPrice": 91.35,
     "discount": 0,
     "sku": "9786586941302",
     "stock": null,
@@ -9703,7 +9734,7 @@
     "pages": "308",
     "dimensions": "21 x 13,3cm",
     "isbn": "978-65-86941-30-2",
-    "priceText": ""
+    "priceText": "R$ 91,35"
   },
   {
     "_id": "catalog-a-missao",
@@ -9715,8 +9746,8 @@
     "images": [
       "/images/cover_9788566943375.jpg"
     ],
-    "price": 44.0,
-    "originalPrice": 44.0,
+    "price": 46.2,
+    "originalPrice": 46.2,
     "discount": 0,
     "sku": "9788566943375",
     "stock": null,
@@ -9760,7 +9791,7 @@
     "pages": "80",
     "dimensions": "13x20cm",
     "isbn": "978-85-66943-37-5",
-    "priceText": ""
+    "priceText": "R$ 46,20"
   },
   {
     "_id": "catalog-guattari-confrontacoes",

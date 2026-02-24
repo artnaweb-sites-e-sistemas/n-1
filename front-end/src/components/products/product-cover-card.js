@@ -38,10 +38,6 @@ const ProductCoverCard = ({ product }) => {
             <h3 className={styles.productTitle}>{title}</h3>
           </div>
         </div>
-        {/* Nome abaixo da capa apenas no mobile (acessibilidade) */}
-        <div className={styles.mobileTitle}>
-          <h3 className={styles.productTitleMobile}>{title}</h3>
-        </div>
       </Link>
     </div>
   );

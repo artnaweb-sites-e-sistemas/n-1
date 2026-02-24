@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import Image from "next/image";
 import { useDispatch, useSelector } from "react-redux";
 import { useRouter } from "next/navigation";
@@ -84,14 +84,6 @@ const ProductDetailsArea = ({ product }) => {
     seenKeys.add(key);
     return true;
   });
-
-  const [activeImg, setActiveImg] = useState(mainImage);
-  useEffect(() => {
-    // Atualizar imagem ativa quando mainImage mudar
-    if (mainImage) {
-      setActiveImg(mainImage);
-    }
-  }, [mainImage]);
 
   const dispatch = useDispatch();
   const router = useRouter();
@@ -193,7 +185,7 @@ const ProductDetailsArea = ({ product }) => {
           flex-shrink: 0;
         }
       `}} />
-      <section className="product__details-area pb-115">
+      <section className="product__details-area pb-50">
         <div className="container">
           <div className="row">
             <div className="col-xl-7 col-lg-6">
@@ -202,7 +194,7 @@ const ProductDetailsArea = ({ product }) => {
                   <div>
                     {mainImage && (
                       <Image
-                        src={activeImg || mainImage}
+                        src={mainImage}
                         alt={title || "product details"}
                         width={960}
                         height={1125}
@@ -220,42 +212,6 @@ const ProductDetailsArea = ({ product }) => {
                     )}
                   </div>
                 </div>
-                {productImages.length > 0 && (
-                  <div className="product__details-thumb-nav tp-tab">
-                    <nav>
-                      <div className="d-flex justify-content-start flex-wrap">
-                        {productImages.map((img, i) => {
-                          // Verificar se img existe e é uma string válida
-                          if (!img || typeof img !== 'string' || img.trim() === '') {
-                            return null;
-                          }
-                          // Determinar se a imagem é local para usar unoptimized
-                          const isLocalImage = img.startsWith('/images/');
-                          return (
-                            <button
-                              key={`${img}-${i}`}
-                              onClick={() => setActiveImg(img)}
-                              className={activeImg === img ? "nav-link active" : "nav-link"}
-                            >
-                              <Image 
-                                src={img} 
-                                alt={`product image ${i + 1}`} 
-                                width={110} 
-                                height={110}
-                                unoptimized={isLocalImage}
-                                style={{ objectFit: 'contain' }}
-                                onError={(e) => {
-                                  // Fallback se a imagem falhar
-                                  e.target.src = 'https://n-1.artnaweb.com.br/wp-content/uploads/woocommerce-placeholder-1024x1024.webp';
-                                }}
-                              />
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </nav>
-                  </div>
-                )}
               </div>
             </div>
             <div className="col-xl-5 col-lg-6">
@@ -266,11 +222,6 @@ const ProductDetailsArea = ({ product }) => {
                   </div>
                 )}
                 <h3 className="product__details-title">{title}</h3>
-
-                <p className="mt-20">
-                  Compre na N-1 Edições com os melhores preços. Frete grátis em pedidos
-                  acima de R$ 200 ou retire na loja física.
-                </p>
 
                 {/* Product Details Price */}
                 <ProductDetailsPrice price={originalPrice} discount={discount} />

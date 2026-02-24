@@ -1,47 +1,41 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import styles from './cta.module.scss';
 
 const ShopCta = () => {
-  // Frases motivacionais relacionadas ao tema do projeto (editora, conhecimento, pensamento crítico)
-  const motivationalPhrases = [
-    "Desde 2011 produzindo conhecimento e transformando ideias em livros",
-    "Pensamento crítico, reflexão e diálogo: construindo novos horizontes",
-    "Livros que desafiam perspectivas e ampliam o debate intelectual",
-    "Conhecimento que transforma: da teoria à prática, da página à ação",
-    "Editora independente comprometida com a diversidade de pensamento",
-    "Entre a clínica, antropologia e política: explorando fronteiras do saber",
-    "Palavras que movem, ideias que transformam, livros que permanecem",
-    "Publicando vozes que questionam, inspiram e revolucionam o pensamento",
-    "Cada livro é uma porta aberta para novos mundos e possibilidades",
-    "Conhecimento compartilhado é poder coletivo: juntos construímos o futuro"
-  ];
+  const [email, setEmail] = useState('');
 
-  const [currentPhrase, setCurrentPhrase] = useState('');
-
-  useEffect(() => {
-    // Selecionar uma frase aleatória ao carregar a página
-    const randomIndex = Math.floor(Math.random() * motivationalPhrases.length);
-    setCurrentPhrase(motivationalPhrases[randomIndex]);
-  }, []);
+  const handleNewsletterSubmit = (e) => {
+    e.preventDefault();
+    // Integração com base de leads será adicionada posteriormente
+    console.log('Newsletter submit - email:', email);
+  };
 
   return (
     <section
-      className={`cta__area pt-50 pb-50 p-relative ${styles.ctaArea}`}
+      className={`cta__area p-relative ${styles.ctaArea} ${styles.ctaCompact}`}
     >
       <div className="container">
         <div className={`cta__inner-13 ${styles.ctaInner}`}>
           <div className="row align-items-center justify-content-center">
             <div className="col-xl-12 col-lg-12">
               <div className="cta__content-13 text-center">
-                <h3 className={`cta__title-13 ${styles.ctaTitle}`} style={{ 
-                  fontSize: 'clamp(24px, 4vw, 36px)',
-                  lineHeight: '1.4',
-                  margin: 0,
-                  fontWeight: 600
-                }}>
-                  {currentPhrase || motivationalPhrases[0]}
-                </h3>
+                <div className={styles.newsletterWrap}>
+                  <p className={styles.newsletterLabel}>Receba nossas novidades por e-mail</p>
+                  <form onSubmit={handleNewsletterSubmit} className={styles.newsletterForm}>
+                    <div className={styles.newsletterInput}>
+                      <input
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="Seu e-mail"
+                        required
+                        aria-label="E-mail para newsletter"
+                      />
+                      <button type="submit">Inscrever</button>
+                    </div>
+                  </form>
+                </div>
               </div>
             </div>
           </div>

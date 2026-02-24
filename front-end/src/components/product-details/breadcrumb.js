@@ -15,13 +15,13 @@ const ProductDetailsBreadcrumb = ({title}) => {
                   <Home />
                 </span>
                 <span>
-                  <Link href="/">Home</Link>
+                  <Link href="/">Início</Link>
                 </span>
                 <span className="dvdr">
                   <i className="fa-regular fa-angle-right"></i>
                 </span>
                 <span>
-                  <a href="#">Products</a>
+                  <Link href="/">Loja</Link>
                 </span>
                 <span className="dvdr">
                   <i className="fa-regular fa-angle-right"></i>

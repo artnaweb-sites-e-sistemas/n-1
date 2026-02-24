@@ -1,18 +1,12 @@
 import React from "react";
 import PrdDetailsDescription from "./prd-details-description";
-import PrdDetailsTabNav from "./prd-details-tab-nav";
 
 const ProductDetailsTabArea = ({product}) => {
   return (
-    <section className="product__details-tab-area pb-110">
+    <section className="product__details-tab-area pb-50">
       <div className="container">
         <div className="row">
           <div className="col-xl-12">
-            <div className="product__details-tab-nav">
-              {/* nav tab */}
-              <PrdDetailsTabNav />
-              {/* nav tab */}
-            </div>
             <div className="product__details-tab-content">
               <div className="tab-content" id="nav-tabContent-info">
                 <div

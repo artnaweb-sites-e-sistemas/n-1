@@ -21,8 +21,35 @@ const ProductDetailsMetadata = ({ product }) => {
     return null;
   }
 
+  // Normalizar nome para comparação (trim, minúsculas, espaços colapsados)
+  const normalize = (s) => (s || "").trim().toLowerCase().replace(/\s+/g, " ");
+  // Se temos Autor e Autores com o mesmo nome único, mostrar só "Autor:" (evitar duplicata)
+  const authorsList = (authors || "")
+    .split(/[,;]/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const isAuthorsSameAsAuthor =
+    author &&
+    authors &&
+    authorsList.length === 1 &&
+    normalize(authorsList[0]) === normalize(author);
+  const showAuthor = !!author;
+  const showAuthors = !!authors && !isAuthorsSameAsAuthor;
+
   return (
     <>
+      {showAuthor && (
+        <div className="product__details-metadata product__details-more">
+          <p>Autor:</p>
+          <span>{author}</span>
+        </div>
+      )}
+      {showAuthors && (
+        <div className="product__details-metadata product__details-more">
+          <p>Autores:</p>
+          <span>{authors}</span>
+        </div>
+      )}
       {bookTitle && (
         <div className="product__details-metadata product__details-more">
           <p>Título:</p>
@@ -33,18 +60,6 @@ const ProductDetailsMetadata = ({ product }) => {
         <div className="product__details-metadata product__details-more">
           <p>Título Original:</p>
           <span>{originalTitle}</span>
-        </div>
-      )}
-      {author && (
-        <div className="product__details-metadata product__details-more">
-          <p>Autor:</p>
-          <span>{author}</span>
-        </div>
-      )}
-      {authors && (
-        <div className="product__details-metadata product__details-more">
-          <p>Autores:</p>
-          <span>{authors}</span>
         </div>
       )}
       {organization && (

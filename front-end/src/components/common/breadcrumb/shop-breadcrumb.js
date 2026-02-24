@@ -13,12 +13,12 @@ const ShopBreadcrumb = () => {
                   <Home />
                 </span>
                 <span>
-                  <a href="#">Home</a>
+                  <a href="/">Início</a>
                 </span>
                 <span className="dvdr">
                   <i className="fa-regular fa-angle-right"></i>
                 </span>
-                <span>Products</span>
+                <span>Loja</span>
               </div>
             </div>
           </div>
