@@ -35,11 +35,11 @@ const ProductDetailsArea = ({ product }) => {
   if (!mainImage || mainImage.trim() === "") {
     mainImage = image && image.trim() !== "" ? image : (images && images[0]) || "/images/placeholder.webp";
   }
-  
+
 
   // Usar images se relatedImages não existir
   let productImages = relatedImages || images || [];
-  
+
   // Para produtos do catálogo, incluir todas as imagens (capa + imagens internas)
   if (product?.source === 'catalog') {
     const catalogImages = product?.catalogImages || [];
@@ -202,72 +202,59 @@ const ProductDetailsArea = ({ product }) => {
                     )}
                   </div>
                 </div>
-              </div>
-            </div>
-            <div className="col-xl-5 col-lg-6">
-              <div className="product__details-wrapper">
-                {!inStock && (
-                  <div className="product__details-stock">
-                    <span className="out-of-stock">Sem Estoque</span>
-                  </div>
-                )}
-                <h3 className="product__details-title">{title}</h3>
 
-                {(() => {
-                  const rawContent = product?.catalogContent || product?.description || "";
-                  const isHtml = !!product?.catalogContent;
-                  const { firstParagraph } = getFirstParagraphAndRest(rawContent, isHtml);
-                  return firstParagraph ? <p className="mt-20">{firstParagraph}</p> : null;
-                })()}
+                {/* Price, Quantity and Action Buttons - below the photo */}
+                <div className="product__details-purchase-area" style={{ marginTop: '25px' }}>
+                  {/* Product Details Price */}
+                  <ProductDetailsPrice price={originalPrice} discount={discount} />
+                  {/* Product Details Price */}
 
-                {/* Product Details Price */}
-                <ProductDetailsPrice price={originalPrice} discount={discount} />
-                {/* Product Details Price */}
+                  {/* quantity */}
+                  <ProductQuantity />
+                  {/* quantity */}
 
-                {/* quantity */}
-                <ProductQuantity />
-                {/* quantity */}
-
-                <div className="product__details-action d-flex align-items-center gap-2" style={{ width: '100%' }}>
-                  {isAddedToCart ? (
-                    <>
-                      <button
-                        onClick={handleGoToCart}
-                        type="button"
-                        className="product-add-cart-btn product-add-cart-btn-3 product-cart-btn-hover"
-                        style={{
-                          backgroundColor: '#000000',
-                          borderColor: '#000000',
-                          color: '#ffffff',
-                          opacity: 1,
-                          cursor: 'pointer',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '8px',
-                          verticalAlign: 'middle',
-                          flex: 1,
-                          justifyContent: 'center'
-                        }}
-                      >
-                        Ir para o Carrinho
-                        <RightArrow />
-                      </button>
-                      <button
-                        onClick={() => handleAddWishlist(product)}
-                        type="button"
-                        className={`product-action-btn ${isWishlistAdded ? "active" : ""
-                          }`}
-                        style={{ flexShrink: 0 }}
-                      >
-                        <HeartTwo />
-                        <span className="product-action-tooltip">
-                          Adicionar à Lista de Desejos
-                        </span>
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      <div className="d-flex flex-column gap-2">
+                  <div className="product__details-action d-flex flex-column gap-2" style={{ width: '100%' }}>
+                    {isAddedToCart ? (
+                      <>
+                        <div className="d-flex align-items-center gap-2">
+                          <button
+                            onClick={handleGoToCart}
+                            type="button"
+                            className="product-add-cart-btn product-add-cart-btn-3 product-cart-btn-hover"
+                            style={{
+                              backgroundColor: '#000000',
+                              borderColor: '#000000',
+                              color: '#ffffff',
+                              opacity: 1,
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '8px',
+                              verticalAlign: 'middle',
+                              flex: 1,
+                              justifyContent: 'center',
+                              width: '100%'
+                            }}
+                          >
+                            Ir para o Carrinho
+                            <RightArrow />
+                          </button>
+                          <button
+                            onClick={() => handleAddWishlist(product)}
+                            type="button"
+                            className={`product-action-btn ${isWishlistAdded ? "active" : ""
+                              }`}
+                            style={{ flexShrink: 0 }}
+                          >
+                            <HeartTwo />
+                            <span className="product-action-tooltip">
+                              Adicionar à Lista de Desejos
+                            </span>
+                          </button>
+                        </div>
+                      </>
+                    ) : (
+                      <>
                         <div className="d-flex align-items-center gap-2">
                           <button
                             onClick={() => handleAddProduct(product)}
@@ -280,7 +267,9 @@ const ProductDetailsArea = ({ product }) => {
                               display: 'inline-flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              gap: '8px'
+                              gap: '8px',
+                              flex: 1,
+                              width: '100%'
                             }}
                           >
                             <CartTwo />
@@ -291,6 +280,7 @@ const ProductDetailsArea = ({ product }) => {
                             type="button"
                             className={`product-action-btn ${isWishlistAdded ? "active" : ""
                               }`}
+                            style={{ flexShrink: 0 }}
                           >
                             <HeartTwo />
                             <span className="product-action-tooltip">
@@ -312,16 +302,43 @@ const ProductDetailsArea = ({ product }) => {
                             display: 'inline-flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            gap: '8px'
+                            gap: '8px',
+                            width: '100%'
                           }}
                         >
                           Ir direto para o pagamento
                           <Payment />
                         </button>
-                      </div>
-                    </>
-                  )}
+                      </>
+                    )}
+                  </div>
                 </div>
+              </div>
+            </div>
+            <div className="col-xl-5 col-lg-6">
+              <div className="product__details-wrapper">
+                {!inStock && (
+                  <div className="product__details-stock">
+                    <span className="out-of-stock">Sem Estoque</span>
+                  </div>
+                )}
+                {/* Author name above the title */}
+                {(product?.author || product?.authors) && (
+                  <div className="product__details-metadata product__details-more" style={{ marginBottom: '5px' }}>
+                    <p>Autor:</p>
+                    <span>{product.author || product.authors}</span>
+                  </div>
+                )}
+                <h3 className="product__details-title">{title}</h3>
+
+                {(() => {
+                  const rawContent = product?.catalogContent || product?.description || "";
+                  const isHtml = !!product?.catalogContent;
+                  const { firstParagraph } = getFirstParagraphAndRest(rawContent, isHtml);
+                  return firstParagraph ? <p className="mt-20">{firstParagraph}</p> : null;
+                })()}
+
+
                 {/* ProductDetailsCategories */}
                 <ProductDetailsCategories name={product?.category?.name} />
                 {/* ProductDetailsCategories */}

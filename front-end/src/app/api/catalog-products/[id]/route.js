@@ -32,9 +32,22 @@ export async function GET(request, { params }) {
     // Buscar por ID ou slug (case-insensitive)
     const product = catalogProducts.find((p) => {
       const productId = (p._id || '').toString().toLowerCase();
-      const productSlug = (p.slug || '').toLowerCase().trim();
       const productIdAlt = (p.id || '').toString().toLowerCase();
-      
+
+      let productSlug = (p.slug || '').toLowerCase().trim();
+      try {
+        productSlug = decodeURIComponent(productSlug);
+      } catch (e) {
+        // ignore
+      }
+      productSlug = productSlug
+        .replace(/₂/g, '2')
+        .replace(/₃/g, '3')
+        .replace(/₄/g, '4')
+        .replace(/²/g, '2')
+        .replace(/³/g, '3')
+        .replace(/⁴/g, '4');
+
       return (
         productId === normalizedId ||
         productSlug === normalizedId ||
@@ -42,7 +55,8 @@ export async function GET(request, { params }) {
         // Também verificar match exato (sem normalização) para compatibilidade
         p._id === id ||
         p.id === id ||
-        p.slug === id
+        p.slug === id ||
+        p.slug === encodeURIComponent(id)
       );
     });
 

@@ -38,18 +38,7 @@ const ProductDetailsMetadata = ({ product }) => {
 
   return (
     <>
-      {showAuthor && (
-        <div className="product__details-metadata product__details-more">
-          <p>Autor:</p>
-          <span>{author}</span>
-        </div>
-      )}
-      {showAuthors && (
-        <div className="product__details-metadata product__details-more">
-          <p>Autores:</p>
-          <span>{authors}</span>
-        </div>
-      )}
+
       {bookTitle && (
         <div className="product__details-metadata product__details-more">
           <p>Título:</p>
