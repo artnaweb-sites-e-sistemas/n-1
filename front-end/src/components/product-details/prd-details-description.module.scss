@@ -257,14 +257,9 @@
       }
     }
 
-    // Títulos de seção
+    // Títulos de seção (Esconder título e autor duplicados vindos do catálogo)
     .eltdf-section-title-holder {
-      margin: 2rem 0 1.5rem 0;
-      padding: 0 !important;
-      
-      h2, h5 {
-        margin: 0;
-      }
+      display: none !important;
     }
 
     // Remover espaçamentos excessivos de colunas
