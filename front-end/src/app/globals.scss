@@ -75,6 +75,16 @@
   }
 }
 
+// Títulos de política com quebra de linha: melhor espaçamento entre linhas
+.policy-title-multiline {
+  line-height: 1.35 !important;
+}
+
+// Melhorar espaçamento de quebras de linha nos links do rodapé (especialmente coluna de políticas)
+.footer__widget ul li a {
+  line-height: 1.4;
+}
+
 // Remove bullet points from payment method accordion headers
 .payment-method .accordion-header {
   list-style: none !important;

@@ -52,7 +52,7 @@ const Footer = () => {
           <div className="footer__top">
             <div className="container">
               <div className="row">
-                <div className="col-xxl-4 col-xl-4 col-lg-4 col-md-6 col-sm-12">
+                <div className="col-xxl-3 col-xl-3 col-lg-3 col-md-6 col-sm-12">
                   <div className="footer__widget footer__widget-11 mb-50 footer-col-11-1">
                     <div className="footer__logo" style={{ marginTop: '20px', marginBottom: '20px' }}>
                       <Link href="/">
@@ -83,7 +83,7 @@ const Footer = () => {
                 </div>
 
                 <SingleWidget
-                  col="4"
+                  col="3"
                   col_2="6"
                   col_3="2"
                   title="Links Úteis"
@@ -96,7 +96,20 @@ const Footer = () => {
                   ]}
                 />
 
-                <div className="col-xxl-4 col-xl-4 col-lg-4 col-md-6 col-sm-12">
+                <SingleWidget
+                  col="3"
+                  col_2="6"
+                  col_3="3"
+                  title="Políticas"
+                  contents={[
+                    { url: "/politica-de-privacidade", title: "Política de Privacidade" },
+                    { url: "/termos-de-servico", title: "Termos de Serviço" },
+                    { url: "/politica-de-frete", title: "Política de Frete" },
+                    { url: "/politica-de-reembolso-trocas-devolucoes", title: "Política de Reembolso, Trocas e Devoluções" },
+                  ]}
+                />
+
+                <div className="col-xxl-3 col-xl-3 col-lg-3 col-md-6 col-sm-12">
                   <div className="footer__widget mb-50 footer-col-11-5">
                     <h3 className="footer__widget-title">Contato</h3>
 
