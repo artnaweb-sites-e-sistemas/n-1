@@ -30,6 +30,18 @@ const ProductDetailsArea = ({ product }) => {
     sku,
   } = product || {};
 
+  // Demo: forçar desconto para visualizar layout (somente em desenvolvimento)
+  const demoDiscount =
+    process.env.NODE_ENV === "development" &&
+    title?.trim() === "Nas brechas de futuros cancelados"
+      ? 30
+      : 0;
+  const effectiveDiscount = Number(discount || demoDiscount || 0);
+  const effectiveOriginalPrice =
+    typeof originalPrice === "number"
+      ? originalPrice
+      : Number(originalPrice || product?.price || 0);
+
   // Imagem principal = primeira imagem da descrição (capa reta). Quando catalogImages vazio, extraída do HTML.
   let mainImage = getProductPageMainImageUrl(product);
   if (!mainImage || mainImage.trim() === "") {
@@ -204,19 +216,34 @@ const ProductDetailsArea = ({ product }) => {
                 </div>
 
                 {/* Price, Quantity and Action Buttons - below the photo */}
-                <div className="product__details-purchase-area" style={{ marginTop: '25px' }}>
+                <div
+                  className="product__details-purchase-area"
+                  style={{
+                    marginTop: '25px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                  }}
+                >
                   {/* Product Details Price */}
-                  <ProductDetailsPrice price={originalPrice} discount={discount} />
+                  <div style={{ width: '100%', maxWidth: 420, display: 'flex', justifyContent: 'center', textAlign: 'center' }}>
+                    <ProductDetailsPrice price={effectiveOriginalPrice} discount={effectiveDiscount} />
+                  </div>
                   {/* Product Details Price */}
 
                   {/* quantity */}
-                  <ProductQuantity />
+                  <div style={{ width: '100%', maxWidth: 420, display: 'flex', justifyContent: 'center' }}>
+                    <ProductQuantity />
+                  </div>
                   {/* quantity */}
 
-                  <div className="product__details-action d-flex flex-column gap-2" style={{ width: '100%' }}>
+                  <div
+                    className="product__details-action d-flex flex-column gap-2"
+                    style={{ width: '100%', maxWidth: 420 }}
+                  >
                     {isAddedToCart ? (
                       <>
-                        <div className="d-flex align-items-center gap-2">
+                        <div className="d-flex align-items-center gap-2" style={{ width: '100%', justifyContent: 'center' }}>
                           <button
                             onClick={handleGoToCart}
                             type="button"
@@ -236,7 +263,7 @@ const ProductDetailsArea = ({ product }) => {
                               width: '100%'
                             }}
                           >
-                            Ir para o Carrinho
+                            Ir para o Carrinho de livros
                             <RightArrow />
                           </button>
                           <button
@@ -255,7 +282,7 @@ const ProductDetailsArea = ({ product }) => {
                       </>
                     ) : (
                       <>
-                        <div className="d-flex align-items-center gap-2">
+                        <div className="d-flex align-items-center gap-2" style={{ width: '100%', justifyContent: 'center' }}>
                           <button
                             onClick={() => handleAddProduct(product)}
                             type="button"
@@ -325,7 +352,6 @@ const ProductDetailsArea = ({ product }) => {
                 {/* Author name above the title */}
                 {(product?.author || product?.authors) && (
                   <div className="product__details-metadata product__details-more" style={{ marginBottom: '5px' }}>
-                    <p>Autor:</p>
                     <span>{product.author || product.authors}</span>
                   </div>
                 )}

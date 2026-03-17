@@ -251,9 +251,10 @@
 // Container da imagem principal do produto
 .product-main-image-container {
   width: 100% !important;
-  max-width: 600px !important;
-  height: 600px !important;
-  max-height: 600px !important;
+  max-width: 100% !important;
+  height: auto !important;
+  max-height: none !important;
+  aspect-ratio: 960 / 1125;
   border: 1px solid #e0e0e0 !important;
   border-radius: 4px !important;
   overflow: hidden !important;
@@ -266,7 +267,7 @@
   
   > div {
     width: 100% !important;
-    height: 100% !important;
+    height: auto !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
@@ -274,8 +275,26 @@
   
   img {
     max-width: 100% !important;
-    max-height: 100% !important;
+    max-height: none !important;
     object-fit: contain !important;
+  }
+}
+
+// Breadcrumb do carrinho: reduzir título
+.breadcrumb__area--cart {
+  .breadcrumb__title {
+    font-size: 28px !important;
+    line-height: 1.2 !important;
+  }
+}
+
+// Breadcrumb da busca: título em preto
+.about__heading--search {
+  .about__heading-title {
+    color: #000000 !important;
+  }
+  .about__heading-subtitle {
+    color: #000000 !important;
   }
 }
 

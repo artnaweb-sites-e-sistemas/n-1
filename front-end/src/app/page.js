@@ -15,7 +15,7 @@ export const metadata = {
 const HomeShop = () => {
   return (
     <Wrapper>
-      <Header />
+      <Header style_2={true} />
       {/* HeroBanner ocultado - para reativar, descomente a linha abaixo */}
       {/* <HeroBanner /> */}
       <HomeShopContentInfinite />

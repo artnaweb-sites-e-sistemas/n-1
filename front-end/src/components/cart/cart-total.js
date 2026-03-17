@@ -7,7 +7,7 @@ const CartTotal = () => {
   const { total } = useCartInfo();
   return (
     <div className="cart-page-total">
-      <h2>Total do Carrinho</h2>
+      <h2>Total do Carrinho de livros</h2>
       <ul className="mb-20">
         <li>
           Subtotal <span>R$ {total.toFixed(2).replace('.', ',')}</span>

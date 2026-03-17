@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  outputFileTracingRoot: __dirname,
   // Suprimir warnings de deprecação do Sass
   sassOptions: {
     quietDeps: true,

@@ -2,7 +2,7 @@
 
 const CartBreadcrumb = ({title,subtitle}) => {
   return (
-    <section className="breadcrumb__area grey-bg p-relative include-bg pt-100 pb-100">
+    <section className="breadcrumb__area breadcrumb__area--cart grey-bg p-relative include-bg pt-100 pb-100">
       <div className="container">
         <div className="row justify-content-center">
           <div className="col-xxl-8 col-xl-8 col-lg-10">

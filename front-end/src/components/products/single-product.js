@@ -114,7 +114,7 @@ const SingleProduct = ({ product, discountPrd = false }) => {
                 className="product-add-cart-btn w-100"
               >
                 <CartTwo />
-                Ver Carrinho
+                Ver Carrinho de livros
               </Link>
             ) : (
               <button

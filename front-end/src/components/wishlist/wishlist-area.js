@@ -45,7 +45,7 @@ const WishlistArea = () => {
                   <div className="col-12">
                     <div className="tp-wishlist-btn mt-50">
                       <Link href="/cart" className="tp-btn tp-btn-black">
-                        Ir para o Carrinho
+                        Ir para o Carrinho de livros
                       </Link>
                     </div>
                   </div>

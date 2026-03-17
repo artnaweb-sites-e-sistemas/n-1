@@ -18,7 +18,7 @@ const CartSidebar = ({ isCartOpen, setIsCartOpen }) => {
           <div className="cartmini__top-wrapper ">
             <div className="cartmini__top p-relative">
               <div className="cartmini__title">
-                <h4>Carrinho de Compras</h4>
+                <h4>Carrinho de livros</h4>
               </div>
               <div className="cartmini__close">
                 <button
@@ -49,7 +49,7 @@ const CartSidebar = ({ isCartOpen, setIsCartOpen }) => {
             </div>
             <div className="cartmini__checkout-btn">
               <Link href="/cart" className="tp-btn mb-10 w-100">
-                <span></span> Ver Carrinho
+                <span></span> Ver Carrinho de livros
               </Link>
               <Link href="/checkout" className="tp-btn-border w-100 cursor-pointer">
                 <span></span> Finalizar Compra

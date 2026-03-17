@@ -35,6 +35,7 @@ const ProductDetailsMetadata = ({ product }) => {
     normalize(authorsList[0]) === normalize(author);
   const showAuthor = !!author;
   const showAuthors = !!authors && !isAuthorsSameAsAuthor;
+  const authorValue = (showAuthor ? author : null) || (showAuthors ? authors : null);
 
   return (
     <>
@@ -49,6 +50,12 @@ const ProductDetailsMetadata = ({ product }) => {
         <div className="product__details-metadata product__details-more">
           <p>Título Original:</p>
           <span>{originalTitle}</span>
+        </div>
+      )}
+      {authorValue && (
+        <div className="product__details-metadata product__details-more">
+          <p>Autor:</p>
+          <span>{authorValue}</span>
         </div>
       )}
       {organization && (

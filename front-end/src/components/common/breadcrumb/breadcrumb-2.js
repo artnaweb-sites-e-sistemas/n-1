@@ -1,10 +1,7 @@
-import bg from "@assets/img/about/about-breadcrumb.jpg";
-
 const BreadcrumbTwo = ({ subtitle, title }) => {
   return (
     <section
-      className="about__heading about__heading-overlay about__spacing include-bg"
-      style={{ backgroundImage: `url(${bg.src})` }}
+      className="about__heading about__spacing grey-bg-17 about__heading--search"
     >
       <div className="container">
         <div className="row justify-content-center">

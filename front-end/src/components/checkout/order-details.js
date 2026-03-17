@@ -24,7 +24,7 @@ const OrderDetails = ({
   return (
     <React.Fragment>
       <tr className="cart-subtotal">
-        <th>Subtotal do Carrinho</th>
+        <th>Subtotal do Carrinho de livros</th>
         <td className="text-end">
           <span className="amount text-end">R$ {total.toFixed(2).replace('.', ',')}</span>
         </td>

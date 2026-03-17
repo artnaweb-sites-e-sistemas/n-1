@@ -56,7 +56,6 @@ export default function ShopDetailsMainArea({ id }) {
   if (!isLoading && !isError && product) {
     content = (
       <>
-        <ProductDetailsBreadcrumb title={product.title} />
         <ProductDetailsArea product={product} />
         <ProductDetailsTabArea product={product} />
         <RelatedProducts product={product} />

@@ -34,21 +34,21 @@ const Header = ({ style_2 = false }) => {
             <div className="container">
               <div className="mega-menu-wrapper p-relative">
                 <div className="row align-items-center">
-                  <div className="col-xxl-1 col-xl-2 col-lg-4 col-md-4 col-sm-5 col-8">
+                  <div className="col-xxl-1 col-xl-2 col-lg-4 col-md-4 col-sm-5 col-8 order-xl-1 order-xxl-1">
                     <div className="logo" style={{ marginTop: '20px', marginBottom: '20px' }}>
-                      <Link href="/">
-                        <Image 
-                          src={logo} 
-                          alt="logo" 
+                      <a href="https://n-1edicoes.org/" target="_blank" rel="noopener noreferrer">
+                        <Image
+                          src={logo}
+                          alt="logo"
                           width={80}
                           height={28}
                           style={{ maxWidth: '80px', height: 'auto' }}
                         />
-                      </Link>
+                      </a>
                     </div>
                   </div>
-                  <div className="col-xxl-4 col-xl-5 d-none d-xl-block">
-                    <div className="header-menu-inline">
+                  <div className="col-xxl-4 col-xl-5 d-none d-xl-block order-xl-3 order-xxl-3">
+                    <div className="header-menu-inline header-menu-inline--expand-left d-flex justify-content-end">
                       <button
                         type="button"
                         className="header-menu-inline__trigger"
@@ -91,8 +91,8 @@ const Header = ({ style_2 = false }) => {
                       </nav>
                     </div>
                   </div>
-                  <div className="col-xxl-7 col-xl-5 col-lg-8 col-md-8 col-sm-7 col-4">
-                    <div className="header__bottom-right-13 d-flex justify-content-end align-items-center pl-30">
+                  <div className="col-xxl-7 col-xl-5 col-lg-8 col-md-8 col-sm-7 col-4 order-xl-2 order-xxl-2">
+                    <div className="header__bottom-right-13 d-flex justify-content-end justify-content-xl-start align-items-center pl-30">
                       <div className="header__search-13">
                         <SearchForm/>
                       </div>
