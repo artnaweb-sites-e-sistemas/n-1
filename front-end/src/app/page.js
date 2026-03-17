@@ -4,7 +4,6 @@ import Header from "@layout/header";
 import Wrapper from "@layout/wrapper";
 import HeroBanner from "@components/hero-banner";
 import HomeShopContentInfinite from "@components/home/home-shop-content-infinite";
-import ShopFeature from "@components/shop-feature";
 import ShopCta from "@components/cta";
 import Footer from "@layout/footer";
 
@@ -19,7 +18,6 @@ const HomeShop = () => {
       {/* HeroBanner ocultado - para reativar, descomente a linha abaixo */}
       {/* <HeroBanner /> */}
       <HomeShopContentInfinite />
-      <ShopFeature />
       <ShopCta />
       <Footer />
     </Wrapper>
