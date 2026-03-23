@@ -6,7 +6,7 @@ import PaymentCardElement from "@components/order/pay-card-element";
 import OrderSingleCartItem from "./order-single-cart-item";
 
 const OrderArea = ({
-  stripe,
+  mercadoPagoCardRef,
   error,
   register,
   errors,
@@ -133,17 +133,19 @@ const OrderArea = ({
             >
               <div className="accordion-body">
                 <PaymentCardElement
-                  stripe={stripe}
+                  ref={mercadoPagoCardRef}
+                  register={register}
+                  errors={errors}
                   cardError={error}
                   cart_products={cart_products}
                   isCheckoutSubmit={isCheckoutSubmit}
+                  paymentMethod={paymentMethod}
                 />
               </div>
             </div>
           </div>
 
-          {/* PIX - TEMPORARIAMENTE OCULTO */}
-          {false && (
+          {/* PIX — Mercado Pago (QR na página seguinte) */}
           <div className="accordion-item" style={{ 
             border: paymentMethod === 'pix' ? '2px solid #000' : '1px solid #ddd',
             borderRadius: '8px',
@@ -196,7 +198,7 @@ const OrderArea = ({
                       Pagamento instantâneo via PIX
                     </p>
                     <p style={{ fontSize: '14px', color: '#666', marginBottom: '0' }}>
-                      Ao clicar em "Gerar QR Code PIX", você será redirecionado para a página de pagamento com o QR Code para escanear.
+                      Ao finalizar o pedido, você verá o QR Code e o código copia e cola do PIX (Mercado Pago). O pedido fica pendente até a confirmação do pagamento.
                     </p>
                   </div>
                   
@@ -217,129 +219,6 @@ const OrderArea = ({
                         <>
                           <i className="fa fa-qrcode" style={{ marginRight: '10px' }}></i>
                           Gerar QR Code PIX
-                        </>
-                      )}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          )}
-
-          {/* Boleto */}
-          <div className="accordion-item" style={{ 
-            border: paymentMethod === 'boleto' ? '2px solid #000' : '1px solid #ddd',
-            borderRadius: '8px',
-            marginBottom: '10px',
-            backgroundColor: paymentMethod === 'boleto' ? '#f9f9f9' : 'white'
-          }}>
-            <h2 className="accordion-header" id="checkoutBoleto" style={{ listStyle: 'none' }}>
-              <button
-                className={`accordion-button ${paymentMethod === 'boleto' ? '' : 'collapsed'}`}
-                type="button"
-                data-bs-toggle="collapse"
-                data-bs-target="#boletoPayment"
-                aria-expanded={paymentMethod === 'boleto'}
-                aria-controls="boletoPayment"
-                onClick={() => setPaymentMethod('boleto')}
-                style={{ 
-                  fontWeight: paymentMethod === 'boleto' ? 'bold' : 'normal',
-                  backgroundColor: paymentMethod === 'boleto' ? '#f0f0f0' : 'transparent',
-                  listStyle: 'none',
-                  paddingLeft: '15px',
-                  paddingRight: '40px'
-                }}
-              >
-                <i className="fa fa-file-invoice" style={{ marginRight: '10px', color: paymentMethod === 'boleto' ? '#000' : '#666' }}></i>
-                Boleto Bancário
-                {paymentMethod === 'boleto' && (
-                  <span style={{ marginLeft: '10px', color: '#28a745', fontSize: '14px' }}>
-                    <i className="fa fa-check-circle"></i> Selecionado
-                  </span>
-                )}
-                <span className="accordion-btn" style={{ marginLeft: 'auto', paddingRight: '10px', right: '11px' }}></span>
-              </button>
-            </h2>
-            <div
-              id="boletoPayment"
-              className={`accordion-collapse collapse ${paymentMethod === 'boleto' ? 'show' : ''}`}
-              aria-labelledby="checkoutBoleto"
-              data-bs-parent="#checkoutAccordion"
-            >
-              <div className="accordion-body">
-                <div style={{ padding: '20px' }}>
-                  <div style={{
-                    backgroundColor: '#e3f2fd',
-                    padding: '20px',
-                    borderRadius: '12px',
-                    marginBottom: '20px',
-                    textAlign: 'center',
-                  }}>
-                    <i className="fa fa-barcode" style={{ fontSize: '40px', color: '#1a237e', marginBottom: '10px', display: 'block' }}></i>
-                    <p style={{ marginBottom: '10px', fontWeight: '500', color: '#1565c0' }}>
-                      Pagamento via Boleto Bancário
-                    </p>
-                    <p style={{ fontSize: '14px', color: '#666', marginBottom: '0' }}>
-                      Ao clicar em "Gerar Boleto", você será redirecionado para a página com o código de barras e opção de imprimir o boleto. Vencimento em 3 dias.
-                    </p>
-                  </div>
-                  
-                  {/* Campo CPF obrigatório para Boleto */}
-                  <div style={{ marginBottom: '20px' }}>
-                    <label style={{ 
-                      display: 'block', 
-                      marginBottom: '8px', 
-                      fontWeight: '500',
-                      color: '#333',
-                    }}>
-                      CPF/CNPJ <span style={{ color: 'red' }}>*</span>
-                    </label>
-                    <input
-                      type="text"
-                      {...register("cpf", { 
-                        required: paymentMethod === 'boleto' ? "CPF/CNPJ é obrigatório para boleto" : false,
-                        pattern: {
-                          value: /^(\d{11}|\d{14}|\d{3}\.\d{3}\.\d{3}-\d{2}|\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2})$/,
-                          message: "CPF ou CNPJ inválido"
-                        }
-                      })}
-                      placeholder="000.000.000-00 ou 00.000.000/0000-00"
-                      style={{
-                        width: '100%',
-                        padding: '12px 15px',
-                        border: errors?.cpf ? '2px solid #dc3545' : '1px solid #ddd',
-                        borderRadius: '8px',
-                        fontSize: '16px',
-                        outline: 'none',
-                      }}
-                    />
-                    {errors?.cpf && (
-                      <p style={{ color: '#dc3545', fontSize: '13px', marginTop: '5px' }}>
-                        {errors.cpf.message}
-                      </p>
-                    )}
-                    <p style={{ fontSize: '12px', color: '#666', marginTop: '5px' }}>
-                      O CPF/CNPJ é obrigatório para gerar boletos bancários.
-                    </p>
-                  </div>
-
-                  <div className="order-button-payment text-center">
-                    <button
-                      type="submit"
-                      className="tp-btn"
-                      disabled={cart_products.length === 0 || isCheckoutSubmit}
-                      style={{ backgroundColor: '#1a237e', minWidth: '250px' }}
-                    >
-                      {isCheckoutSubmit ? (
-                        <>
-                          <i className="fa fa-spinner fa-spin" style={{ marginRight: '10px' }}></i>
-                          Gerando Boleto...
-                        </>
-                      ) : (
-                        <>
-                          <i className="fa fa-barcode" style={{ marginRight: '10px' }}></i>
-                          Gerar Boleto
                         </>
                       )}
                     </button>

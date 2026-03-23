@@ -14,8 +14,19 @@ const PrdDetailsDescription = ({ product, mainImageUrl }) => {
   const rawContent = catalogContent || description || '';
   const isHtml = !!catalogContent;
   let { restContent } = getFirstParagraphAndRest(rawContent, isHtml);
-  // Remover a imagem principal (capa) da descrição para não duplicar com a da página do produto
-  if (catalogContent && mainImageUrl && restContent) {
+  // Se houver apenas um parágrafo no conteúdo HTML, renderizar o conteúdo completo aqui
+  // para não "sumir" a descrição longa na aba.
+  if (catalogContent && (!restContent || !String(restContent).trim())) {
+    restContent = rawContent;
+  }
+  // Só remove a capa duplicada no HTML para produtos do catálogo local.
+  // No WooCommerce, a capa vem do produto e o src do editor pode ser idêntico — isso apagava todas as imagens da aba.
+  if (
+    catalogContent &&
+    mainImageUrl &&
+    restContent &&
+    product?.source === "catalog"
+  ) {
     restContent = removeMainImageFromCatalogHtml(restContent, mainImageUrl);
   }
 

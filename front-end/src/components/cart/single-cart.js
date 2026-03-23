@@ -8,9 +8,13 @@ import { add_cart_product, quantityDecrement, remove_product } from "src/redux/f
 import { getProductUrl } from "src/utils/product-url";
 
 const SingleCartItem = ({item}) => {
-  const {_id,image,title,originalPrice,orderQuantity=0} = item || {};
+  const {_id,image,title,originalPrice,orderQuantity=0,discount=0} = item || {};
   const productUrl = getProductUrl(item, _id);
   const dispatch = useDispatch()
+  const unitPrice = discount > 0
+    ? Number(originalPrice) - (Number(originalPrice) * Number(discount)) / 100
+    : Number(originalPrice);
+  const lineTotal = unitPrice * Number(orderQuantity || 0);
 
   // handle add product
   const handleAddProduct = (prd) => {
@@ -40,7 +44,7 @@ const SingleCartItem = ({item}) => {
         <Link href={productUrl}>{title}</Link>
       </td>
       <td className="product-price">
-        <span className="amount">R${Number(originalPrice).toFixed(2).replace('.', ',')}</span>
+        <span className="amount">R${Number(unitPrice).toFixed(2).replace('.', ',')}</span>
       </td>
       <td className="product-quantity">
         <div className="tp-product-quantity mt-10 mb-10">
@@ -54,7 +58,7 @@ const SingleCartItem = ({item}) => {
         </div>
       </td>
       <td className="product-subtotal">
-        <span className="amount">R${(originalPrice * orderQuantity).toFixed(2).replace('.', ',')}</span>
+        <span className="amount">R${Number(lineTotal).toFixed(2).replace('.', ',')}</span>
       </td>
       <td className="product-remove">
         <button type="submit" onClick={()=> handleRemovePrd(item)}>

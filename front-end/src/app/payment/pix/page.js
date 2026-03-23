@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect, useState, Suspense } from 'react';
+import React, { useEffect, useState, useRef, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -7,16 +7,62 @@ import Header from '@layout/header';
 import Footer from '@layout/footer';
 import Wrapper from '@layout/wrapper';
 import Loader from '@components/loader/loader';
+import { useGetUserOrderByIdQuery } from 'src/redux/features/orderApi';
+
+/** Status WooCommerce após PIX/cartão aprovado (via webhook ou retorno MP). */
+const PAID_ORDER_STATUSES = new Set(['processing', 'completed']);
+
+function normalizeWcStatus(status) {
+  if (!status) return '';
+  return String(status).toLowerCase().replace(/^wc-/, '');
+}
 
 const PixPaymentContent = () => {
   const searchParams = useSearchParams();
   const router = useRouter();
   const orderId = searchParams.get('order');
-  
+  const redirectDoneRef = useRef(false);
+
   const [pixData, setPixData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [timeLeft, setTimeLeft] = useState(null);
   const [copied, setCopied] = useState(false);
+  const [redirecting, setRedirecting] = useState(false);
+
+  const timeExpired = timeLeft !== null && timeLeft <= 0;
+
+  const orderQueryArg =
+    pixData && orderId
+      ? pixData.orderKey && String(pixData.orderKey).trim() !== ''
+        ? { id: orderId, key: String(pixData.orderKey).trim() }
+        : orderId
+      : '';
+
+  const { data: polledOrder } = useGetUserOrderByIdQuery(orderQueryArg, {
+    skip: !pixData || !orderId || loading || timeExpired,
+    pollingInterval: 4000,
+    refetchOnFocus: true,
+  });
+
+  // Quando o WooCommerce atualizar o pedido (webhook MP), redireciona para a página do pedido
+  useEffect(() => {
+    if (!polledOrder?.order?.status || !orderId || redirectDoneRef.current) return;
+    const status = normalizeWcStatus(polledOrder.order.status);
+    if (!PAID_ORDER_STATUSES.has(status)) return;
+
+    redirectDoneRef.current = true;
+    setRedirecting(true);
+    try {
+      localStorage.removeItem('pendingPixPayment');
+    } catch (e) {
+      /* ignore */
+    }
+    const keyQs =
+      pixData?.orderKey && String(pixData.orderKey).trim() !== ''
+        ? `?key=${encodeURIComponent(String(pixData.orderKey).trim())}`
+        : '';
+    router.replace(`/order/${orderId}${keyQs}`);
+  }, [polledOrder, orderId, router, pixData?.orderKey]);
 
   useEffect(() => {
     // Carregar dados do PIX do localStorage
@@ -27,9 +73,9 @@ const PixPaymentContent = () => {
         if (parsed.orderId === orderId) {
           setPixData(parsed);
           
-          // Calcular tempo restante
+          // Calcular tempo restante (expires_at em segundos UNIX, se existir)
           if (parsed.pixData?.expires_at) {
-            const expiresAt = new Date(parsed.pixData.expires_at * 1000);
+            const expiresAt = new Date(Number(parsed.pixData.expires_at) * 1000);
             const now = new Date();
             const diff = Math.max(0, Math.floor((expiresAt - now) / 1000));
             setTimeLeft(diff);
@@ -59,11 +105,16 @@ const PixPaymentContent = () => {
     return () => clearInterval(timer);
   }, [timeLeft]);
 
-  const formatTime = (seconds) => {
-    if (!seconds) return '00:00';
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  /** Exibe tempo legível: abaixo de 1h = MM:SS; a partir de 1h = H:MM:SS (evita "1439:41"). */
+  const formatTime = (totalSeconds) => {
+    if (totalSeconds == null || totalSeconds <= 0) return '0:00';
+    const h = Math.floor(totalSeconds / 3600);
+    const m = Math.floor((totalSeconds % 3600) / 60);
+    const s = totalSeconds % 60;
+    if (h > 0) {
+      return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    }
+    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
   };
 
   const handleCopyCode = () => {
@@ -108,8 +159,6 @@ const PixPaymentContent = () => {
     );
   }
 
-  const isExpired = timeLeft !== null && timeLeft <= 0;
-
   return (
     <Wrapper>
       <Header style_2={true} />
@@ -123,6 +172,22 @@ const PixPaymentContent = () => {
                 padding: '40px',
                 boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
               }}>
+                {redirecting && (
+                  <div
+                    className="text-center mb-30"
+                    style={{
+                      backgroundColor: '#d4edda',
+                      padding: '16px 20px',
+                      borderRadius: '8px',
+                      border: '1px solid #c3e6cb',
+                    }}
+                  >
+                    <i className="fa fa-check-circle" style={{ marginRight: '10px', color: '#155724' }} />
+                    <span style={{ color: '#155724', fontWeight: 600 }}>
+                      Pagamento confirmado! Redirecionando para o seu pedido…
+                    </span>
+                  </div>
+                )}
                 {/* Header */}
                 <div className="text-center mb-40">
                   <div style={{
@@ -144,7 +209,7 @@ const PixPaymentContent = () => {
                 </div>
 
                 {/* Timer */}
-                {!isExpired && timeLeft && (
+                {!timeExpired && timeLeft && (
                   <div className="text-center mb-30" style={{
                     backgroundColor: '#fff3cd',
                     padding: '15px 20px',
@@ -155,10 +220,15 @@ const PixPaymentContent = () => {
                     <span style={{ color: '#856404', fontWeight: '500' }}>
                       Tempo restante para pagamento: <strong>{formatTime(timeLeft)}</strong>
                     </span>
+                    {timeLeft >= 3600 && (
+                      <div style={{ fontSize: '13px', color: '#856404', marginTop: '8px', opacity: 0.95 }}>
+                        (horas : minutos : segundos — prazo típico do PIX é até 24 horas)
+                      </div>
+                    )}
                   </div>
                 )}
 
-                {isExpired && (
+                {timeExpired && (
                   <div className="text-center mb-30" style={{
                     backgroundColor: '#f8d7da',
                     padding: '15px 20px',
@@ -181,7 +251,7 @@ const PixPaymentContent = () => {
                 </div>
 
                 {/* QR Code */}
-                {!isExpired && (
+                {!timeExpired && (
                   <>
                     <div className="text-center mb-30">
                       <div style={{
@@ -191,7 +261,17 @@ const PixPaymentContent = () => {
                         display: 'inline-block',
                         border: '2px solid #e0e0e0',
                       }}>
-                        {pixData.pixData?.qr_code_url ? (
+                        {pixData.pixData?.qr_code_base64 ? (
+                          // Mercado Pago: imagem PNG em base64
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={`data:image/png;base64,${pixData.pixData.qr_code_base64}`}
+                            alt="QR Code PIX"
+                            width={260}
+                            height={260}
+                            style={{ maxWidth: '100%', height: 'auto', display: 'block' }}
+                          />
+                        ) : pixData.pixData?.qr_code_url ? (
                           <Image
                             src={pixData.pixData.qr_code_url}
                             alt="QR Code PIX"
@@ -210,7 +290,7 @@ const PixPaymentContent = () => {
                         ) : (
                           <div style={{ padding: '40px', textAlign: 'center' }}>
                             <i className="fa fa-qrcode" style={{ fontSize: '100px', color: '#ccc' }}></i>
-                            <p className="mt-20">QR Code não disponível</p>
+                            <p className="mt-20">QR Code não disponível — use o código copia e cola abaixo.</p>
                           </div>
                         )}
                       </div>
@@ -251,18 +331,17 @@ const PixPaymentContent = () => {
                       </div>
                     )}
 
-                    {/* Link para página hospedada do Stripe */}
-                    {pixData.pixData?.hosted_instructions_url && (
+                    {(pixData.pixData?.hosted_instructions_url || pixData.pixData?.ticket_url) && (
                       <div className="text-center mb-30">
                         <a
-                          href={pixData.pixData.hosted_instructions_url}
+                          href={pixData.pixData.ticket_url || pixData.pixData.hosted_instructions_url}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="tp-btn tp-btn-border"
                           style={{ display: 'inline-block' }}
                         >
                           <i className="fa fa-external-link" style={{ marginRight: '10px' }}></i>
-                          Abrir página de pagamento
+                          Abrir comprovante / instruções (Mercado Pago)
                         </a>
                       </div>
                     )}
@@ -293,7 +372,14 @@ const PixPaymentContent = () => {
                   <p style={{ color: '#666' }}>
                     Número do pedido: <strong>#{orderId}</strong>
                   </p>
-                  <Link href={`/order/${orderId}`} style={{ color: '#007bff' }}>
+                  <Link
+                    href={
+                      pixData.orderKey
+                        ? `/order/${orderId}?key=${encodeURIComponent(pixData.orderKey)}`
+                        : `/order/${orderId}`
+                    }
+                    style={{ color: '#007bff' }}
+                  >
                     Ver detalhes do pedido
                   </Link>
                 </div>

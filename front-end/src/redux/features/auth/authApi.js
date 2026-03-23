@@ -73,6 +73,15 @@ export const authApi = apiSlice.injectEndpoints({
       },
     }),
 
+    // checkout: verificar se e-mail já existe
+    checkEmailExists: builder.mutation({
+      query: (body) => ({
+        url: "api/user/check-email",
+        method: "POST",
+        body,
+      }),
+    }),
+
     // get me
     getUser: builder.query({
       query: () => "api/user/me",
@@ -192,6 +201,7 @@ export const authApi = apiSlice.injectEndpoints({
 export const {
   useLoginUserMutation,
   useRegisterUserMutation,
+  useCheckEmailExistsMutation,
   useConfirmEmailQuery,
   useResetPasswordMutation,
   useConfirmForgotPasswordMutation,

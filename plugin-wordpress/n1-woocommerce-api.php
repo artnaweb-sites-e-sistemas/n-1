@@ -15,6 +15,9 @@ if (!defined('ABSPATH')) {
     exit; // Exit if accessed directly
 }
 
+// Evita erro fatal se houver duas cópias do plugin na pasta wp-content/plugins (mesma classe carregada 2x).
+if (!class_exists('N1_WooCommerce_API', false)) {
+
 class N1_WooCommerce_API
 {
 
@@ -25,6 +28,197 @@ class N1_WooCommerce_API
     {
         add_action('rest_api_init', array($this, 'register_routes'));
         add_action('rest_api_init', array($this, 'add_cors_support'));
+        add_action('add_meta_boxes', array($this, 'register_product_meta_box'));
+        add_action('save_post_product', array($this, 'save_product_custom_fields'));
+    }
+
+    public function register_product_meta_box()
+    {
+        add_meta_box(
+            'n1_product_editorial_fields',
+            'N-1 Campos Editoriais',
+            array($this, 'render_product_meta_box'),
+            'product',
+            'normal',
+            'high'
+        );
+    }
+
+    public function render_product_meta_box($post)
+    {
+        wp_nonce_field('n1_save_product_custom_fields', 'n1_product_custom_fields_nonce');
+
+        $fields = array(
+            'book_title' => get_post_meta($post->ID, 'n1_book_title', true),
+            'original_title' => get_post_meta($post->ID, 'n1_original_title', true),
+            'author' => get_post_meta($post->ID, 'n1_author', true),
+            'authors' => get_post_meta($post->ID, 'n1_authors', true),
+            'organization' => get_post_meta($post->ID, 'n1_organization', true),
+            'translation' => get_post_meta($post->ID, 'n1_translation', true),
+            'preparation' => get_post_meta($post->ID, 'n1_preparation', true),
+            'revision' => get_post_meta($post->ID, 'n1_revision', true),
+            'year' => get_post_meta($post->ID, 'n1_year', true),
+            'pages' => get_post_meta($post->ID, 'n1_pages', true),
+            'dimensions' => get_post_meta($post->ID, 'n1_dimensions', true),
+            'isbn' => get_post_meta($post->ID, 'n1_isbn', true),
+            'catalog_pdf' => get_post_meta($post->ID, 'n1_catalog_pdf', true),
+            'catalog_content' => get_post_meta($post->ID, 'n1_catalog_content', true),
+        );
+        ?>
+        <style>
+            .n1-field { margin-bottom: 12px; }
+            .n1-field label { display: block; font-weight: 600; margin-bottom: 4px; }
+            .n1-field input[type="text"], .n1-field input[type="number"] { width: 100%; }
+        </style>
+        <div class="n1-field"><label for="n1_author">Autor (acima do título e em metadados)</label><input type="text" id="n1_author" name="n1_author" value="<?php echo esc_attr($fields['author']); ?>" /></div>
+        <div class="n1-field"><label for="n1_book_title">Título completo</label><input type="text" id="n1_book_title" name="n1_book_title" value="<?php echo esc_attr($fields['book_title']); ?>" /></div>
+        <div class="n1-field"><label for="n1_original_title">Título original</label><input type="text" id="n1_original_title" name="n1_original_title" value="<?php echo esc_attr($fields['original_title']); ?>" /></div>
+        <div class="n1-field"><label for="n1_preparation">Preparação</label><input type="text" id="n1_preparation" name="n1_preparation" value="<?php echo esc_attr($fields['preparation']); ?>" /></div>
+        <div class="n1-field"><label for="n1_revision">Revisão</label><input type="text" id="n1_revision" name="n1_revision" value="<?php echo esc_attr($fields['revision']); ?>" /></div>
+        <div class="n1-field"><label for="n1_year">Ano</label><input type="number" id="n1_year" name="n1_year" value="<?php echo esc_attr($fields['year']); ?>" /></div>
+        <div class="n1-field"><label for="n1_pages">Nº de páginas</label><input type="text" id="n1_pages" name="n1_pages" value="<?php echo esc_attr($fields['pages']); ?>" /></div>
+        <div class="n1-field"><label for="n1_dimensions">Dimensões</label><input type="text" id="n1_dimensions" name="n1_dimensions" value="<?php echo esc_attr($fields['dimensions']); ?>" /></div>
+        <div class="n1-field"><label for="n1_isbn">ISBN</label><input type="text" id="n1_isbn" name="n1_isbn" value="<?php echo esc_attr($fields['isbn']); ?>" /></div>
+        <div class="n1-field"><label for="n1_organization">Organização</label><input type="text" id="n1_organization" name="n1_organization" value="<?php echo esc_attr($fields['organization']); ?>" /></div>
+        <div class="n1-field"><label for="n1_translation">Tradução</label><input type="text" id="n1_translation" name="n1_translation" value="<?php echo esc_attr($fields['translation']); ?>" /></div>
+        <div class="n1-field"><label for="n1_authors">Autores (lista alternativa)</label><input type="text" id="n1_authors" name="n1_authors" value="<?php echo esc_attr($fields['authors']); ?>" /></div>
+        <div class="n1-field"><label for="n1_catalog_pdf">URL do PDF/Issuu (opcional)</label><input type="text" id="n1_catalog_pdf" name="n1_catalog_pdf" value="<?php echo esc_attr($fields['catalog_pdf']); ?>" /></div>
+        <div class="n1-field">
+            <label for="n1_catalog_content">Conteúdo longo do livro (aceita texto, imagens e HTML)</label>
+            <?php
+            wp_editor(
+                $fields['catalog_content'],
+                'n1_catalog_content_editor',
+                array(
+                    'textarea_name' => 'n1_catalog_content',
+                    'media_buttons' => true,
+                    'textarea_rows' => 16,
+                    'teeny' => false,
+                )
+            );
+            ?>
+        </div>
+        <?php
+    }
+
+    public function save_product_custom_fields($post_id)
+    {
+        if (!isset($_POST['n1_product_custom_fields_nonce']) || !wp_verify_nonce($_POST['n1_product_custom_fields_nonce'], 'n1_save_product_custom_fields')) {
+            return;
+        }
+        if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) {
+            return;
+        }
+        if (!current_user_can('edit_post', $post_id)) {
+            return;
+        }
+
+        $text_fields = array(
+            'n1_book_title',
+            'n1_original_title',
+            'n1_author',
+            'n1_authors',
+            'n1_organization',
+            'n1_translation',
+            'n1_preparation',
+            'n1_revision',
+            'n1_year',
+            'n1_pages',
+            'n1_dimensions',
+            'n1_isbn',
+            'n1_catalog_pdf',
+        );
+
+        foreach ($text_fields as $field_key) {
+            if (isset($_POST[$field_key])) {
+                update_post_meta($post_id, $field_key, sanitize_text_field(wp_unslash($_POST[$field_key])));
+            }
+        }
+
+        if (isset($_POST['n1_catalog_content'])) {
+            $raw_content = wp_unslash($_POST['n1_catalog_content']);
+            // Administradores com unfiltered_html: guardar o HTML exatamente como no editor
+            // (evita wp_kses remover atributos de img/figure/blocos do Gutenberg).
+            if (current_user_can('unfiltered_html')) {
+                update_post_meta($post_id, 'n1_catalog_content', $raw_content);
+            } else {
+                $allowed_html = wp_kses_allowed_html('post');
+                $allowed_html['iframe'] = array(
+                    'src' => true,
+                    'width' => true,
+                    'height' => true,
+                    'frameborder' => true,
+                    'allow' => true,
+                    'allowfullscreen' => true,
+                    'loading' => true,
+                    'referrerpolicy' => true,
+                    'title' => true,
+                    'class' => true,
+                    'style' => true,
+                );
+                $allowed_html['video'] = array(
+                    'src' => true,
+                    'controls' => true,
+                    'autoplay' => true,
+                    'loop' => true,
+                    'muted' => true,
+                    'poster' => true,
+                    'preload' => true,
+                    'width' => true,
+                    'height' => true,
+                    'class' => true,
+                    'style' => true,
+                );
+                $allowed_html['source'] = array(
+                    'src' => true,
+                    'type' => true,
+                );
+                // Blocos comuns do editor (caso wp_kses_allowed_html('post') do site seja restritivo)
+                if (!isset($allowed_html['figure'])) {
+                    $allowed_html['figure'] = array('class' => true, 'style' => true, 'id' => true);
+                }
+                if (!isset($allowed_html['figcaption'])) {
+                    $allowed_html['figcaption'] = array('class' => true, 'style' => true);
+                }
+
+                update_post_meta($post_id, 'n1_catalog_content', wp_kses($raw_content, $allowed_html));
+            }
+        }
+    }
+
+    private function format_catalog_content_for_output($content)
+    {
+        if (empty($content)) {
+            return '';
+        }
+
+        // Processa shortcodes do WP (ex.: [caption], [video], [embed]).
+        $formatted = do_shortcode($content);
+
+        // Se vier texto simples, aplicar parágrafos.
+        if (strpos($formatted, '<') === false) {
+            $formatted = wpautop($formatted);
+        }
+
+        // Converter links puros em embed quando suportado (YouTube, Vimeo, etc),
+        // e em link clicável quando não houver oEmbed disponível.
+        $formatted = preg_replace_callback(
+            '/<p>\s*(https?:\/\/[^\s<]+)\s*<\/p>/i',
+            function ($matches) {
+                $url = esc_url_raw($matches[1]);
+                if (empty($url)) {
+                    return $matches[0];
+                }
+                $embed = wp_oembed_get($url);
+                if (!empty($embed)) {
+                    return $embed;
+                }
+                return '<p><a href="' . esc_url($url) . '" target="_blank" rel="noopener noreferrer">' . esc_html($url) . '</a></p>';
+            },
+            $formatted
+        );
+
+        return $formatted;
     }
 
     /**
@@ -205,6 +399,13 @@ class N1_WooCommerce_API
             'permission_callback' => '__return_true',
         ));
 
+        // Verificar se e-mail já está cadastrado (checkout / convidado)
+        register_rest_route($this->namespace, '/api/user/check-email', array(
+            'methods' => 'POST',
+            'callback' => array($this, 'check_user_email_exists'),
+            'permission_callback' => '__return_true',
+        ));
+
         // Get current user
         register_rest_route($this->namespace, '/api/user/me', array(
             'methods' => 'GET',
@@ -261,6 +462,26 @@ class N1_WooCommerce_API
             'permission_callback' => '__return_true', // Permite checkout sem login
         ));
 
+        // Mercado Pago — processado no WordPress (igual Stripe). Credenciais: N1_MERCADO_PAGO_* no wp-config.php
+        register_rest_route($this->namespace, '/api/order/create-mercadopago-payment', array(
+            'methods' => 'POST',
+            'callback' => array($this, 'create_mercado_pago_transparent_payment'),
+            'permission_callback' => '__return_true',
+        ));
+
+        register_rest_route($this->namespace, '/api/order/create-mercadopago-preference', array(
+            'methods' => 'POST',
+            'callback' => array($this, 'create_mercado_pago_preference'),
+            'permission_callback' => '__return_true',
+        ));
+
+        // Webhook Mercado Pago (notificações de pagamento)
+        register_rest_route($this->namespace, '/api/order/mercadopago-webhook', array(
+            'methods' => 'POST',
+            'callback' => array($this, 'mercadopago_webhook'),
+            'permission_callback' => '__return_true',
+        ));
+
         // Get all orders by user
         register_rest_route($this->namespace, '/api/user-order/order-by-user', array(
             'methods' => 'GET',
@@ -268,11 +489,11 @@ class N1_WooCommerce_API
             'permission_callback' => array($this, 'check_authentication'),
         ));
 
-        // Get single order by ID
+        // Get single order by ID (logado com Bearer OU convidado com ?key=order_key do WooCommerce)
         register_rest_route($this->namespace, '/api/user-order/single-order/(?P<id>\d+)', array(
             'methods' => 'GET',
             'callback' => array($this, 'get_single_order'),
-            'permission_callback' => array($this, 'check_authentication'),
+            'permission_callback' => '__return_true',
         ));
 
         // Calculate shipping rates
@@ -451,6 +672,20 @@ class N1_WooCommerce_API
         $date_created_timestamp = $date_created ? $date_created->getTimestamp() : time();
         $date_created_iso = $date_created ? $date_created->date('Y-m-d\TH:i:s') : date('Y-m-d\TH:i:s');
 
+        // Custom editorial metadata
+        $book_title = get_post_meta($product_id, 'n1_book_title', true);
+        $original_title = get_post_meta($product_id, 'n1_original_title', true);
+        $author = get_post_meta($product_id, 'n1_author', true);
+        $authors = get_post_meta($product_id, 'n1_authors', true);
+        $organization = get_post_meta($product_id, 'n1_organization', true);
+        $translation = get_post_meta($product_id, 'n1_translation', true);
+        $preparation = get_post_meta($product_id, 'n1_preparation', true);
+        $revision = get_post_meta($product_id, 'n1_revision', true);
+        $year = get_post_meta($product_id, 'n1_year', true);
+        $pages = get_post_meta($product_id, 'n1_pages', true);
+        $dimensions = get_post_meta($product_id, 'n1_dimensions', true);
+        $isbn = get_post_meta($product_id, 'n1_isbn', true);
+
         return array(
             '_id' => (string) $product_id,
             'id' => $product_id,
@@ -477,6 +712,18 @@ class N1_WooCommerce_API
             'catalogContent' => $catalog_data['content'],
             'catalogImages' => $catalog_data['images'],
             'catalogPdf' => $catalog_data['pdf'],
+            'bookTitle' => $book_title,
+            'originalTitle' => $original_title,
+            'author' => $author,
+            'authors' => $authors,
+            'organization' => $organization,
+            'translation' => $translation,
+            'preparation' => $preparation,
+            'revision' => $revision,
+            'year' => $year,
+            'pages' => $pages,
+            'dimensions' => $dimensions,
+            'isbn' => $isbn,
             'date_created' => $date_created_iso,
             'date_created_timestamp' => $date_created_timestamp,
             'source' => 'woocommerce', // Identificar origem do produto
@@ -526,7 +773,7 @@ class N1_WooCommerce_API
         $catalog_pdf = get_post_meta($product_id, 'n1_catalog_pdf', true);
 
         if (!empty($catalog_content)) {
-            $result['content'] = $catalog_content;
+            $result['content'] = $this->format_catalog_content_for_output($catalog_content);
             
             // Se o conteúdo já tem iframe do Issuu, extrair
             if (empty($catalog_pdf)) {
@@ -1401,6 +1648,53 @@ class N1_WooCommerce_API
     }
 
     /**
+     * Descobre user_id a partir do header Authorization Bearer (API N-1), como em add_order.
+     */
+    private function n1_get_user_id_from_bearer_request()
+    {
+        $user_id = get_current_user_id();
+        if ($user_id) {
+            return (int) $user_id;
+        }
+
+        $headers = array();
+        if (function_exists('getallheaders')) {
+            $headers = getallheaders();
+        } else {
+            foreach ($_SERVER as $name => $value) {
+                if (substr($name, 0, 5) === 'HTTP_') {
+                    $headers[str_replace(' ', '-', ucwords(strtolower(str_replace('_', ' ', substr($name, 5)))))] = $value;
+                }
+            }
+        }
+
+        $normalized = array();
+        foreach ($headers as $key => $value) {
+            $normalized[strtolower($key)] = $value;
+        }
+
+        $auth_header = '';
+        if (isset($normalized['authorization'])) {
+            $auth_header = $normalized['authorization'];
+        } elseif (isset($_SERVER['HTTP_AUTHORIZATION'])) {
+            $auth_header = $_SERVER['HTTP_AUTHORIZATION'];
+        } elseif (isset($_SERVER['REDIRECT_HTTP_AUTHORIZATION'])) {
+            $auth_header = $_SERVER['REDIRECT_HTTP_AUTHORIZATION'];
+        }
+
+        if ($auth_header && preg_match('/Bearer\s+(.*)$/i', $auth_header, $matches)) {
+            $token = trim($matches[1]);
+            $validated = $this->validate_token($token);
+            if ($validated) {
+                wp_set_current_user((int) $validated);
+                return (int) $validated;
+            }
+        }
+
+        return 0;
+    }
+
+    /**
      * Generate API token for user
      */
     private function generate_token($user_id)
@@ -1542,6 +1836,27 @@ class N1_WooCommerce_API
                 'user' => $user_data,
                 'token' => $token,
             ),
+        ));
+    }
+
+    /**
+     * Verifica se um e-mail já possui cadastro (uso no checkout).
+     */
+    public function check_user_email_exists($request)
+    {
+        $params = $request->get_json_params();
+        $email = isset($params['email']) ? sanitize_email($params['email']) : '';
+
+        if (empty($email) || !is_email($email)) {
+            return rest_ensure_response(array(
+                'exists' => false,
+                'valid' => false,
+            ));
+        }
+
+        return rest_ensure_response(array(
+            'exists' => (bool) email_exists($email),
+            'valid' => true,
         ));
     }
 
@@ -2022,6 +2337,762 @@ class N1_WooCommerce_API
     }
 
     /**
+     * Access Token Mercado Pago (servidor). wp-config: define('N1_MERCADO_PAGO_ACCESS_TOKEN', '...');
+     */
+    private function get_mercadopago_access_token()
+    {
+        if (defined('N1_MERCADO_PAGO_ACCESS_TOKEN') && is_string(N1_MERCADO_PAGO_ACCESS_TOKEN) && N1_MERCADO_PAGO_ACCESS_TOKEN !== '') {
+            return trim(N1_MERCADO_PAGO_ACCESS_TOKEN);
+        }
+        $opt = get_option('n1_mercado_pago_access_token', '');
+        return is_string($opt) && $opt !== '' ? trim($opt) : '';
+    }
+
+    /**
+     * Public Key (para busca de payment_method por BIN). wp-config: define('N1_MERCADO_PAGO_PUBLIC_KEY', '...');
+     */
+    private function get_mercadopago_public_key()
+    {
+        if (defined('N1_MERCADO_PAGO_PUBLIC_KEY') && is_string(N1_MERCADO_PAGO_PUBLIC_KEY) && N1_MERCADO_PAGO_PUBLIC_KEY !== '') {
+            return trim(N1_MERCADO_PAGO_PUBLIC_KEY);
+        }
+        $opt = get_option('n1_mercado_pago_public_key', '');
+        return is_string($opt) && $opt !== '' ? trim($opt) : '';
+    }
+
+    /**
+     * Webhook secret do Mercado Pago (opcional, mas recomendado).
+     * wp-config: define('N1_MERCADO_PAGO_WEBHOOK_SECRET', '...');
+     */
+    private function get_mercadopago_webhook_secret()
+    {
+        if (defined('N1_MERCADO_PAGO_WEBHOOK_SECRET') && is_string(N1_MERCADO_PAGO_WEBHOOK_SECRET) && N1_MERCADO_PAGO_WEBHOOK_SECRET !== '') {
+            return trim(N1_MERCADO_PAGO_WEBHOOK_SECRET);
+        }
+        $opt = get_option('n1_mercado_pago_webhook_secret', '');
+        return is_string($opt) && $opt !== '' ? trim($opt) : '';
+    }
+
+    /**
+     * URL da loja Next (Vercel) para back_urls do Checkout Pro. wp-config: define('N1_STORE_URL', 'https://sua-loja.vercel.app');
+     */
+    private function get_n1_store_url()
+    {
+        if (defined('N1_STORE_URL') && is_string(N1_STORE_URL) && N1_STORE_URL !== '') {
+            return rtrim(N1_STORE_URL, '/');
+        }
+        $opt = get_option('n1_store_url', '');
+        if (is_string($opt) && $opt !== '') {
+            return rtrim($opt, '/');
+        }
+        return rtrim(home_url(), '/');
+    }
+
+    /**
+     * Estima payment_method_id do Mercado Pago a partir dos 6 primeiros dígitos (BIN).
+     * Evita bin_not_found quando a API search falha mas o cartão é ex.: Mastercard (5031…).
+     */
+    private function mercadopago_guess_payment_method_from_bin($bin)
+    {
+        $bin = preg_replace('/\D/', '', (string) $bin);
+        if (strlen($bin) < 6) {
+            return 'master';
+        }
+        $d1 = substr($bin, 0, 1);
+        $d2 = substr($bin, 0, 2);
+        // Amex: 34 ou 37
+        if ($d1 === '3' && ($d2 === '34' || $d2 === '37')) {
+            return 'amex';
+        }
+        // Visa
+        if ($d1 === '4') {
+            return 'visa';
+        }
+        // Mastercard: 51–55 e intervalo 2221–2720 (simplificado: 5 + segundo dígito comum)
+        if ($d1 === '5') {
+            return 'master';
+        }
+        // Elo (prefixos comuns no Brasil)
+        $elo_prefixes = array('5067', '4576', '4011', '4312', '4389', '4514', '4573', '6277', '6362', '6363');
+        foreach ($elo_prefixes as $p) {
+            if (strpos($bin, $p) === 0) {
+                return 'elo';
+            }
+        }
+        return 'master';
+    }
+
+    /**
+     * Resolve payment_method_id a partir do token do cartão (API Mercado Pago).
+     */
+    private function mercadopago_resolve_payment_method_id($token_id, $access_token, $public_key)
+    {
+        $fallback = array('payment_method_id' => 'master', 'issuer_id' => null);
+
+        $url = 'https://api.mercadopago.com/v1/card_tokens/' . rawurlencode($token_id);
+        $res = wp_remote_get($url, array(
+            'headers' => array('Authorization' => 'Bearer ' . $access_token),
+            'timeout' => 30,
+        ));
+        if (is_wp_error($res)) {
+            return $fallback;
+        }
+        $code = wp_remote_retrieve_response_code($res);
+        if ($code < 200 || $code >= 300) {
+            return $fallback;
+        }
+        $body = json_decode(wp_remote_retrieve_body($res), true);
+        if (!is_array($body)) {
+            return $fallback;
+        }
+
+        // Algumas respostas já trazem o id do método
+        if (!empty($body['payment_method_id']) && is_string($body['payment_method_id'])) {
+            $issuer_id = null;
+            if (!empty($body['issuer_id'])) {
+                $issuer_id = intval($body['issuer_id']);
+            }
+            return array(
+                'payment_method_id' => sanitize_text_field($body['payment_method_id']),
+                'issuer_id' => $issuer_id,
+            );
+        }
+
+        $bin = null;
+        if (!empty($body['first_six_digits'])) {
+            $bin = (string) $body['first_six_digits'];
+        } elseif (!empty($body['first_six_digit'])) {
+            $bin = (string) $body['first_six_digit'];
+        }
+
+        $from_bin = $bin ? $this->mercadopago_guess_payment_method_from_bin($bin) : 'master';
+
+        if (empty($bin)) {
+            return array('payment_method_id' => $from_bin, 'issuer_id' => null);
+        }
+
+        // Busca oficial por BIN (precisa de public_key alinhada ao token)
+        if ($public_key !== '') {
+            $search_url = add_query_arg(
+                array(
+                    'public_key' => $public_key,
+                    'bins' => $bin,
+                ),
+                'https://api.mercadopago.com/v1/payment_methods/search'
+            );
+            $sres = wp_remote_get($search_url, array('timeout' => 30));
+            if (!is_wp_error($sres)) {
+                $sc = wp_remote_retrieve_response_code($sres);
+                if ($sc >= 200 && $sc < 300) {
+                    $sdata = json_decode(wp_remote_retrieve_body($sres), true);
+                    if (is_array($sdata) && !empty($sdata['results'][0]['id'])) {
+                        $pm = $sdata['results'][0];
+                        $issuer_id = null;
+                        if (!empty($pm['issuer_list'][0]['id'])) {
+                            $issuer_id = intval($pm['issuer_list'][0]['id']);
+                        }
+                        return array(
+                            'payment_method_id' => sanitize_text_field($pm['id']),
+                            'issuer_id' => $issuer_id,
+                        );
+                    }
+                }
+            }
+        }
+
+        // Search vazio ou chave pública ausente: usa heurística pelo BIN (corrige 5031… master vs visa)
+        return array('payment_method_id' => $from_bin, 'issuer_id' => null);
+    }
+
+    /**
+     * Checkout transparente Mercado Pago (cartão) — mesmo contrato do antigo backend Node.
+     */
+    public function create_mercado_pago_transparent_payment($request)
+    {
+        $access_token = $this->get_mercadopago_access_token();
+        if ($access_token === '') {
+            return new WP_Error(
+                'mp_not_configured',
+                'Mercado Pago: defina N1_MERCADO_PAGO_ACCESS_TOKEN no wp-config.php (Access Token) ou opção n1_mercado_pago_access_token.',
+                array('status' => 500)
+            );
+        }
+        $public_key = $this->get_mercadopago_public_key();
+        $params = $request->get_json_params();
+        if (!is_array($params)) {
+            $params = array();
+        }
+
+        $payment_type = isset($params['payment_type']) ? sanitize_text_field($params['payment_type']) : 'card';
+        $token = isset($params['token']) ? sanitize_text_field($params['token']) : '';
+        $transaction_amount = isset($params['transaction_amount']) ? $params['transaction_amount'] : null;
+        $installments = isset($params['installments']) ? intval($params['installments']) : 1;
+        $payer_email = isset($params['payer_email']) ? sanitize_email($params['payer_email']) : '';
+        $payer_first_name = isset($params['payer_first_name']) ? sanitize_text_field($params['payer_first_name']) : 'Cliente';
+        $payer_last_name = isset($params['payer_last_name']) ? sanitize_text_field($params['payer_last_name']) : '';
+        $identification_type = isset($params['identification_type']) ? sanitize_text_field($params['identification_type']) : 'CPF';
+        $identification_number = isset($params['identification_number']) ? $params['identification_number'] : '';
+        $description = isset($params['description']) ? sanitize_text_field($params['description']) : 'Compra N-1 Edições';
+        $metadata = isset($params['metadata']) && is_array($params['metadata']) ? $params['metadata'] : array();
+
+        $clean_doc = preg_replace('/\D/', '', (string) $identification_number);
+
+        // —— PIX (sem token de cartão) ——
+        if ($payment_type === 'pix') {
+            if ($transaction_amount === null || $transaction_amount === '') {
+                return new WP_Error('mp_bad_request', 'transaction_amount é obrigatório para PIX.', array('status' => 400));
+            }
+            if (empty($payer_email) || strlen($clean_doc) < 11) {
+                return new WP_Error('mp_bad_request', 'E-mail e CPF/CNPJ válidos são obrigatórios para PIX.', array('status' => 400));
+            }
+
+            $amount = round(floatval($transaction_amount), 2);
+            if ($amount <= 0) {
+                return new WP_Error('mp_bad_request', 'Valor inválido para PIX.', array('status' => 400));
+            }
+
+            $id_type = strlen($clean_doc) > 11 ? 'CNPJ' : $identification_type;
+
+            // Não enviar date_of_expiration: a API do MP valida o formato de forma estrita e costuma
+            // retornar 400 ("yyyy-MM-dd'T'HH:mm:ssz"). Sem o campo, o MP aplica o prazo padrão do PIX.
+
+            $payment_body = array(
+                'transaction_amount' => $amount,
+                'description' => substr($description, 0, 255),
+                'payment_method_id' => 'pix',
+                'payer' => array(
+                    'email' => $payer_email,
+                    'first_name' => substr($payer_first_name, 0, 255),
+                    'last_name' => substr($payer_last_name, 0, 255),
+                    'identification' => array(
+                        'type' => $id_type,
+                        'number' => $clean_doc,
+                    ),
+                ),
+                'metadata' => $metadata,
+            );
+
+            $notif = get_option('n1_mercado_pago_notification_url', '');
+            if ($notif !== '') {
+                $payment_body['notification_url'] = esc_url_raw($notif);
+            }
+
+            $idempotency = function_exists('wp_generate_uuid4') ? wp_generate_uuid4() : uniqid('n1-pix-', true);
+
+            $mp_res = wp_remote_post(
+                'https://api.mercadopago.com/v1/payments',
+                array(
+                    'headers' => array(
+                        'Authorization' => 'Bearer ' . $access_token,
+                        'Content-Type' => 'application/json',
+                        'X-Idempotency-Key' => $idempotency,
+                    ),
+                    'body' => wp_json_encode($payment_body),
+                    'timeout' => 90,
+                )
+            );
+
+            if (is_wp_error($mp_res)) {
+                return new WP_Error('mp_network', $mp_res->get_error_message(), array('status' => 502));
+            }
+
+            $http_code = wp_remote_retrieve_response_code($mp_res);
+            $raw = wp_remote_retrieve_body($mp_res);
+            $mp_data = json_decode($raw, true);
+
+            if ($http_code < 200 || $http_code >= 300) {
+                $msg = 'Falha ao gerar PIX no Mercado Pago.';
+                if (is_array($mp_data)) {
+                    if (!empty($mp_data['message'])) {
+                        $msg = is_string($mp_data['message']) ? $mp_data['message'] : wp_json_encode($mp_data['message']);
+                    } elseif (!empty($mp_data['cause'][0]['description'])) {
+                        $msg = $mp_data['cause'][0]['description'];
+                    }
+                }
+                return new WP_Error('mp_api_error', $msg, array('status' => $http_code >= 400 && $http_code < 600 ? $http_code : 502, 'data' => $mp_data));
+            }
+
+            if (!is_array($mp_data)) {
+                return new WP_Error('mp_invalid_response', 'Resposta inválida do Mercado Pago.', array('status' => 502));
+            }
+
+            $status = isset($mp_data['status']) ? $mp_data['status'] : '';
+            if ($status === 'rejected') {
+                $detail = isset($mp_data['status_detail']) ? $mp_data['status_detail'] : '';
+                return new WP_Error('mp_rejected', $detail !== '' ? $detail : 'PIX recusado.', array('status' => 400, 'data' => $mp_data));
+            }
+
+            $pix_td = array();
+            if (!empty($mp_data['point_of_interaction']['transaction_data']) && is_array($mp_data['point_of_interaction']['transaction_data'])) {
+                $td = $mp_data['point_of_interaction']['transaction_data'];
+                $pix_td = array(
+                    'qr_code' => isset($td['qr_code']) ? $td['qr_code'] : '',
+                    'qr_code_base64' => isset($td['qr_code_base64']) ? $td['qr_code_base64'] : '',
+                    'ticket_url' => isset($td['ticket_url']) ? esc_url_raw($td['ticket_url']) : '',
+                );
+            }
+
+            if (empty($pix_td['qr_code']) && empty($pix_td['qr_code_base64'])) {
+                return new WP_Error('mp_pix_incomplete', 'O Mercado Pago não retornou dados do PIX. Verifique se a conta habilitou PIX.', array('status' => 502, 'data' => $mp_data));
+            }
+
+            $expires_at = null;
+            if (!empty($mp_data['date_of_expiration'])) {
+                $ts = strtotime($mp_data['date_of_expiration']);
+                if ($ts) {
+                    $expires_at = $ts;
+                }
+            }
+
+            $pay_id = isset($mp_data['id']) ? $mp_data['id'] : null;
+
+            return rest_ensure_response(array(
+                'success' => true,
+                'approved' => ($status === 'approved'),
+                'status' => $status,
+                'status_detail' => isset($mp_data['status_detail']) ? $mp_data['status_detail'] : '',
+                'payment_id' => $pay_id,
+                'date_of_expiration' => isset($mp_data['date_of_expiration']) ? $mp_data['date_of_expiration'] : null,
+                'expires_at' => $expires_at,
+                'payment' => array(
+                    'id' => $pay_id,
+                    'status' => $status,
+                    'status_detail' => isset($mp_data['status_detail']) ? $mp_data['status_detail'] : '',
+                    'transaction_amount' => isset($mp_data['transaction_amount']) ? $mp_data['transaction_amount'] : $amount,
+                    'payment_method_id' => 'pix',
+                    'date_approved' => isset($mp_data['date_approved']) ? $mp_data['date_approved'] : null,
+                ),
+                'pix' => $pix_td,
+            ));
+        }
+
+        if ($token === '' || $transaction_amount === null || $transaction_amount === '') {
+            return new WP_Error('mp_bad_request', 'token e transaction_amount são obrigatórios.', array('status' => 400));
+        }
+
+        if (empty($payer_email) || strlen($clean_doc) < 11) {
+            return new WP_Error('mp_bad_request', 'E-mail e CPF/CNPJ válidos são obrigatórios para pagamento com cartão.', array('status' => 400));
+        }
+
+        $resolved = $this->mercadopago_resolve_payment_method_id($token, $access_token, $public_key);
+        $payment_method_id = $resolved['payment_method_id'];
+        $issuer_id = $resolved['issuer_id'];
+
+        $amount = round(floatval($transaction_amount), 2);
+        $installments = max(1, min($installments > 0 ? $installments : 1, 12));
+
+        $id_type = strlen($clean_doc) > 11 ? 'CNPJ' : $identification_type;
+
+        $payment_body = array(
+            'transaction_amount' => $amount,
+            'token' => $token,
+            'description' => substr($description, 0, 255),
+            'installments' => $installments,
+            'payment_method_id' => $payment_method_id,
+            'payer' => array(
+                'email' => $payer_email,
+                'first_name' => substr($payer_first_name, 0, 255),
+                'last_name' => substr($payer_last_name, 0, 255),
+                'identification' => array(
+                    'type' => $id_type,
+                    'number' => $clean_doc,
+                ),
+            ),
+            'metadata' => $metadata,
+        );
+        if ($issuer_id !== null && $issuer_id > 0) {
+            $payment_body['issuer_id'] = $issuer_id;
+        }
+
+        $idempotency = function_exists('wp_generate_uuid4') ? wp_generate_uuid4() : uniqid('n1-', true);
+
+        $mp_res = wp_remote_post(
+            'https://api.mercadopago.com/v1/payments',
+            array(
+                'headers' => array(
+                    'Authorization' => 'Bearer ' . $access_token,
+                    'Content-Type' => 'application/json',
+                    'X-Idempotency-Key' => $idempotency,
+                ),
+                'body' => wp_json_encode($payment_body),
+                'timeout' => 90,
+            )
+        );
+
+        if (is_wp_error($mp_res)) {
+            return new WP_Error('mp_network', $mp_res->get_error_message(), array('status' => 502));
+        }
+
+        $http_code = wp_remote_retrieve_response_code($mp_res);
+        $raw = wp_remote_retrieve_body($mp_res);
+        $mp_data = json_decode($raw, true);
+
+        if ($http_code < 200 || $http_code >= 300) {
+            $msg = 'Falha ao processar pagamento no Mercado Pago.';
+            if (is_array($mp_data)) {
+                if (!empty($mp_data['message'])) {
+                    $msg = is_string($mp_data['message']) ? $mp_data['message'] : wp_json_encode($mp_data['message']);
+                } elseif (!empty($mp_data['cause'][0]['description'])) {
+                    $msg = $mp_data['cause'][0]['description'];
+                }
+            }
+            return new WP_Error('mp_api_error', $msg, array('status' => $http_code >= 400 && $http_code < 600 ? $http_code : 502, 'data' => $mp_data));
+        }
+
+        if (!is_array($mp_data)) {
+            return new WP_Error('mp_invalid_response', 'Resposta inválida do Mercado Pago.', array('status' => 502));
+        }
+
+        $status = isset($mp_data['status']) ? $mp_data['status'] : '';
+        $approved = ($status === 'approved');
+
+        return rest_ensure_response(array(
+            'success' => true,
+            'approved' => $approved,
+            'status' => $status,
+            'status_detail' => isset($mp_data['status_detail']) ? $mp_data['status_detail'] : '',
+            'payment_id' => isset($mp_data['id']) ? $mp_data['id'] : null,
+            'payment' => array(
+                'id' => isset($mp_data['id']) ? $mp_data['id'] : null,
+                'status' => $status,
+                'status_detail' => isset($mp_data['status_detail']) ? $mp_data['status_detail'] : '',
+                'transaction_amount' => isset($mp_data['transaction_amount']) ? $mp_data['transaction_amount'] : $amount,
+                'payment_method_id' => isset($mp_data['payment_method_id']) ? $mp_data['payment_method_id'] : $payment_method_id,
+                'date_approved' => isset($mp_data['date_approved']) ? $mp_data['date_approved'] : null,
+            ),
+        ));
+    }
+
+    /**
+     * Preferência Checkout Pro Mercado Pago (redirecionamento), se ainda for usada no front.
+     */
+    public function create_mercado_pago_preference($request)
+    {
+        $access_token = $this->get_mercadopago_access_token();
+        if ($access_token === '') {
+            return new WP_Error(
+                'mp_not_configured',
+                'Mercado Pago: defina N1_MERCADO_PAGO_ACCESS_TOKEN no wp-config.php.',
+                array('status' => 500)
+            );
+        }
+
+        $params = $request->get_json_params();
+        if (!is_array($params)) {
+            $params = array();
+        }
+
+        $order_id = isset($params['orderId']) ? $params['orderId'] : '';
+        $items = isset($params['items']) && is_array($params['items']) ? $params['items'] : array();
+        $shipping_cost = isset($params['shippingCost']) ? floatval($params['shippingCost']) : 0;
+        $discount = isset($params['discount']) ? floatval($params['discount']) : 0;
+        $total_amount = isset($params['totalAmount']) ? floatval($params['totalAmount']) : 0;
+        $payer = isset($params['payer']) && is_array($params['payer']) ? $params['payer'] : array();
+
+        $mapped_items = array();
+        foreach ($items as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+            $title = !empty($item['title']) ? sanitize_text_field($item['title']) : 'Produto';
+            $quantity = isset($item['orderQuantity']) ? intval($item['orderQuantity']) : (isset($item['quantity']) ? intval($item['quantity']) : 1);
+            $unit_price = isset($item['price']) ? floatval($item['price']) : (isset($item['originalPrice']) ? floatval($item['originalPrice']) : 0);
+            if ($unit_price <= 0 || $quantity <= 0) {
+                continue;
+            }
+            $mapped_items[] = array(
+                'id' => !empty($item['_id']) ? (string) $item['_id'] : (!empty($item['id']) ? (string) $item['id'] : $title),
+                'title' => $title,
+                'quantity' => $quantity,
+                'currency_id' => 'BRL',
+                'unit_price' => round($unit_price, 2),
+            );
+        }
+
+        if ($shipping_cost > 0) {
+            $mapped_items[] = array(
+                'id' => 'shipping',
+                'title' => 'Frete',
+                'quantity' => 1,
+                'currency_id' => 'BRL',
+                'unit_price' => round($shipping_cost, 2),
+            );
+        }
+
+        if ($discount > 0) {
+            $mapped_items[] = array(
+                'id' => 'discount',
+                'title' => 'Desconto',
+                'quantity' => 1,
+                'currency_id' => 'BRL',
+                'unit_price' => round(-abs($discount), 2),
+            );
+        }
+
+        $frontend_url = $this->get_n1_store_url();
+        $external_reference = $order_id !== '' ? (string) $order_id : 'order-' . time();
+
+        $preference_payload = array(
+            'items' => $mapped_items,
+            'payer' => array(
+                'email' => isset($payer['email']) ? sanitize_email($payer['email']) : '',
+                'name' => isset($payer['name']) ? sanitize_text_field($payer['name']) : '',
+            ),
+            'external_reference' => $external_reference,
+            'back_urls' => array(
+                'success' => $frontend_url . '/order/' . rawurlencode($external_reference),
+                'failure' => $frontend_url . '/checkout',
+                'pending' => $frontend_url . '/order/' . rawurlencode($external_reference),
+            ),
+            'auto_return' => 'approved',
+            'statement_descriptor' => 'N1 EDICOES',
+            'metadata' => array(
+                'order_id' => $external_reference,
+                'total_amount' => $total_amount,
+            ),
+        );
+
+        if (defined('N1_MERCADO_PAGO_NOTIFICATION_URL') && N1_MERCADO_PAGO_NOTIFICATION_URL !== '') {
+            $preference_payload['notification_url'] = N1_MERCADO_PAGO_NOTIFICATION_URL;
+        } else {
+            $notif = get_option('n1_mercado_pago_notification_url', '');
+            if (is_string($notif) && $notif !== '') {
+                $preference_payload['notification_url'] = $notif;
+            }
+        }
+
+        $mp_res = wp_remote_post(
+            'https://api.mercadopago.com/checkout/preferences',
+            array(
+                'headers' => array(
+                    'Authorization' => 'Bearer ' . $access_token,
+                    'Content-Type' => 'application/json',
+                ),
+                'body' => wp_json_encode($preference_payload),
+                'timeout' => 90,
+            )
+        );
+
+        if (is_wp_error($mp_res)) {
+            return new WP_Error('mp_network', $mp_res->get_error_message(), array('status' => 502));
+        }
+
+        $http_code = wp_remote_retrieve_response_code($mp_res);
+        $mp_data = json_decode(wp_remote_retrieve_body($mp_res), true);
+
+        if ($http_code < 200 || $http_code >= 300) {
+            return new WP_Error(
+                'mp_preference_error',
+                'Falha ao criar preferência no Mercado Pago.',
+                array('status' => $http_code, 'data' => $mp_data)
+            );
+        }
+
+        return rest_ensure_response(array(
+            'success' => true,
+            'preferenceId' => isset($mp_data['id']) ? $mp_data['id'] : null,
+            'initPoint' => isset($mp_data['init_point']) ? $mp_data['init_point'] : null,
+            'sandboxInitPoint' => isset($mp_data['sandbox_init_point']) ? $mp_data['sandbox_init_point'] : null,
+        ));
+    }
+
+    /**
+     * Webhook Mercado Pago: atualiza status do pedido WooCommerce.
+     * URL esperada no MP: /wp-json/n1/v1/api/order/mercadopago-webhook
+     */
+    public function mercadopago_webhook($request)
+    {
+        if (!class_exists('WooCommerce') || !function_exists('wc_get_orders')) {
+            error_log('N1 MP webhook: WooCommerce indisponível.');
+            return rest_ensure_response(array(
+                'success' => true,
+                'ignored' => true,
+                'reason' => 'woocommerce_unavailable',
+            ));
+        }
+
+        // 1) Validar assinatura (se secret configurado)
+        $secret = $this->get_mercadopago_webhook_secret();
+        if ($secret !== '') {
+            $x_signature = '';
+            if (isset($_SERVER['HTTP_X_SIGNATURE'])) {
+                $x_signature = sanitize_text_field(wp_unslash($_SERVER['HTTP_X_SIGNATURE']));
+            }
+            $x_request_id = '';
+            if (isset($_SERVER['HTTP_X_REQUEST_ID'])) {
+                $x_request_id = sanitize_text_field(wp_unslash($_SERVER['HTTP_X_REQUEST_ID']));
+            }
+
+            $parts = array();
+            if ($x_signature !== '') {
+                $tmp = explode(',', $x_signature);
+                foreach ($tmp as $seg) {
+                    $kv = explode('=', trim($seg), 2);
+                    if (count($kv) === 2) {
+                        $parts[trim($kv[0])] = trim($kv[1]);
+                    }
+                }
+            }
+            $ts = isset($parts['ts']) ? $parts['ts'] : '';
+            $v1 = isset($parts['v1']) ? strtolower($parts['v1']) : '';
+
+            // payment id pode vir no body ou query
+            $raw = $request->get_json_params();
+            if (!is_array($raw)) {
+                $raw = array();
+            }
+            $data_id = '';
+            if (!empty($raw['data']) && is_array($raw['data']) && !empty($raw['data']['id'])) {
+                $data_id = (string) $raw['data']['id'];
+            } elseif (!empty($_GET['data.id'])) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+                $data_id = sanitize_text_field(wp_unslash($_GET['data.id'])); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+            } elseif (!empty($_GET['id'])) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+                $data_id = sanitize_text_field(wp_unslash($_GET['id'])); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+            }
+
+            if ($ts === '' || $v1 === '' || $data_id === '') {
+                return new WP_Error('mp_webhook_invalid_signature', 'Assinatura do webhook inválida.', array('status' => 401));
+            }
+
+            $manifest = 'id:' . $data_id . ';request-id:' . $x_request_id . ';ts:' . $ts . ';';
+            $expected = strtolower(hash_hmac('sha256', $manifest, $secret));
+            if ($expected !== $v1) {
+                return new WP_Error('mp_webhook_invalid_signature', 'Assinatura do webhook inválida.', array('status' => 401));
+            }
+        }
+
+        // 2) Descobrir pagamento notificado
+        $params = $request->get_json_params();
+        if (!is_array($params)) {
+            $params = array();
+        }
+
+        $topic = '';
+        if (!empty($params['type'])) {
+            $topic = sanitize_text_field($params['type']);
+        } elseif (!empty($params['topic'])) {
+            $topic = sanitize_text_field($params['topic']);
+        } elseif (!empty($_GET['topic'])) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+            $topic = sanitize_text_field(wp_unslash($_GET['topic'])); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        }
+
+        if ($topic !== '' && $topic !== 'payment' && $topic !== 'merchant_order') {
+            return rest_ensure_response(array('success' => true, 'ignored' => true));
+        }
+
+        $payment_id = '';
+        if (!empty($params['data']) && is_array($params['data']) && !empty($params['data']['id'])) {
+            $payment_id = (string) $params['data']['id'];
+        } elseif (!empty($_GET['data.id'])) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+            $payment_id = sanitize_text_field(wp_unslash($_GET['data.id'])); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        } elseif (!empty($_GET['id'])) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+            $payment_id = sanitize_text_field(wp_unslash($_GET['id'])); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        }
+
+        if ($payment_id === '') {
+            return rest_ensure_response(array('success' => true, 'ignored' => true, 'reason' => 'missing_payment_id'));
+        }
+
+        // 3) Buscar status real no MP
+        $access_token = $this->get_mercadopago_access_token();
+        if ($access_token === '') {
+            return new WP_Error('mp_not_configured', 'Access token Mercado Pago não configurado.', array('status' => 500));
+        }
+
+        $mp_res = wp_remote_get(
+            'https://api.mercadopago.com/v1/payments/' . rawurlencode($payment_id),
+            array(
+                'headers' => array(
+                    'Authorization' => 'Bearer ' . $access_token,
+                ),
+                'timeout' => 90,
+            )
+        );
+        if (is_wp_error($mp_res)) {
+            error_log('N1 MP webhook: rede ao consultar pagamento ' . $payment_id . ' — ' . $mp_res->get_error_message());
+            return rest_ensure_response(array(
+                'success' => true,
+                'ignored' => true,
+                'reason' => 'mp_network_error',
+            ));
+        }
+
+        $http_code = wp_remote_retrieve_response_code($mp_res);
+        $mp_data = json_decode(wp_remote_retrieve_body($mp_res), true);
+
+        // Simulador do MP usa id fictício (ex.: 123456) → API retorna 404. Responder 200 evita "502 Bad Gateway" no teste.
+        if ($http_code === 404 || $http_code === 400) {
+            return rest_ensure_response(array(
+                'success' => true,
+                'ignored' => true,
+                'reason' => 'payment_not_found_or_simulation',
+            ));
+        }
+
+        if ($http_code < 200 || $http_code >= 300 || !is_array($mp_data)) {
+            error_log('N1 MP webhook: GET /v1/payments/' . $payment_id . ' HTTP ' . $http_code);
+            return rest_ensure_response(array(
+                'success' => true,
+                'ignored' => true,
+                'reason' => 'mp_payment_fetch_failed',
+                'http_code' => $http_code,
+            ));
+        }
+
+        $mp_status = !empty($mp_data['status']) ? sanitize_text_field($mp_data['status']) : '';
+        if ($mp_status === '') {
+            return rest_ensure_response(array('success' => true, 'ignored' => true, 'reason' => 'missing_status'));
+        }
+
+        // 4) Encontrar pedido WooCommerce pelo meta _mercadopago_payment_id
+        $orders = wc_get_orders(array(
+            'limit' => 10,
+            'type' => 'shop_order',
+            'meta_key' => '_mercadopago_payment_id',
+            'meta_value' => (string) $payment_id,
+            'orderby' => 'date',
+            'order' => 'DESC',
+        ));
+        if (empty($orders)) {
+            return rest_ensure_response(array('success' => true, 'ignored' => true, 'reason' => 'order_not_found'));
+        }
+
+        $updated = 0;
+        foreach ($orders as $order) {
+            if (!$order) {
+                continue;
+            }
+            $current_status = $order->get_status();
+
+            if ($mp_status === 'approved') {
+                if ($current_status !== 'processing' && $current_status !== 'completed') {
+                    $order->payment_complete((string) $payment_id);
+                    $order->update_status('processing', 'Mercado Pago webhook: pagamento PIX aprovado.');
+                    $updated++;
+                }
+            } elseif ($mp_status === 'pending' || $mp_status === 'in_process') {
+                if ($current_status === 'pending') {
+                    $order->add_order_note('Mercado Pago webhook: pagamento PIX pendente (' . $mp_status . ').');
+                }
+            } elseif ($mp_status === 'rejected' || $mp_status === 'cancelled' || $mp_status === 'refunded' || $mp_status === 'charged_back') {
+                if ($current_status !== 'failed' && $current_status !== 'cancelled') {
+                    $order->update_status('failed', 'Mercado Pago webhook: pagamento com status ' . $mp_status . '.');
+                    $updated++;
+                }
+            } else {
+                $order->add_order_note('Mercado Pago webhook: status recebido ' . $mp_status . '.');
+            }
+        }
+
+        return rest_ensure_response(array(
+            'success' => true,
+            'payment_id' => (string) $payment_id,
+            'status' => $mp_status,
+            'orders_updated' => $updated,
+        ));
+    }
+
+    /**
      * Create Payment Intent (Stripe)
      */
     public function create_payment_intent($request)
@@ -2258,52 +3329,139 @@ class N1_WooCommerce_API
                 error_log('N1 API - add_order: Usuário já logado, user_id = ' . $user_id);
             }
 
+            // Convidado: vincular ao cliente WooCommerce se o e-mail do pedido já existir no WordPress
+            if ($user_id === 0 && !empty($params['email'])) {
+                $billing_email = sanitize_email($params['email']);
+                if ($billing_email && is_email($billing_email)) {
+                    $existing_user = get_user_by('email', $billing_email);
+                    if ($existing_user && (int) $existing_user->ID > 0) {
+                        $user_id = (int) $existing_user->ID;
+                        wp_set_current_user($user_id);
+                        error_log('N1 API - add_order: Pedido vinculado ao usuário existente pelo e-mail, user_id = ' . $user_id);
+                    }
+                }
+            }
+
             $coupon_info = isset($params['couponInfo']) ? $params['couponInfo'] : null;
             error_log('N1 API - add_order: Continuando com processamento do pedido. user_id final = ' . $user_id);
 
-            // Extrair payment intent ID - pode vir como objeto ou string
+            // Pagamento: Stripe (paymentIntent.id) ou Mercado Pago (paymentIntent.mercadoPago + paymentMethod)
             $payment_intent_id = null;
-            $payment_status = 'succeeded'; // Default para succeeded se houver paymentIntent
+            $payment_status = 'pending';
+            $wc_payment_gateway = 'stripe';
+            $wc_payment_title = 'Cartão de Crédito (Stripe)';
+            $mp_extra_meta = array();
 
-            if (isset($params['paymentIntent'])) {
-                if (is_array($params['paymentIntent']) || is_object($params['paymentIntent'])) {
-                    $payment_intent_obj = is_array($params['paymentIntent']) ? $params['paymentIntent'] : (array) $params['paymentIntent'];
-                    $payment_intent_id = isset($payment_intent_obj['id']) ? sanitize_text_field($payment_intent_obj['id']) : null;
-                    $payment_status = isset($payment_intent_obj['status']) ? sanitize_text_field($payment_intent_obj['status']) : 'succeeded';
-                } else {
-                    $payment_intent_id = sanitize_text_field($params['paymentIntent']);
+            $pi_raw = isset($params['paymentIntent']) ? $params['paymentIntent'] : null;
+            $payment_intent_obj = is_array($pi_raw) ? $pi_raw : (is_object($pi_raw) ? (array) $pi_raw : array());
+
+            $nested_pm = isset($payment_intent_obj['paymentMethod']) ? sanitize_text_field($payment_intent_obj['paymentMethod']) : '';
+            $mp_raw = isset($payment_intent_obj['mercadoPago']) ? $payment_intent_obj['mercadoPago'] : null;
+            $mp_pay = null;
+            if (is_array($mp_raw)) {
+                $mp_pay = $mp_raw;
+            } elseif (is_object($mp_raw)) {
+                $mp_pay = (array) $mp_raw;
+            }
+
+            if (is_string($pi_raw) && $pi_raw !== '' && empty($payment_intent_obj)) {
+                $payment_intent_id = sanitize_text_field($pi_raw);
+                $payment_status = 'succeeded';
+                $wc_payment_gateway = 'stripe';
+                $wc_payment_title = 'Cartão de Crédito (Stripe)';
+            } elseif ($nested_pm === 'mercadopago_card') {
+                $wc_payment_gateway = 'mercadopago';
+                $wc_payment_title = 'Mercado Pago (cartão de crédito)';
+                if (is_array($mp_pay) && !empty($mp_pay['id'])) {
+                    $payment_intent_id = (string) $mp_pay['id'];
+                    $mp_extra_meta['_mercadopago_payment_id'] = $payment_intent_id;
                 }
+                $payment_status = (is_array($mp_pay) && !empty($mp_pay['status']))
+                    ? sanitize_text_field($mp_pay['status'])
+                    : 'approved';
+            } elseif ($nested_pm === 'mercadopago_pix') {
+                $wc_payment_gateway = 'mercadopago';
+                $wc_payment_title = 'Mercado Pago (PIX)';
+                if (is_array($mp_pay) && !empty($mp_pay['id'])) {
+                    $payment_intent_id = (string) $mp_pay['id'];
+                    $mp_extra_meta['_mercadopago_payment_id'] = $payment_intent_id;
+                }
+                $payment_status = (is_array($mp_pay) && !empty($mp_pay['status']))
+                    ? sanitize_text_field($mp_pay['status'])
+                    : 'pending';
+                $pix_raw = isset($payment_intent_obj['pix']) ? $payment_intent_obj['pix'] : array();
+                if (is_array($pix_raw) && !empty($pix_raw['qr_code'])) {
+                    $mp_extra_meta['_n1_mp_pix_qr_code'] = wp_kses_post($pix_raw['qr_code']);
+                }
+            } elseif (!empty($payment_intent_obj['id'])) {
+                $payment_intent_id = sanitize_text_field($payment_intent_obj['id']);
+                $payment_status = isset($payment_intent_obj['status']) ? sanitize_text_field($payment_intent_obj['status']) : 'succeeded';
+                $pm_fr = isset($params['paymentMethod']) ? sanitize_text_field($params['paymentMethod']) : 'card';
+                if ($pm_fr === 'pix') {
+                    $wc_payment_title = 'PIX (Stripe)';
+                } elseif ($pm_fr === 'boleto') {
+                    $wc_payment_title = 'Boleto Bancário (Stripe)';
+                } else {
+                    $wc_payment_title = 'Cartão de Crédito (Stripe)';
+                }
+                $wc_payment_gateway = 'stripe';
             }
 
             if (isset($params['paymentStatus'])) {
                 $payment_status = sanitize_text_field($params['paymentStatus']);
             }
 
-            // Se não houver paymentIntent, considerar como pending
-            if (!$payment_intent_id) {
-                $payment_status = 'pending';
-            }
-
-            // Calcular total
+            // Calcular total (produtos Woo + itens só da loja Next / catálogo externo)
             $subtotal = 0;
             $line_items = array();
 
             foreach ($cart_products as $item) {
-                $product_id = isset($item['_id']) ? intval($item['_id']) : (isset($item['id']) ? intval($item['id']) : 0);
-                $quantity = isset($item['orderQuantity']) ? intval($item['orderQuantity']) : 1;
+                if (!is_array($item)) {
+                    continue;
+                }
+
+                $raw_id = isset($item['_id']) ? $item['_id'] : (isset($item['id']) ? $item['id'] : 0);
+                $product_id = is_numeric($raw_id) ? intval($raw_id) : 0;
+
+                $quantity = isset($item['orderQuantity']) ? max(1, intval($item['orderQuantity'])) : 1;
                 $price = isset($item['price']) ? floatval($item['price']) : 0;
+
+                $title = '';
+                if (!empty($item['title'])) {
+                    $title = sanitize_text_field($item['title']);
+                } elseif (!empty($item['name'])) {
+                    $title = sanitize_text_field($item['name']);
+                } else {
+                    $title = 'Produto';
+                }
 
                 if ($product_id > 0) {
                     $product = wc_get_product($product_id);
                     if ($product) {
+                        $line_total = $price * $quantity;
                         $line_items[] = array(
+                            'type' => 'product',
                             'product_id' => $product_id,
                             'quantity' => $quantity,
-                            'subtotal' => $price * $quantity,
-                            'total' => $price * $quantity,
+                            'subtotal' => $line_total,
+                            'total' => $line_total,
                         );
-                        $subtotal += $price * $quantity;
+                        $subtotal += $line_total;
+                        continue;
                     }
+                }
+
+                // Sem produto no WooCommerce (catálogo Next, ID inválido, etc.) — linha manual no pedido
+                if ($price > 0) {
+                    $line_total = $price * $quantity;
+                    $line_items[] = array(
+                        'type' => 'custom',
+                        'name' => $title,
+                        'quantity' => $quantity,
+                        'subtotal' => $line_total,
+                        'total' => $line_total,
+                    );
+                    $subtotal += $line_total;
                 }
             }
 
@@ -2325,12 +3483,50 @@ class N1_WooCommerce_API
                 return new WP_Error('order_creation_failed', 'Erro ao criar pedido: ' . $order->get_error_message(), array('status' => 500));
             }
 
-            // Adicionar produtos ao pedido
+            // Adicionar itens: produtos WooCommerce ou taxa nomeada (itens só no Next — WC_Order_Item_Fee evita erro com linha “produto” sem ID)
             foreach ($line_items as $line_item) {
-                $product = wc_get_product($line_item['product_id']);
-                if ($product) {
-                    $order->add_product($product, $line_item['quantity']);
+                if (isset($line_item['type']) && $line_item['type'] === 'custom') {
+                    if (!class_exists('WC_Order_Item_Fee')) {
+                        error_log('N1 API - WC_Order_Item_Fee indisponível');
+                        return new WP_Error('woocommerce_fee_missing', 'WooCommerce não suporta itens personalizados nesta versão.', array('status' => 500));
+                    }
+                    $qty = max(1, intval($line_item['quantity']));
+                    $fee_name = $line_item['name'];
+                    if ($qty > 1) {
+                        $fee_name .= ' × ' . $qty;
+                    }
+                    $fee_line = new WC_Order_Item_Fee();
+                    $fee_line->set_name($fee_name);
+                    $fee_total = floatval($line_item['total']);
+                    if (method_exists($fee_line, 'set_amount')) {
+                        $fee_line->set_amount($fee_total);
+                    }
+                    $fee_line->set_total($fee_total);
+                    if (method_exists($fee_line, 'set_tax_status')) {
+                        $fee_line->set_tax_status('none');
+                    }
+                    $order->add_item($fee_line);
+                } elseif (!empty($line_item['product_id'])) {
+                    $product = wc_get_product($line_item['product_id']);
+                    if ($product) {
+                        $order->add_product($product, intval($line_item['quantity']));
+                    }
                 }
+            }
+
+            // Frete enviado pelo checkout (Next)
+            $ship_cost = isset($params['shippingCost']) ? floatval($params['shippingCost']) : 0;
+            if ($ship_cost > 0 && class_exists('WC_Order_Item_Shipping')) {
+                $ship = new WC_Order_Item_Shipping();
+                $ship->set_method_title('Frete');
+                if (method_exists($ship, 'set_method_id')) {
+                    $ship->set_method_id('n1_loja');
+                }
+                $ship->set_total($ship_cost);
+                if (method_exists($ship, 'set_tax_status')) {
+                    $ship->set_tax_status('none');
+                }
+                $order->add_item($ship);
             }
 
             // Aplicar cupom se houver
@@ -2357,26 +3553,19 @@ class N1_WooCommerce_API
             $order->set_billing_address($billing_address);
             $order->set_shipping_address($shipping_address);
 
-            // Definir método de pagamento baseado no que foi enviado
-            $payment_method_from_request = isset($params['paymentMethod']) ? sanitize_text_field($params['paymentMethod']) : 'card';
+            $order->set_payment_method($wc_payment_gateway);
+            $order->set_payment_method_title($wc_payment_title);
 
-            $payment_method_title = 'Cartão de Crédito (Stripe)';
-            if ($payment_method_from_request === 'pix') {
-                $payment_method_title = 'PIX (Stripe)';
-            } elseif ($payment_method_from_request === 'boleto') {
-                $payment_method_title = 'Boleto Bancário (Stripe)';
+            foreach ($mp_extra_meta as $mk => $mv) {
+                $order->update_meta_data($mk, $mv);
             }
 
-            $order->set_payment_method('stripe');
-            $order->set_payment_method_title($payment_method_title);
-
-            // Adicionar meta do payment intent se houver
-            if ($payment_intent_id) {
+            if ($wc_payment_gateway === 'stripe' && $payment_intent_id) {
                 $order->update_meta_data('_stripe_payment_intent_id', $payment_intent_id);
             }
 
-            // Definir status do pagamento
-            if ($payment_status === 'succeeded' || $payment_status === 'paid') {
+            // Definir status do pagamento (MP usa "approved")
+            if ($payment_status === 'succeeded' || $payment_status === 'paid' || $payment_status === 'approved') {
                 $order->set_status('processing');
             } else {
                 $order->set_status('pending');
@@ -2415,16 +3604,19 @@ class N1_WooCommerce_API
                 error_log('N1 API - Pedido criado mas não foi possível recarregar. ID: ' . $order_id);
             }
 
+            $resp_order = $saved_order ? $saved_order : $order;
+
             return rest_ensure_response(array(
                 'success' => true,
                 'message' => 'Pedido criado com sucesso',
                 'order' => array(
                     '_id' => (string) $order_id,
                     'id' => $order_id,
-                    'order_number' => $order->get_order_number(),
-                    'status' => $order->get_status(),
-                    'total' => $order->get_total(),
-                    'date_created' => $order->get_date_created()->date('Y-m-d H:i:s'),
+                    'order_number' => $resp_order->get_order_number(),
+                    'order_key' => $resp_order->get_order_key(),
+                    'status' => $resp_order->get_status(),
+                    'total' => $resp_order->get_total(),
+                    'date_created' => $resp_order->get_date_created() ? $resp_order->get_date_created()->date('Y-m-d H:i:s') : '',
                 ),
             ));
         } catch (Exception $e) {
@@ -2513,15 +3705,6 @@ class N1_WooCommerce_API
             $order_id = intval($request['id']);
             error_log('N1 API - Buscando pedido ID: ' . $order_id);
 
-            $user_id = get_current_user_id();
-
-            if (!$user_id) {
-                error_log('N1 API - Usuário não autenticado');
-                return new WP_Error('unauthorized', 'Usuário não autenticado', array('status' => 401));
-            }
-
-            error_log('N1 API - Usuário autenticado ID: ' . $user_id);
-
             $order = wc_get_order($order_id);
 
             if (!$order) {
@@ -2529,29 +3712,40 @@ class N1_WooCommerce_API
                 return new WP_Error('order_not_found', 'Pedido não encontrado', array('status' => 404));
             }
 
-            $customer_id = $order->get_customer_id();
-            error_log('N1 API - Pedido encontrado. Customer ID: ' . $customer_id . ', User ID: ' . $user_id);
+            $user_id = $this->n1_get_user_id_from_bearer_request();
+            $provided_key = sanitize_text_field($request->get_param('key'));
 
-            // Verificar se o pedido pertence ao usuário
-            // Se customer_id for 0 ou vazio, pode ser um pedido criado sem usuário - permitir se for admin
-            if ($customer_id != $user_id) {
-                // Verificar se é admin ou se pode editar pedidos
-                if (!current_user_can('edit_shop_orders')) {
-                    // Verificar também pelo email de cobrança como fallback
-                    $billing_email = $order->get_billing_email();
-                    $user_email = get_userdata($user_id)->user_email;
-
-                    if ($billing_email != $user_email) {
-                        error_log('N1 API - Permissão negada. Customer: ' . $customer_id . ', User: ' . $user_id . ', Email billing: ' . $billing_email . ', User email: ' . $user_email);
-                        return new WP_Error('permission_denied', 'Você não tem permissão para visualizar este pedido', array('status' => 403));
-                    } else {
-                        error_log('N1 API - Permissão concedida por email. Customer: ' . $customer_id . ', User: ' . $user_id);
-                    }
-                } else {
-                    error_log('N1 API - Permissão concedida (admin). Customer: ' . $customer_id . ', User: ' . $user_id);
+            // Convidado: só com chave secreta do pedido WooCommerce (igual link do e-mail)
+            if (!$user_id) {
+                $real_key = (string) $order->get_order_key();
+                if ($provided_key === '' || !hash_equals($real_key, $provided_key)) {
+                    error_log('N1 API - single-order: sem login e sem order_key válido');
+                    return new WP_Error(
+                        'unauthorized',
+                        'Informe a chave do pedido (link após o checkout) ou faça login.',
+                        array('status' => 401)
+                    );
                 }
+                error_log('N1 API - single-order: acesso convidado com order_key válido');
             } else {
-                error_log('N1 API - Permissão concedida (customer_id match). Customer: ' . $customer_id . ', User: ' . $user_id);
+                error_log('N1 API - Usuário autenticado ID: ' . $user_id);
+
+                $customer_id = $order->get_customer_id();
+                error_log('N1 API - Pedido encontrado. Customer ID: ' . $customer_id . ', User ID: ' . $user_id);
+
+                // Verificar se o pedido pertence ao usuário
+                if ($customer_id != $user_id) {
+                    if (!current_user_can('edit_shop_orders')) {
+                        $billing_email = $order->get_billing_email();
+                        $ud = get_userdata($user_id);
+                        $user_email = $ud ? $ud->user_email : '';
+
+                        if ($billing_email !== $user_email) {
+                            error_log('N1 API - Permissão negada. Customer: ' . $customer_id . ', User: ' . $user_id);
+                            return new WP_Error('permission_denied', 'Você não tem permissão para visualizar este pedido', array('status' => 403));
+                        }
+                    }
+                }
             }
 
             error_log('N1 API - Formatando pedido...');
@@ -2598,11 +3792,21 @@ class N1_WooCommerce_API
                         $quantity = $item->get_quantity();
                         $quantity = $quantity > 0 ? $quantity : 1;
 
-                        $item_price = floatval($item->get_total() / $quantity);
-                        $regular_price = $product ? floatval($product->get_regular_price()) : $item_price;
-                        $sale_price = $product ? ($product->get_sale_price() ? floatval($product->get_sale_price()) : $regular_price) : $item_price;
-                        $discount = 0;
+                        $line_total = floatval($item->get_total());
+                        $item_price = $quantity > 0 ? floatval($line_total / $quantity) : 0;
 
+                        if ($product) {
+                            $regular_price = floatval($product->get_regular_price());
+                            if ($regular_price <= 0) {
+                                $regular_price = $item_price;
+                            }
+                            $sale_price = $product->get_sale_price() ? floatval($product->get_sale_price()) : $regular_price;
+                        } else {
+                            $regular_price = $item_price;
+                            $sale_price = $item_price;
+                        }
+
+                        $discount = 0;
                         if ($regular_price > 0 && $sale_price < $regular_price) {
                             $discount = round((($regular_price - $sale_price) / $regular_price) * 100);
                         }
@@ -2616,7 +3820,7 @@ class N1_WooCommerce_API
                         }
 
                         $cart_items[] = array(
-                            '_id' => (string) $product_id,
+                            '_id' => $product_id > 0 ? (string) $product_id : 'custom-' . $item_id,
                             'id' => $product_id,
                             'title' => $item->get_name() ? $item->get_name() : 'Produto',
                             'price' => $sale_price,
@@ -2628,6 +3832,28 @@ class N1_WooCommerce_API
                     } catch (Exception $e) {
                         error_log('Erro ao formatar item do pedido: ' . $e->getMessage());
                         continue;
+                    }
+                }
+            }
+
+            // Taxas / itens catálogo Next (WC_Order_Item_Fee)
+            $fee_items = $order->get_items('fee');
+            if (is_array($fee_items)) {
+                foreach ($fee_items as $fid => $fee_item) {
+                    try {
+                        $ft = floatval($fee_item->get_total());
+                        $cart_items[] = array(
+                            '_id' => 'fee-' . $fid,
+                            'id' => 0,
+                            'title' => $fee_item->get_name() ? $fee_item->get_name() : 'Item',
+                            'price' => $ft,
+                            'originalPrice' => $ft,
+                            'discount' => 0,
+                            'orderQuantity' => 1,
+                            'image' => wc_placeholder_img_src(),
+                        );
+                    } catch (Exception $e) {
+                        error_log('Erro ao formatar taxa do pedido: ' . $e->getMessage());
                     }
                 }
             }
@@ -2713,11 +3939,11 @@ class N1_WooCommerce_API
                 'totalAmount' => floatval($order->get_total()),
                 'subTotal' => floatval($order->get_subtotal()),
                 'status' => $order->get_status(),
-                'paymentMethod' => $payment_method ? $payment_method : 'stripe',
-                'paymentMethodTitle' => $payment_method_title ? $payment_method_title : 'Cartão de Crédito',
+                'paymentMethod' => $payment_method ? $payment_method : 'unknown',
+                'paymentMethodTitle' => $payment_method_title ? $payment_method_title : 'Pagamento online',
                 'createdAt' => $created_at,
                 'cardInfo' => array(
-                    'type' => $payment_method ? $payment_method : 'stripe',
+                    'type' => $payment_method_title ? $payment_method_title : ($payment_method ? $payment_method : 'Pagamento online'),
                     'last4' => $order->get_meta('_stripe_source_id') ? substr($order->get_meta('_stripe_source_id'), -4) : '',
                 ),
                 'couponInfo' => $coupon_info,
@@ -3063,6 +4289,11 @@ class N1_WooCommerce_API
     }
 }
 
-// Initialize plugin
-new N1_WooCommerce_API();
+} // fim if (!class_exists('N1_WooCommerce_API'))
+
+// Inicializa uma única vez (duas pastas do plugin não duplicam hooks).
+if (!defined('N1_WOOCOMMERCE_API_LOADED')) {
+    define('N1_WOOCOMMERCE_API_LOADED', true);
+    new N1_WooCommerce_API();
+}
 

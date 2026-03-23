@@ -47,6 +47,21 @@ export const authApi = apiSlice.injectEndpoints({
       },
 
     }),
+    // Mercado Pago: processado no WordPress (plugin N-1), mesmo padrão do Stripe
+    createMercadoPagoPreference: builder.mutation({
+      query: (data) => ({
+        url: "api/order/create-mercadopago-preference",
+        method: "POST",
+        body: data,
+      }),
+    }),
+    createMercadoPagoTransparentPayment: builder.mutation({
+      query: (data) => ({
+        url: "api/order/create-mercadopago-payment",
+        method: "POST",
+        body: data,
+      }),
+    }),
     calculateShipping: builder.mutation({
       query: (data) => ({
         url: "api/shipping/calculate",
@@ -60,5 +75,7 @@ export const authApi = apiSlice.injectEndpoints({
 export const {
   useCreatePaymentIntentMutation,
   useAddOrderMutation,
+  useCreateMercadoPagoPreferenceMutation,
+  useCreateMercadoPagoTransparentPaymentMutation,
   useCalculateShippingMutation,
 } = authApi;

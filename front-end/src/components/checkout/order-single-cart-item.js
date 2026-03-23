@@ -7,9 +7,10 @@ import { notifySuccess } from "@utils/toast";
 const OrderSingleCartItem = ({ item, onRemove, isDirectCheckout = false }) => {
   const dispatch = useDispatch();
   const router = useRouter();
-  const { title, orderQuantity = 1, originalPrice, _id, quantity } = item || {};
+  const { title, orderQuantity = 1, originalPrice, _id, quantity, discount = 0 } = item || {};
   const qty = orderQuantity || quantity || 1;
-  const price = originalPrice || 0;
+  const basePrice = Number(originalPrice || 0);
+  const price = discount > 0 ? basePrice - (basePrice * Number(discount)) / 100 : basePrice;
 
   // handle remove product
   const handleRemoveProduct = () => {

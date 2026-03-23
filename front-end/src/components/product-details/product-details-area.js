@@ -187,7 +187,7 @@ const ProductDetailsArea = ({ product }) => {
           flex-shrink: 0;
         }
       `}} />
-      <section className="product__details-area pb-50">
+      <section className="product__details-area pt-40 pb-50">
         <div className="container">
           <div className="row">
             <div className="col-xl-7 col-lg-6">

@@ -43,8 +43,7 @@
 
     // Esconder elementos desnecessários
     .eltdf-ps-navigation,
-    .eltdf-btn,
-    a[href*="loja.n-1edicoes.org"] {
+    .eltdf-btn {
       display: none !important;
     }
 
@@ -178,6 +177,17 @@
       margin: 2rem 0 !important;
       border: 1px solid #e0e0e0 !important;
       border-radius: 8px !important;
+    }
+
+    // Video HTML5
+    video {
+      display: block !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      height: auto !important;
+      margin: 2rem 0 !important;
+      border-radius: 8px !important;
+      background: #000;
     }
     
     // Garantir que containers de iframe sejam visíveis

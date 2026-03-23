@@ -2,7 +2,6 @@
 import * as dayjs from "dayjs";
 import React, { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector, useStore } from "react-redux";
-import { CardElement, useElements, useStripe } from "@stripe/react-stripe-js";
 import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
 //internal import
@@ -14,17 +13,26 @@ import useCartInfo from "./use-cart-info";
 import { set_shipping } from "src/redux/features/order/orderSlice";
 import {
   useAddOrderMutation,
-  useCreatePaymentIntentMutation,
+  useCreateMercadoPagoTransparentPaymentMutation,
   useCalculateShippingMutation,
 } from "src/redux/features/order/orderApi";
-import { useUpdateProfileMutation } from "src/redux/features/auth/authApi";
+import {
+  useUpdateProfileMutation,
+  useRegisterUserMutation,
+  useCheckEmailExistsMutation,
+} from "src/redux/features/auth/authApi";
 
 const useCheckoutSubmit = (directProduct = null) => {
   const { data: offerCoupons, isError, isLoading } = useGetOfferCouponsQuery();
   const [addOrder, {}] = useAddOrderMutation();
-  const [createPaymentIntent, {}] = useCreatePaymentIntentMutation();
+  const [createMercadoPagoTransparentPayment, {}] =
+    useCreateMercadoPagoTransparentPaymentMutation();
   const [calculateShipping, { isLoading: isCalculatingShipping }] = useCalculateShippingMutation();
+  const mercadoPagoCardRef = useRef(null);
   const [updateProfile, {}] = useUpdateProfileMutation();
+  const [registerUser] = useRegisterUserMutation();
+  const [checkEmailExists] = useCheckEmailExistsMutation();
+  const lastShippingPostcodeRef = useRef("");
   
   // Log quando os dados dos cupons chegam
   useEffect(() => {
@@ -75,24 +83,38 @@ const useCheckoutSubmit = (directProduct = null) => {
   const [clientSecret, setClientSecret] = useState("");
   const [shippingOptions, setShippingOptions] = useState([]);
   const [selectedShippingId, setSelectedShippingId] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState('card'); // 'card', 'pix', 'boleto'
+  const [paymentMethod, setPaymentMethod] = useState("card"); // 'card' | 'pix' (boleto removido)
   const [shippingError, setShippingError] = useState(false);
+  /** Quando o submit detecta e-mail já cadastrado, abre o modal de login no BillingDetails */
+  const [openLoginModalEmail, setOpenLoginModalEmail] = useState(null);
   
   const dispatch = useDispatch();
   const router = useRouter();
   const store = useStore();
-  const stripe = useStripe();
-  const elements = useElements();
 
   const {
     register,
     handleSubmit,
     setValue,
+    getValues,
     watch,
+    clearErrors,
     formState: { errors },
   } = useForm();
 
   const couponRef = useRef("");
+
+  useEffect(() => {
+    if (paymentMethod === "boleto") {
+      setPaymentMethod("card");
+    }
+  }, [paymentMethod]);
+
+  useEffect(() => {
+    if (paymentMethod === "pix") {
+      clearErrors("cardholderName");
+    }
+  }, [paymentMethod, clearErrors]);
 
   useEffect(() => {
     if (localStorage.getItem("couponInfo")) {
@@ -200,36 +222,6 @@ const useCheckoutSubmit = (directProduct = null) => {
     discountProductType,
     couponInfo,
   ]);
-
-  // create payment intent
-  useEffect(() => {
-    if (cartTotal && cartTotal > 0) {
-      createPaymentIntent({
-        price: parseInt(cartTotal),
-      })
-        .then((response) => {
-          // RTK Query retorna { data: {...}, error: {...} }
-          const responseData = response?.data;
-          const paymentIntentData = responseData?.data || responseData;
-          
-          // Verificar diferentes estruturas de resposta
-          const clientSecretValue = paymentIntentData?.clientSecret || paymentIntentData?.data?.clientSecret;
-          
-          if (clientSecretValue) {
-            setClientSecret(clientSecretValue);
-          } else {
-            // Se não houver clientSecret, apenas loga (não quebra a aplicação)
-            console.warn("Payment intent endpoint não retornou clientSecret. O pagamento pode não estar configurado no backend.");
-            // Não mostra erro para o usuário, pois pode ser que o pagamento não esteja implementado ainda
-          }
-        })
-        .catch((error) => {
-          // Erro silencioso - o endpoint pode não existir ainda
-          console.warn("Payment intent endpoint não disponível:", error);
-          // Não mostra erro para o usuário
-        });
-    }
-  }, [createPaymentIntent, cartTotal]);
 
   // handleCouponCode
   const handleCouponCode = (e) => {
@@ -361,6 +353,10 @@ const useCheckoutSubmit = (directProduct = null) => {
     
     if (cleanPostcode.length !== 8) {
       notifyError("CEP inválido. Deve conter 8 dígitos.");
+      lastShippingPostcodeRef.current = "";
+      setShippingOptions([]);
+      setSelectedShippingId("");
+      setShippingCost(0);
       return;
     }
 
@@ -378,6 +374,7 @@ const useCheckoutSubmit = (directProduct = null) => {
         console.error('[FRETE] Erro na resposta:', result.error);
         notifyError(result.error?.data?.message || "Erro ao calcular frete");
         setShippingOptions([]);
+        lastShippingPostcodeRef.current = "";
         return;
       }
 
@@ -389,9 +386,11 @@ const useCheckoutSubmit = (directProduct = null) => {
         setShippingOptions([]);
         setShippingCost(0);
         setSelectedShippingId('');
+        lastShippingPostcodeRef.current = "";
         return;
       }
 
+      lastShippingPostcodeRef.current = cleanPostcode;
       setShippingOptions(options);
       setShippingError(false); // Limpar erro quando frete for calculado
       notifySuccess(`${options.length} opção(ões) de frete encontrada(s)`);
@@ -403,6 +402,7 @@ const useCheckoutSubmit = (directProduct = null) => {
       console.error('[FRETE] Erro ao calcular frete:', error);
       notifyError("Erro ao calcular frete. Verifique o CEP e tente novamente.");
       setShippingOptions([]);
+      lastShippingPostcodeRef.current = "";
     }
   };
 
@@ -447,21 +447,35 @@ const useCheckoutSubmit = (directProduct = null) => {
     fillCheckoutFields();
   }, [fillCheckoutFields]);
 
-  // Limpar opções de frete quando o CEP mudar
+  // Limpar frete só quando o CEP mudar de fato (evita perder seleção após erro de validação)
   useEffect(() => {
     const subscription = watch((value, { name }) => {
-      if (name === 'zipCode') {
-        const cleanZipCode = value.zipCode ? String(value.zipCode).replace(/\D/g, '') : '';
-        // Se o CEP mudou e tem 8 dígitos, limpar opções de frete para forçar novo cálculo
-        if (cleanZipCode.length === 8 && shippingOptions.length > 0) {
+      if (name !== "zipCode") return;
+      const cleanZipCode = value.zipCode ? String(value.zipCode).replace(/\D/g, "") : "";
+      const calculatedFor = lastShippingPostcodeRef.current;
+
+      if (cleanZipCode.length !== 8) {
+        if (calculatedFor) {
           setShippingOptions([]);
-          setSelectedShippingId('');
+          setSelectedShippingId("");
           setShippingCost(0);
+          lastShippingPostcodeRef.current = "";
         }
+        return;
+      }
+
+      if (
+        calculatedFor &&
+        cleanZipCode !== calculatedFor
+      ) {
+        setShippingOptions([]);
+        setSelectedShippingId("");
+        setShippingCost(0);
+        lastShippingPostcodeRef.current = "";
       }
     });
     return () => subscription.unsubscribe();
-  }, [watch, shippingOptions.length]);
+  }, [watch]);
 
   // submitHandler
   const submitHandler = async (data) => {
@@ -479,6 +493,45 @@ const useCheckoutSubmit = (directProduct = null) => {
       return;
     }
     
+    if (!user) {
+      let chk;
+      try {
+        chk = await checkEmailExists({ email: data.email }).unwrap();
+      } catch {
+        notifyError(
+          "Não foi possível verificar o e-mail. Confira sua conexão, atualize a página e tente novamente."
+        );
+        setIsCheckoutSubmit(false);
+        return;
+      }
+      if (chk?.exists) {
+        const em = String(data.email || "")
+          .trim()
+          .toLowerCase();
+        setOpenLoginModalEmail(em);
+        notifyError(
+          "Este e-mail já possui cadastro. Informe sua senha no modal para entrar e concluir o pedido."
+        );
+        setIsCheckoutSubmit(false);
+        return;
+      }
+
+      const pwd = (data.checkoutPassword || "").trim();
+      const confirm = (data.checkoutConfirmPassword || "").trim();
+      if (!pwd || pwd.length < 6) {
+        notifyError(
+          "Defina uma senha com pelo menos 6 caracteres para criar sua conta ao finalizar."
+        );
+        setIsCheckoutSubmit(false);
+        return;
+      }
+      if (pwd !== confirm) {
+        notifyError("As senhas não coincidem.");
+        setIsCheckoutSubmit(false);
+        return;
+      }
+    }
+
     // Validar se o frete foi calculado
     // Verificar se há opções de frete disponíveis e se uma foi selecionada
     if (shippingOptions.length === 0 || !selectedShippingId) {
@@ -496,20 +549,44 @@ const useCheckoutSubmit = (directProduct = null) => {
     dispatch(set_shipping(data));
     setIsCheckoutSubmit(true);
     
-    // Limpar CPF/CNPJ (remover pontos, traços e barras)
-    const cleanCpf = data.cpf ? String(data.cpf).replace(/\D/g, '') : '';
+    const cleanTaxDoc = data.taxDocument
+      ? String(data.taxDocument).replace(/\D/g, "")
+      : "";
+
+    if (paymentMethod === "card") {
+      if (!cleanTaxDoc || (cleanTaxDoc.length !== 11 && cleanTaxDoc.length !== 14)) {
+        notifyError("Informe CPF ou CNPJ válido nos dados de cobrança.");
+        setIsCheckoutSubmit(false);
+        return;
+      }
+      if (!data.cardholderName || !String(data.cardholderName).trim()) {
+        notifyError("Informe o nome impresso no cartão.");
+        setIsCheckoutSubmit(false);
+        return;
+      }
+    }
+
+    if (paymentMethod === "pix") {
+      if (!cleanTaxDoc || (cleanTaxDoc.length !== 11 && cleanTaxDoc.length !== 14)) {
+        notifyError("Informe CPF ou CNPJ válido nos dados de cobrança para pagar com PIX.");
+        setIsCheckoutSubmit(false);
+        return;
+      }
+    }
 
     let orderInfo = {
       name: `${data.firstName} ${data.lastName}`,
       address: data.address,
-      number: data.number || '',
-      complement: data.complement || '',
+      number: data.number || "",
+      complement: data.complement || "",
       contact: data.contact,
       email: data.email,
       city: data.city,
       country: data.country,
       zipCode: cleanZipCode,
-      cpf: cleanCpf, // CPF/CNPJ para Boleto
+      cpf: cleanTaxDoc,
+      taxDocument: cleanTaxDoc,
+      cardholderName: data.cardholderName,
       shippingOption: data.shippingOption,
       status: "pending",
       cart: productsToUse,
@@ -517,444 +594,359 @@ const useCheckoutSubmit = (directProduct = null) => {
       shippingCost: shippingCost,
       discount: discountAmount,
       totalAmount: cartTotal,
-      user:`${user?._id}`,
+      user: user?._id ? `${user._id}` : null,
       paymentMethod: paymentMethod,
+      _guestPassword: !user ? String(data.checkoutPassword || "").trim() : undefined,
     };
 
-    // Processar conforme o método de pagamento selecionado
-    if (paymentMethod === 'card') {
-      if (!stripe || !elements) {
-        setIsCheckoutSubmit(false);
-        return;
-      }
-      const card = elements.getElement(CardElement);
-      if (card == null) {
-        setIsCheckoutSubmit(false);
-        return;
-      }
-      const { error, paymentMethod: pm } = await stripe.createPaymentMethod({
-        type: "card",
-        card,
-      });
-
-      if (error) {
-        setCardError(error?.message);
-        setIsCheckoutSubmit(false);
-      } else {
-        setCardError("");
-        const orderData = {
-          ...orderInfo,
-          cardInfo: pm,
-        };
-        handlePaymentWithStripe(orderData);
-        setIsCheckoutSubmit(false);
-        return;
-      }
-    } else if (paymentMethod === 'boleto') {
-      // Processar Boleto (PIX temporariamente desabilitado)
-      handlePaymentWithStripe(orderInfo);
-      setIsCheckoutSubmit(false);
-    } else if (paymentMethod === 'pix') {
-      // PIX temporariamente desabilitado - redirecionar para cartão
-      setPaymentMethod('card');
-      notifyError('PIX temporariamente indisponível. Por favor, escolha outra forma de pagamento.');
-      setIsCheckoutSubmit(false);
-    }
+    handleCheckoutPayment(orderInfo);
   };
 
-  // handlePaymentWithStripe
-  const handlePaymentWithStripe = async (order) => {
+  const handleCheckoutPayment = async (order) => {
     const orderPaymentMethod = order.paymentMethod || paymentMethod;
-    
-    // PIX temporariamente desabilitado
-    if (orderPaymentMethod === 'pix') {
-      notifyError('PIX temporariamente indisponível. Por favor, escolha outra forma de pagamento.');
-      setPaymentMethod('card');
+
+    if (orderPaymentMethod === "pix") {
+      try {
+        const nameParts = (order.name || "").trim().split(/\s+/);
+        const payer_first_name = nameParts[0] || "Cliente";
+        const payer_last_name = nameParts.slice(1).join(" ") || payer_first_name;
+
+        const payResult = await createMercadoPagoTransparentPayment({
+          payment_type: "pix",
+          transaction_amount: Number(order.totalAmount || cartTotal || 0),
+          payer_email: order.email,
+          payer_first_name,
+          payer_last_name,
+          identification_number: order.taxDocument,
+          description: `N-1 Edições — ${(order.cart || productsToUse || []).length} item(ns)`,
+          metadata: { checkout: "pix" },
+        });
+
+        if (payResult?.error) {
+          const errData = payResult.error?.data;
+          const msg =
+            errData?.message ||
+            errData?.error?.message ||
+            errData?.data?.message ||
+            "Erro ao gerar PIX.";
+          notifyError(msg);
+          setIsCheckoutSubmit(false);
+          return;
+        }
+
+        const pdata = payResult.data;
+        if (!pdata?.success || !pdata.pix) {
+          notifyError(pdata?.message || "Não foi possível gerar o PIX.");
+          setIsCheckoutSubmit(false);
+          return;
+        }
+
+        const orderPayload = {
+          name: order.name,
+          address: order.address,
+          number: order.number,
+          complement: order.complement,
+          contact: order.contact,
+          email: order.email,
+          city: order.city,
+          country: order.country,
+          zipCode: order.zipCode,
+          subTotal: order.subTotal,
+          shippingCost: order.shippingCost,
+          discount: order.discount,
+          totalAmount: order.totalAmount,
+          shippingOption: order.shippingOption,
+          cart: order.cart,
+          user: order.user,
+          status: "pending",
+          paymentIntent: {
+            mercadoPago: pdata.payment,
+            paymentMethod: "mercadopago_pix",
+            pix: pdata.pix,
+          },
+        };
+
+        const result = await addOrder(orderPayload);
+
+        if (result?.error) {
+          notifyError(
+            result.error?.data?.message ||
+              "Pedido não salvo após gerar PIX. Entre em contato com o suporte."
+          );
+          setIsCheckoutSubmit(false);
+          return;
+        }
+
+        const orderId =
+          result.data?.order?._id || result.data?.order?.id || result.data?._id || "";
+        const orderKey =
+          result.data?.order?.order_key || result.data?.order?.orderKey || "";
+
+        if (!user && order._guestPassword && order.email) {
+          try {
+            await registerUser({
+              name: order.name,
+              email: order.email,
+              password: order._guestPassword,
+              confirmPassword: order._guestPassword,
+            }).unwrap();
+          } catch (regErr) {
+            console.warn("[CHECKOUT] Auto-cadastro pós-pedido (PIX):", regErr);
+          }
+        }
+
+        const profileUser = store.getState().auth.user || user;
+        if (profileUser && profileUser._id) {
+          try {
+            const orderZipCode = order.zipCode || "";
+            const cleanOrderZipCode = orderZipCode
+              ? String(orderZipCode).replace(/\D/g, "")
+              : "";
+            const firstName = order.name?.split(" ")[0] || "";
+            const lastName = order.name?.split(" ").slice(1).join(" ") || "";
+            const fullName =
+              firstName && lastName ? `${firstName} ${lastName}` : order.name || profileUser.name;
+
+            const profileData = {
+              id: profileUser._id,
+              name: fullName,
+              lastName: lastName || profileUser.lastName || "",
+              email: order.email || profileUser.email,
+              phone: order.contact || profileUser.phone || profileUser.contactNumber || "",
+              address: order.address || profileUser.address || profileUser.shippingAddress || "",
+              number: order.number || profileUser.number || profileUser.numero || "",
+              complement: order.complement || profileUser.complement || "",
+              zipCode:
+                cleanOrderZipCode || order.zipCode || profileUser.zipCode || profileUser.cep || "",
+              city: order.city || profileUser.city || "",
+              country: order.country || profileUser.country || profileUser.state || "",
+            };
+
+            const emailChanged =
+              String(order.email || "").toLowerCase() !==
+              String(profileUser.email || "").toLowerCase();
+            const hasNewData =
+              profileData.address ||
+              profileData.city ||
+              profileData.country ||
+              profileData.zipCode ||
+              profileData.phone ||
+              emailChanged;
+            if (hasNewData) {
+              updateProfile(profileData).catch(() => {});
+            }
+          } catch (_) {
+            /* ignore */
+          }
+        }
+
+        if (typeof localStorage !== "undefined") {
+          localStorage.setItem(
+            "pendingPixPayment",
+            JSON.stringify({
+              orderId: String(orderId),
+              orderKey: orderKey || "",
+              amount: order.totalAmount,
+              pixData: {
+                qr_code: pdata.pix.qr_code || "",
+                qr_code_base64: pdata.pix.qr_code_base64 || "",
+                ticket_url: pdata.pix.ticket_url || "",
+                expires_at: pdata.expires_at || null,
+              },
+            })
+          );
+        }
+
+        if (directProduct) {
+          sessionStorage.removeItem("directCheckoutProduct");
+        }
+        notifySuccess("Pedido registrado! Escaneie o PIX ou copie o código na próxima tela.");
+        router.push(`/payment/pix?order=${encodeURIComponent(String(orderId))}`);
+        setIsCheckoutSubmit(false);
+        return;
+      } catch (err) {
+        console.error("Erro checkout PIX:", err);
+        notifyError(err?.message || "Erro ao gerar PIX. Tente novamente.");
+        setIsCheckoutSubmit(false);
+        return;
+      }
+    }
+
+    if (orderPaymentMethod !== "card") {
       setIsCheckoutSubmit(false);
       return;
     }
-    
-    // Preparar dados no formato esperado pelo backend
-    const orderData = {
-      cart_products: order.cart || productsToUse,
-      shipping_info: {
-        firstName: order.name ? order.name.split(' ')[0] : shipping_info.firstName || '',
-        lastName: order.name ? order.name.split(' ').slice(1).join(' ') : shipping_info.lastName || '',
-        email: order.email || shipping_info.email || user?.email || '',
-        phone: order.contact || shipping_info.contact || shipping_info.phone || '',
-        address: order.address || shipping_info.address || '',
-        city: order.city || shipping_info.city || '',
-        country: order.country || shipping_info.country || 'BR',
-        postcode: order.zipCode || shipping_info.zipCode || shipping_info.postcode || '',
-      },
-      paymentMethod: orderPaymentMethod,
-      paymentIntent: null,
-      paymentStatus: 'pending',
-      couponInfo: couponInfo && Object.keys(couponInfo).length > 0 ? couponInfo : null,
-    };
 
-    // Se for cartão de crédito, precisa do Stripe
-    if (orderPaymentMethod === 'card') {
-      if (!stripe || !elements) {
-        notifyError("Stripe não está disponível. Por favor, recarregue a página.");
-        setIsCheckoutSubmit(false);
-        return;
-      }
-      
-      const card = elements.getElement(CardElement);
-      if (!card) {
-        notifyError("Elemento do cartão não encontrado.");
-        setIsCheckoutSubmit(false);
-        return;
-      }
-      
-      // Sempre criar um novo payment intent para evitar conflitos
-      try {
-        // Criar payment intent com método de pagamento específico
-        const paymentIntentResult = await createPaymentIntent({
-          price: parseInt(cartTotal),
-          payment_method: 'card',
-        });
-        
-        if (paymentIntentResult?.error) {
-          const errorMsg = paymentIntentResult.error?.data?.message || paymentIntentResult.error?.data || 'Erro ao criar Payment Intent';
-          notifyError(errorMsg);
-          setIsCheckoutSubmit(false);
-          return;
-        }
-        
-        const paymentIntentResponse = paymentIntentResult?.data?.data || paymentIntentResult?.data || paymentIntentResult;
-        const newClientSecret = paymentIntentResponse?.clientSecret;
-        
-        if (!newClientSecret) {
-          console.error("Payment Intent criado mas sem clientSecret:", paymentIntentResponse);
-          notifyError("Erro ao processar pagamento. Tente novamente.");
-          setIsCheckoutSubmit(false);
-          return;
-        }
-        
-        // Confirmar o payment intent com os dados do cartão
-        // O Stripe requer código de país ISO 3166-1 alpha-2 (2 caracteres), sempre usar 'BR' para Brasil
-        const countryCode = 'BR'; // Sempre Brasil, não usar estado como 'SP'
-        
-        const { paymentIntent, error: intentErr } = await stripe.confirmCardPayment(newClientSecret, {
-          payment_method: {
-            card: card,
-            billing_details: {
-              name: user?.name || order.name || `${order.shipping_info?.firstName || ''} ${order.shipping_info?.lastName || ''}`.trim(),
-              email: user?.email || order.email || order.shipping_info?.email || '',
-              address: {
-                line1: order.address || order.shipping_info?.address || '',
-                city: order.city || order.shipping_info?.city || '',
-                postal_code: order.zipCode || order.shipping_info?.postcode || '',
-                state: order.country || order.shipping_info?.country || '', // Estado vai aqui (SP, RJ, etc)
-                country: countryCode, // País sempre 'BR'
-              },
-            },
-          },
-        });
-        
-        if (intentErr) {
-          console.error("Erro ao confirmar pagamento:", intentErr);
-          notifyError(intentErr.message || "Erro ao processar pagamento. Verifique os dados do cartão.");
-          setIsCheckoutSubmit(false);
-          return;
-        }
-        
-        if (!paymentIntent) {
-          notifyError("Erro ao processar pagamento. Tente novamente.");
-          setIsCheckoutSubmit(false);
-          return;
-        }
-        
-        orderData.paymentIntent = paymentIntent;
-        orderData.paymentStatus = paymentIntent?.status || 'succeeded';
-        
-        // Limpar clientSecret após uso para evitar reutilização
-        setClientSecret('');
-      } catch (err) {
-        console.error("Erro ao processar pagamento com cartão:", err);
-        notifyError(err.message || "Erro ao processar pagamento. Tente novamente.");
-        setIsCheckoutSubmit(false);
-        return;
-      }
-    } else if (orderPaymentMethod === 'pix') {
-      // Processar PIX
-      let pixPaymentResult = null;
-      try {
-        // 1. Criar payment intent para PIX
-        pixPaymentResult = await createPaymentIntent({
-          price: parseInt(cartTotal),
-          payment_method: 'pix',
-        });
-        
-        console.log('[PIX] Resultado completo do createPaymentIntent:', pixPaymentResult);
-        
-        // Verificar se houve erro na resposta
-        if (pixPaymentResult?.error) {
-          const errorMsg = pixPaymentResult.error?.data?.message || pixPaymentResult.error?.data || pixPaymentResult.error?.message || '';
-          console.error('[PIX] Erro retornado pelo backend:', errorMsg);
-          throw new Error(errorMsg || 'Erro ao criar Payment Intent para PIX');
-        }
-        
-        // Extrair dados da resposta
-        const paymentIntentResponse = pixPaymentResult?.data?.data || pixPaymentResult?.data || pixPaymentResult;
-        const pixClientSecret = paymentIntentResponse?.clientSecret;
-        const paymentIntentId = paymentIntentResponse?.paymentIntentId;
-        
-        if (!pixClientSecret) {
-          console.error('[PIX] clientSecret não encontrado:', paymentIntentResponse);
-          throw new Error('Não foi possível criar payment intent para PIX. Resposta inválida do servidor.');
-        }
-        
-        // 2. Para PIX, o QR Code deve vir diretamente na resposta do backend
-        const pixAction = paymentIntentResponse?.next_action?.pix_display_qr_code;
-        
-        if (!pixAction) {
-          console.error('[PIX] QR Code não encontrado na resposta do backend:', {
-            response: paymentIntentResponse,
-            fullResult: pixPaymentResult,
-          });
-          
-          throw new Error('QR Code do PIX não foi gerado. Verifique se o PIX está habilitado na sua conta Stripe.');
-        }
-        
-        console.log('[PIX] QR Code obtido do backend:', pixAction);
-        
-        // 3. Preparar dados do pedido
-        orderData.paymentIntent = {
-          id: paymentIntentId,
-          client_secret: pixClientSecret,
-          payment_method: 'pix',
-          status: paymentIntentResponse?.status || 'requires_payment_method',
-        };
-        orderData.paymentStatus = 'pending';
-        orderData.pixData = {
-          qr_code: pixAction.data,
-          qr_code_url: pixAction.image_url_png || pixAction.image_url_svg,
-          hosted_instructions_url: pixAction.hosted_instructions_url,
-          expires_at: pixAction.expires_at || (Math.floor(Date.now() / 1000) + 1800),
-        };
-        
-        console.log('[PIX] QR Code preparado para envio:', orderData.pixData);
-        
-      } catch (err) {
-        console.error('Erro ao processar PIX:', err);
-        
-        let errorMessage = err.message || 'Erro ao processar pagamento via PIX.';
-        
-        // Verificar erros específicos
-        if (err.message?.includes('test') || err.message?.includes('Test mode')) {
-          errorMessage = 'PIX não está disponível em modo de teste. Use chaves de produção.';
-        } else if (err.message?.includes('disabled') || err.message?.includes('not enabled')) {
-          errorMessage = 'PIX não está habilitado na sua conta Stripe.';
-        } else if (pixPaymentResult?.error) {
-          errorMessage = pixPaymentResult.error?.data?.message || pixPaymentResult.error?.data || errorMessage;
-        }
-        
-        notifyError(errorMessage);
-        setIsCheckoutSubmit(false);
-        return;
-      }
-    } else if (orderPaymentMethod === 'boleto') {
-      // Processar Boleto
-      let boletoPaymentResult = null;
-      try {
-        // 1. Criar payment intent para Boleto
-        boletoPaymentResult = await createPaymentIntent({
-          price: parseInt(cartTotal),
-          payment_method: 'boleto',
-        });
-        
-        console.log('[BOLETO] Resultado completo do createPaymentIntent:', boletoPaymentResult);
-        
-        // Verificar se houve erro na resposta
-        if (boletoPaymentResult?.error) {
-          const errorMsg = boletoPaymentResult.error?.data?.message || boletoPaymentResult.error?.data || boletoPaymentResult.error?.message || '';
-          console.error('[BOLETO] Erro retornado pelo backend:', errorMsg);
-          throw new Error(errorMsg || 'Erro ao criar Payment Intent para Boleto');
-        }
-        
-        const paymentIntentResponse = boletoPaymentResult?.data?.data || boletoPaymentResult?.data || boletoPaymentResult;
-        const boletoClientSecret = paymentIntentResponse?.clientSecret;
-        
-        if (!boletoClientSecret) {
-          console.error('[BOLETO] clientSecret não encontrado:', paymentIntentResponse);
-          throw new Error('Não foi possível criar payment intent para Boleto. Resposta inválida do servidor.');
-        }
-        
-        // 2. Confirmar o pagamento Boleto para obter os dados do boleto
-        // CPF/CNPJ é obrigatório para Boleto
-        const taxId = order.cpf || '';
-        
-        if (!taxId || taxId.length < 11) {
-          throw new Error('CPF/CNPJ é obrigatório para pagamento via Boleto');
-        }
-        
-        if (!stripe) {
-          throw new Error('Stripe não está disponível. Por favor, recarregue a página.');
-        }
-        
-        const { paymentIntent: confirmedIntent, error: boletoError } = await stripe.confirmBoletoPayment(
-          boletoClientSecret,
-          {
-            payment_method: {
-              billing_details: {
-                name: order.name || `${shipping_info.firstName} ${shipping_info.lastName}`,
-                email: order.email || shipping_info.email || user?.email,
-                address: {
-                  line1: order.address || shipping_info.address,
-                  city: order.city || shipping_info.city,
-                  state: 'SP',
-                  postal_code: order.zipCode || shipping_info.postcode,
-                  country: 'BR',
-                },
-              },
-              boleto: {
-                tax_id: taxId.replace(/\D/g, ''),
-              },
-            },
-          }
-        );
-        
-        if (boletoError) {
-          console.error('Erro ao confirmar Boleto:', boletoError);
-          throw new Error(boletoError.message || 'Erro ao gerar Boleto');
-        }
-        
-        // 3. Extrair dados do Boleto
-        const boletoAction = confirmedIntent?.next_action?.boleto_display_details;
-        
-        orderData.paymentIntent = {
-          id: confirmedIntent.id,
-          client_secret: boletoClientSecret,
-          payment_method: 'boleto',
-          status: confirmedIntent.status,
-        };
-        orderData.paymentStatus = 'pending';
-        orderData.boletoData = boletoAction ? {
-          number: boletoAction.number,
-          hosted_voucher_url: boletoAction.hosted_voucher_url,
-          expires_at: boletoAction.expires_at,
-        } : null;
-        
-        console.log('[BOLETO] Payment confirmado:', confirmedIntent);
-        console.log('[BOLETO] Boleto data:', orderData.boletoData);
-        
-      } catch (err) {
-        console.error('Erro ao processar Boleto:', err);
-        
-        let errorMessage = err.message || 'Erro ao processar pagamento via Boleto.';
-        
-        if (boletoPaymentResult?.error) {
-          errorMessage = boletoPaymentResult.error?.data?.message || boletoPaymentResult.error?.data || errorMessage;
-        }
-        
-        notifyError(errorMessage);
-        setIsCheckoutSubmit(false);
-        return;
-      }
-    }
-
-    // Salvar pedido
     try {
-      console.log('[PEDIDO] Preparando para salvar pedido. orderData:', orderData);
-      console.log('[PEDIDO] User ID:', user?._id || 'Não logado');
-      console.log('[PEDIDO] Token de autenticação presente:', !!store.getState()?.auth?.accessToken);
-      
-      const result = await addOrder(orderData);
-      
-      console.log('[PEDIDO] Resultado do addOrder:', result);
-      
-      if (result?.error) {
-        console.error('[PEDIDO] Erro ao salvar pedido:', result.error);
-        console.error('[PEDIDO] Status do erro:', result.error?.status);
-        console.error('[PEDIDO] Mensagem do erro:', result.error?.data);
-        notifyError(result.error?.data?.message || "Erro ao processar pedido. Tente novamente.");
+      let tokenRes;
+      try {
+        tokenRes = await mercadoPagoCardRef.current?.createToken({
+          cardholderName: order.cardholderName || order.name,
+          identificationType: order.taxDocument?.length > 11 ? "CNPJ" : "CPF",
+          identificationNumber: order.taxDocument,
+        });
+      } catch (tokenErr) {
+        notifyError(tokenErr?.message || "Não foi possível validar o cartão.");
         setIsCheckoutSubmit(false);
-      } else {
-        const orderId = result.data?.order?._id || result.data?._id || 'success';
-        
-        // Salvar dados do checkout no perfil do usuário se estiver logado
-        if (user && user._id) {
-          try {
-            // Limpar CEP do orderData se disponível
-            const orderZipCode = orderData.shipping_info?.postcode || order.zipCode || '';
-            const cleanOrderZipCode = orderZipCode ? String(orderZipCode).replace(/\D/g, '') : '';
-            
-            // Extrair dados do orderData ou order original
-            const firstName = orderData.shipping_info?.firstName || order.name?.split(' ')[0] || '';
-            const lastName = orderData.shipping_info?.lastName || order.name?.split(' ').slice(1).join(' ') || '';
-            const fullName = firstName && lastName ? `${firstName} ${lastName}` : (order.name || user.name);
-            
-            const profileData = {
-              id: user._id,
-              name: fullName,
-              lastName: lastName || user.lastName || '',
-              email: orderData.shipping_info?.email || order.email || user.email,
-              phone: orderData.shipping_info?.phone || order.contact || user.phone || user.contactNumber || '',
-              address: orderData.shipping_info?.address || order.address || user.address || user.shippingAddress || '',
-              number: order.number || user.number || user.numero || '',
-              complement: order.complement || user.complement || '',
-              zipCode: cleanOrderZipCode || order.zipCode || user.zipCode || user.cep || '',
-              city: orderData.shipping_info?.city || order.city || user.city || '',
-              country: orderData.shipping_info?.country || order.country || user.country || user.state || '',
-            };
-            
-            // Só atualizar se houver dados novos para salvar
-            const hasNewData = profileData.address || profileData.city || profileData.country || profileData.zipCode || profileData.phone;
-            if (hasNewData) {
-              updateProfile(profileData)
-                .then((result) => {
-                  if (result?.error) {
-                    console.log("Erro ao salvar dados no perfil:", result.error);
-                  } else {
-                    console.log("Dados do checkout salvos no perfil com sucesso");
-                  }
-                })
-                .catch((err) => {
-                  console.log("Erro ao salvar dados no perfil (não crítico):", err);
-                });
-            }
-          } catch (profileErr) {
-            console.log("Erro ao salvar dados no perfil (não crítico):", profileErr);
-          }
-        }
-        
-        // Se for PIX, redirecionar com dados do QR Code
-        if (orderPaymentMethod === 'pix' && orderData.pixData) {
-          // Salvar dados do PIX no localStorage para a página de pagamento
-          localStorage.setItem('pendingPixPayment', JSON.stringify({
-            orderId: orderId,
-            pixData: orderData.pixData,
-            amount: cartTotal,
-            createdAt: new Date().toISOString(),
-          }));
-          router.push(`/payment/pix?order=${orderId}`);
-        } 
-        // Se for Boleto, redirecionar com dados do boleto
-        else if (orderPaymentMethod === 'boleto' && orderData.boletoData) {
-          // Salvar dados do Boleto no localStorage para a página de pagamento
-          localStorage.setItem('pendingBoletoPayment', JSON.stringify({
-            orderId: orderId,
-            boletoData: orderData.boletoData,
-            amount: cartTotal,
-            createdAt: new Date().toISOString(),
-          }));
-          router.push(`/payment/boleto?order=${orderId}`);
-        } else {
-          router.push(`/order/${orderId}`);
-        }
-        // Limpar sessionStorage se foi checkout direto
-        if (directProduct) {
-          sessionStorage.removeItem('directCheckoutProduct');
-        }
-        notifySuccess("Seu pedido foi confirmado!");
-        setIsCheckoutSubmit(false);
+        return;
       }
+
+      if (!tokenRes?.token) {
+        notifyError("Token do cartão não gerado. Verifique os dados e tente novamente.");
+        setIsCheckoutSubmit(false);
+        return;
+      }
+
+      const nameParts = (order.name || "").trim().split(/\s+/);
+      const payer_first_name = nameParts[0] || "Cliente";
+      const payer_last_name = nameParts.slice(1).join(" ") || payer_first_name;
+
+      const payResult = await createMercadoPagoTransparentPayment({
+        token: tokenRes.token,
+        transaction_amount: Number(order.totalAmount || cartTotal || 0),
+        installments: 1,
+        payer_email: order.email,
+        payer_first_name,
+        payer_last_name,
+        identification_number: order.taxDocument,
+        description: `N-1 Edições — ${(order.cart || productsToUse || []).length} item(ns)`,
+        metadata: { checkout: "transparent" },
+      });
+
+      if (payResult?.error) {
+        const msg =
+          payResult.error?.data?.message ||
+          payResult.error?.data?.error?.message ||
+          "Erro ao processar pagamento.";
+        notifyError(msg);
+        setIsCheckoutSubmit(false);
+        return;
+      }
+
+      const pdata = payResult.data;
+      if (!pdata?.success) {
+        notifyError(pdata?.message || "Pagamento não autorizado.");
+        setIsCheckoutSubmit(false);
+        return;
+      }
+
+      if (pdata.status === "rejected") {
+        notifyError(
+          pdata.status_detail || pdata.payment?.status_detail || "Pagamento recusado."
+        );
+        setIsCheckoutSubmit(false);
+        return;
+      }
+
+      const orderPayload = {
+        name: order.name,
+        address: order.address,
+        number: order.number,
+        complement: order.complement,
+        contact: order.contact,
+        email: order.email,
+        city: order.city,
+        country: order.country,
+        zipCode: order.zipCode,
+        subTotal: order.subTotal,
+        shippingCost: order.shippingCost,
+        discount: order.discount,
+        totalAmount: order.totalAmount,
+        shippingOption: order.shippingOption,
+        cart: order.cart,
+        user: order.user,
+        status: pdata.approved ? "processing" : "pending",
+        paymentIntent: {
+          mercadoPago: pdata.payment,
+          paymentMethod: "mercadopago_card",
+        },
+      };
+
+      const result = await addOrder(orderPayload);
+
+      if (result?.error) {
+        notifyError(
+          result.error?.data?.message || "Pedido não salvo após pagamento. Entre em contato com o suporte."
+        );
+        setIsCheckoutSubmit(false);
+        return;
+      }
+
+      const orderId = result.data?.order?._id || result.data?.order?.id || result.data?._id || "success";
+      const orderKey = result.data?.order?.order_key || result.data?.order?.orderKey || "";
+
+      if (!user && order._guestPassword && order.email) {
+        try {
+          await registerUser({
+            name: order.name,
+            email: order.email,
+            password: order._guestPassword,
+            confirmPassword: order._guestPassword,
+          }).unwrap();
+        } catch (regErr) {
+          console.warn("[CHECKOUT] Auto-cadastro pós-pedido:", regErr);
+        }
+      }
+
+      const profileUser = store.getState().auth.user || user;
+      if (profileUser && profileUser._id) {
+        try {
+          const orderZipCode = order.zipCode || "";
+          const cleanOrderZipCode = orderZipCode
+            ? String(orderZipCode).replace(/\D/g, "")
+            : "";
+          const firstName = order.name?.split(" ")[0] || "";
+          const lastName = order.name?.split(" ").slice(1).join(" ") || "";
+          const fullName =
+            firstName && lastName ? `${firstName} ${lastName}` : order.name || profileUser.name;
+
+          const profileData = {
+            id: profileUser._id,
+            name: fullName,
+            lastName: lastName || profileUser.lastName || "",
+            email: order.email || profileUser.email,
+            phone: order.contact || profileUser.phone || profileUser.contactNumber || "",
+            address: order.address || profileUser.address || profileUser.shippingAddress || "",
+            number: order.number || profileUser.number || profileUser.numero || "",
+            complement: order.complement || profileUser.complement || "",
+            zipCode: cleanOrderZipCode || order.zipCode || profileUser.zipCode || profileUser.cep || "",
+            city: order.city || profileUser.city || "",
+            country: order.country || profileUser.country || profileUser.state || "",
+          };
+
+          const emailChanged =
+            String(order.email || "").toLowerCase() !==
+            String(profileUser.email || "").toLowerCase();
+          const hasNewData =
+            profileData.address ||
+            profileData.city ||
+            profileData.country ||
+            profileData.zipCode ||
+            profileData.phone ||
+            emailChanged;
+          if (hasNewData) {
+            updateProfile(profileData).catch(() => {});
+          }
+        } catch (_) {
+          /* ignore */
+        }
+      }
+
+      if (directProduct) {
+        sessionStorage.removeItem("directCheckoutProduct");
+      }
+      notifySuccess(
+        pdata.approved ? "Pagamento aprovado! Redirecionando…" : "Pedido registrado. Aguardando confirmação."
+      );
+      const keyParam =
+        orderKey && String(orderKey).trim() !== ""
+          ? `?key=${encodeURIComponent(String(orderKey).trim())}`
+          : "";
+      router.push(`/order/${orderId}${keyParam}`);
+      setIsCheckoutSubmit(false);
     } catch (err) {
-      console.error("Erro ao processar pedido:", err);
-      notifyError("Erro ao processar pedido. Tente novamente.");
+      console.error("Erro checkout MP:", err);
+      notifyError(err?.message || "Erro ao processar pedido. Tente novamente.");
       setIsCheckoutSubmit(false);
     }
   };
@@ -980,16 +972,19 @@ const useCheckoutSubmit = (directProduct = null) => {
     register,
     watch,
     setValue,
+    getValues,
     errors,
     cardError,
     submitHandler,
-    stripe,
+    mercadoPagoCardRef,
     handleSubmit,
     clientSecret,
     setClientSecret,
     cartTotal,
     paymentMethod,
     setPaymentMethod,
+    openLoginModalEmail,
+    onConsumeOpenLoginModalEmail: () => setOpenLoginModalEmail(null),
   };
 };
 

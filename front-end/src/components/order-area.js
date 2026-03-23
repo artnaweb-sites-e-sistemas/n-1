@@ -10,10 +10,14 @@ import { useGetUserOrderByIdQuery } from "src/redux/features/orderApi";
 import ErrorMessage from "@components/error-message/error";
 import InvoiceArea from "./invoice-area";
 
-const SingleOrderArea = ({ orderId }) => {
+const SingleOrderArea = ({ orderId, orderKey = "" }) => {
   const contentRef = useRef(null);
   const handlePrint = useReactToPrint({ contentRef });
-  const { data: orderData, isError, isLoading, error } = useGetUserOrderByIdQuery(orderId);
+  const queryArg =
+    orderKey && String(orderKey).trim() !== ""
+      ? { id: orderId, key: String(orderKey).trim() }
+      : orderId;
+  const { data: orderData, isError, isLoading, error } = useGetUserOrderByIdQuery(queryArg);
   
   let content = null;
   

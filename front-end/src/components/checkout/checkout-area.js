@@ -1,5 +1,6 @@
 'use client';
 import React, { useState } from "react";
+import { notifyError } from "@utils/toast";
 // internal
 import BillingDetails from "./billing-details";
 import OrderArea from "./order-area";
@@ -8,7 +9,13 @@ const CheckoutArea = ({handleSubmit,submitHandler,watch,isCalculatingShipping,se
   return (
     <section className="checkout-area pb-85">
       <div className="container">
-        <form onSubmit={handleSubmit(submitHandler)}>
+        <form
+          onSubmit={handleSubmit(submitHandler, () => {
+            notifyError(
+              "Preencha os campos obrigatórios, calcule o frete e escolha uma opção de envio antes de finalizar."
+            );
+          })}
+        >
           <div className="row">
             <div className="col-lg-6">
               <div className="checkbox-form">

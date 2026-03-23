@@ -22,6 +22,10 @@ module.exports.secret = {
   cloudinary_upload_preset: process.env.CLOUDINARY_UPLOAD_PRESET, 
   
   stripe_key: process.env.STRIPE_KEY, 
+  mercado_pago_client_id: (process.env.MERCADO_PAGO_CLIENT_ID || "").trim(),
+  mercado_pago_client_secret: (process.env.MERCADO_PAGO_CLIENT_SECRET || "").trim(),
+  mercado_pago_access_token: (process.env.MERCADO_PAGO_ACCESS_TOKEN || "").trim(),
+  mercado_pago_public_key: (process.env.MERCADO_PAGO_PUBLIC_KEY || "").trim(),
   client_url: process.env.STORE_URL, 
   admin_url:process.env.ADMIN_URL, 
 }

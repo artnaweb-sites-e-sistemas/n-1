@@ -89,7 +89,12 @@ export default function InvoiceArea({innerRef,info}) {
           </Thead>
           <Tbody className="table-group-divider">
             {cartItems.map((item, i) => {
-              const itemPrice = item?.price || item?.originalPrice || 0;
+              const basePrice = Number(item?.originalPrice || item?.price || 0);
+              const itemDiscount = Number(item?.discount || 0);
+              const itemPrice =
+                itemDiscount > 0
+                  ? basePrice - (basePrice * itemDiscount) / 100
+                  : basePrice;
               const quantity = item?.orderQuantity || 1;
               return (
                 <Tr key={i}>

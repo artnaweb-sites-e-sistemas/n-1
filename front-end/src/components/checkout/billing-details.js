@@ -1,105 +1,167 @@
 import ErrorMessage from "@components/error-message/error";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useSelector } from "react-redux";
-// internal
+import { Modal } from "react-bootstrap";
+import { notifyError, notifySuccess } from "@utils/toast";
+import {
+  useCheckEmailExistsMutation,
+  useLoginUserMutation,
+} from "src/redux/features/auth/authApi";
 
-const BillingDetails = ({ register, errors, calculateShippingByPostcode, watch, isCalculatingShipping, setValue }) => {
-  const {user} = useSelector(state => state.auth);
+const BillingDetails = ({
+  register,
+  errors,
+  calculateShippingByPostcode,
+  watch,
+  isCalculatingShipping,
+  setValue,
+  getValues,
+  fillCheckoutFields,
+  openLoginModalEmail,
+  onConsumeOpenLoginModalEmail,
+}) => {
+  const { user } = useSelector((state) => state.auth);
   const { shipping_info } = useSelector((state) => state.order);
-  const zipCodeValue = watch('zipCode');
-  const [localCep, setLocalCep] = useState('');
-  
+  const zipCodeValue = watch("zipCode");
+  const [localCep, setLocalCep] = useState("");
+
+  const [checkEmailExists] = useCheckEmailExistsMutation();
+  const [loginUser, { isLoading: isLoginLoading }] = useLoginUserMutation();
+
+  const [showExistingEmailModal, setShowExistingEmailModal] = useState(false);
+  const [modalEmailDisplay, setModalEmailDisplay] = useState("");
+  const [modalPassword, setModalPassword] = useState("");
+  const emailBlurTimerRef = useRef(null);
+  const modalEmailRef = useRef("");
+
   // Função para aplicar máscara de CEP (00000-000)
   const applyCepMask = (value) => {
-    if (!value) return '';
-    // Remove tudo que não é número
-    const numbers = value.replace(/\D/g, '');
-    
-    // Se não há números, retorna vazio
-    if (!numbers) return '';
-    
-    // Limita a 8 dígitos
+    if (!value) return "";
+    const numbers = value.replace(/\D/g, "");
+    if (!numbers) return "";
     const limitedNumbers = numbers.slice(0, 8);
-    
-    // Aplica a máscara
     if (limitedNumbers.length <= 5) {
       return limitedNumbers;
-    } else {
-      return `${limitedNumbers.slice(0, 5)}-${limitedNumbers.slice(5)}`;
     }
+    return `${limitedNumbers.slice(0, 5)}-${limitedNumbers.slice(5)}`;
   };
-  
-  // Flag para controlar se já inicializou
+
   const [isInitialized, setIsInitialized] = React.useState(false);
-  
-  // Inicializar CEP com máscara apenas uma vez
+
   useEffect(() => {
     if (!isInitialized) {
-      const initialCep = zipCodeValue || shipping_info?.zipCode || user?.zipCode || user?.cep || '';
+      const initialCep =
+        zipCodeValue || shipping_info?.zipCode || user?.zipCode || user?.cep || "";
       if (initialCep) {
         const masked = applyCepMask(initialCep);
         setLocalCep(masked);
-        // Atualizar o valor no formulário
-        const cleanValue = initialCep.replace(/\D/g, '');
+        const cleanValue = initialCep.replace(/\D/g, "");
         if (cleanValue) {
-          setValue('zipCode', cleanValue, { shouldValidate: false });
+          setValue("zipCode", cleanValue, { shouldValidate: false });
         }
       }
       setIsInitialized(true);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Apenas na montagem inicial
-  
-  // Handler para mudança no campo CEP
+  }, []);
+
   const handleCepChange = (e) => {
     const inputValue = e.target.value;
-    
-    // Se o campo está vazio, limpar ambos os estados
-    if (!inputValue || inputValue.trim() === '') {
-      setLocalCep('');
-      setValue('zipCode', '', { shouldValidate: false });
+    if (!inputValue || inputValue.trim() === "") {
+      setLocalCep("");
+      setValue("zipCode", "", { shouldValidate: false });
       return;
     }
-    
-    // Extrair apenas números do valor digitado
-    const numbers = inputValue.replace(/\D/g, '');
-    
-    // Se não há números após limpar, limpar o campo
+    const numbers = inputValue.replace(/\D/g, "");
     if (!numbers || numbers.length === 0) {
-      setLocalCep('');
-      setValue('zipCode', '', { shouldValidate: false });
+      setLocalCep("");
+      setValue("zipCode", "", { shouldValidate: false });
       return;
     }
-    
-    // Aplicar máscara
     const maskedValue = applyCepMask(numbers);
-    
-    // Atualizar estado local com a máscara
     setLocalCep(maskedValue);
-    
-    // Atualizar valor no formulário sem máscara
-    setValue('zipCode', numbers, { shouldValidate: true });
+    setValue("zipCode", numbers, { shouldValidate: true });
   };
-  
-  // Handler para quando o usuário pressiona backspace/delete
+
   const handleCepKeyDown = (e) => {
-    // Se o campo está vazio e o usuário pressiona backspace/delete, garantir que está limpo
-    if ((e.key === 'Backspace' || e.key === 'Delete') && localCep.length === 0) {
-      setLocalCep('');
-      setValue('zipCode', '', { shouldValidate: false });
+    if ((e.key === "Backspace" || e.key === "Delete") && localCep.length === 0) {
+      setLocalCep("");
+      setValue("zipCode", "", { shouldValidate: false });
     }
   };
-  
-  // Função para calcular frete ao clicar no botão
+
   const handleCalculateShipping = (e) => {
     e.preventDefault();
-    const cepValue = localCep.replace(/\D/g, '') || watch('zipCode');
+    const cepValue = localCep.replace(/\D/g, "") || watch("zipCode");
     if (cepValue && calculateShippingByPostcode) {
       calculateShippingByPostcode(cepValue);
     }
   };
-  
-  // checkout form list
+
+  const handleEmailBlurCheck = useCallback(() => {
+    if (user) return;
+    if (typeof getValues !== "function") return;
+    const email = String(getValues("email") || "")
+      .trim()
+      .toLowerCase();
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return;
+
+    emailBlurTimerRef.current = setTimeout(async () => {
+      try {
+        const res = await checkEmailExists({ email }).unwrap();
+        if (res?.exists) {
+          modalEmailRef.current = email;
+          setModalEmailDisplay(email);
+          setShowExistingEmailModal(true);
+        }
+      } catch {
+        notifyError(
+          "Não foi possível verificar o e-mail. Confira sua conexão ou tente novamente em instantes."
+        );
+      }
+    }, 450);
+  }, [user, getValues, checkEmailExists]);
+
+  const clearEmailBlurTimer = () => {
+    if (emailBlurTimerRef.current) {
+      clearTimeout(emailBlurTimerRef.current);
+      emailBlurTimerRef.current = null;
+    }
+  };
+
+  useEffect(() => () => clearEmailBlurTimer(), []);
+
+  useEffect(() => {
+    if (!openLoginModalEmail || user) return;
+    const em = String(openLoginModalEmail).trim().toLowerCase();
+    if (!em) return;
+    modalEmailRef.current = em;
+    setModalEmailDisplay(em);
+    setShowExistingEmailModal(true);
+    onConsumeOpenLoginModalEmail?.();
+  }, [openLoginModalEmail, user, onConsumeOpenLoginModalEmail]);
+
+  const handleModalLogin = async (e) => {
+    e.preventDefault();
+    const email = modalEmailRef.current || getValues?.("email");
+    if (!email || !modalPassword) {
+      notifyError("Informe sua senha.");
+      return;
+    }
+    try {
+      await loginUser({ email, password: modalPassword }).unwrap();
+      notifySuccess("Login realizado! Complete seu pedido.");
+      setModalPassword("");
+      setModalEmailDisplay("");
+      setShowExistingEmailModal(false);
+      if (typeof fillCheckoutFields === "function") {
+        fillCheckoutFields();
+      }
+    } catch {
+      notifyError("E-mail ou senha inválidos.");
+    }
+  };
+
   function CheckoutFormList({
     col,
     label,
@@ -107,7 +169,7 @@ const BillingDetails = ({ register, errors, calculateShippingByPostcode, watch, 
     placeholder,
     isRequired = true,
     name,
-    register,
+    register: reg,
     error,
     defaultValue,
   }) {
@@ -120,7 +182,7 @@ const BillingDetails = ({ register, errors, calculateShippingByPostcode, watch, 
             </label>
           )}
           <input
-            {...register(`${name}`, {
+            {...reg(`${name}`, {
               required: isRequired ? `${label} é obrigatório!` : false,
             })}
             type={type}
@@ -133,6 +195,14 @@ const BillingDetails = ({ register, errors, calculateShippingByPostcode, watch, 
     );
   }
 
+  const emailRegister = register("email", {
+    required: "E-mail é obrigatório!",
+    pattern: {
+      value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+      message: "E-mail inválido",
+    },
+  });
+
   return (
     <>
       <div className="row">
@@ -143,7 +213,7 @@ const BillingDetails = ({ register, errors, calculateShippingByPostcode, watch, 
           placeholder="Nome"
           register={register}
           error={errors?.firstName?.message}
-          defaultValue={user?.name?.split(' ')[0] || user?.name || ''}
+          defaultValue={user?.name?.split(" ")[0] || user?.name || ""}
         />
         <CheckoutFormList
           name="lastName"
@@ -152,7 +222,9 @@ const BillingDetails = ({ register, errors, calculateShippingByPostcode, watch, 
           placeholder="Sobrenome"
           register={register}
           error={errors?.lastName?.message}
-          defaultValue={user?.lastName || user?.name?.split(' ').slice(1).join(' ') || ''}
+          defaultValue={
+            user?.lastName || user?.name?.split(" ").slice(1).join(" ") || ""
+          }
         />
         <CheckoutFormList
           name="address"
@@ -206,20 +278,19 @@ const BillingDetails = ({ register, errors, calculateShippingByPostcode, watch, 
             <label>
               CEP <span className="required">*</span>
             </label>
-            <div style={{ display: 'flex', gap: '10px' }}>
+            <div style={{ display: "flex", gap: "10px" }}>
               <input
-                {...register('zipCode', {
-                  required: 'CEP é obrigatório!',
+                {...register("zipCode", {
+                  required: "CEP é obrigatório!",
                   validate: {
                     length: (value) => {
-                      // O valor já vem sem máscara do setValue
-                      const cleanValue = value ? String(value).replace(/\D/g, '') : '';
+                      const cleanValue = value ? String(value).replace(/\D/g, "") : "";
                       if (cleanValue.length !== 8) {
-                        return 'CEP deve conter 8 dígitos';
+                        return "CEP deve conter 8 dígitos";
                       }
                       return true;
-                    }
-                  }
+                    },
+                  },
                 })}
                 type="text"
                 placeholder="00000-000"
@@ -234,28 +305,89 @@ const BillingDetails = ({ register, errors, calculateShippingByPostcode, watch, 
                 onClick={handleCalculateShipping}
                 disabled={isCalculatingShipping}
                 className="tp-btn tp-btn-black"
-                style={{ 
-                  padding: '10px 15px', 
-                  fontSize: '14px',
-                  whiteSpace: 'nowrap'
+                style={{
+                  padding: "10px 15px",
+                  fontSize: "14px",
+                  whiteSpace: "nowrap",
                 }}
               >
-                {isCalculatingShipping ? 'Calculando...' : 'Calcular Frete'}
+                {isCalculatingShipping ? "Calculando..." : "Calcular Frete"}
               </button>
             </div>
             {errors?.zipCode?.message && <ErrorMessage message={errors.zipCode.message} />}
           </div>
         </div>
-        <CheckoutFormList
-          col="6"
-          type="email"
-          label="E-mail"
-          placeholder="Seu e-mail"
-          name="email"
-          register={register}
-          error={errors?.email?.message}
-          defaultValue={user?.email}
-        />
+
+        <div className="col-md-6">
+          <div className="checkout-form-list">
+            <label>
+              E-mail <span className="required">*</span>
+            </label>
+            <input
+              {...emailRegister}
+              type="email"
+              placeholder="Seu e-mail"
+              defaultValue={user?.email}
+              onFocus={clearEmailBlurTimer}
+              onBlur={(ev) => {
+                emailRegister.onBlur(ev);
+                handleEmailBlurCheck();
+              }}
+            />
+            {errors?.email && <ErrorMessage message={errors.email.message} />}
+          </div>
+        </div>
+
+        {!user && (
+          <>
+            <div className="col-md-6">
+              <div className="checkout-form-list">
+                <label>
+                  Cadastrar Senha <span className="required">*</span>
+                </label>
+                <input
+                  {...register("checkoutPassword", {
+                    required: "Defina uma senha para criar sua conta (mín. 6 caracteres).",
+                    minLength: {
+                      value: 6,
+                      message: "A senha deve ter pelo menos 6 caracteres",
+                    },
+                  })}
+                  type="password"
+                  placeholder="Senha para sua conta"
+                  autoComplete="new-password"
+                />
+                {errors?.checkoutPassword && (
+                  <ErrorMessage message={errors.checkoutPassword.message} />
+                )}
+              </div>
+            </div>
+            <div className="col-md-6">
+              <div className="checkout-form-list">
+                <label>
+                  Confirmar senha <span className="required">*</span>
+                </label>
+                <input
+                  {...register("checkoutConfirmPassword", {
+                    required: "Confirme sua senha",
+                    validate: (val) => {
+                      if (typeof getValues !== "function") return true;
+                      const p = getValues("checkoutPassword");
+                      return val === p || "As senhas não coincidem";
+                    },
+                  })}
+                  type="password"
+                  placeholder="Repita a senha"
+                  autoComplete="new-password"
+                />
+                {errors?.checkoutConfirmPassword && (
+                  <ErrorMessage message={errors.checkoutConfirmPassword.message} />
+                )}
+              </div>
+            </div>
+          </>
+        )}
+
         <CheckoutFormList
           name="contact"
           col="6"
@@ -265,6 +397,33 @@ const BillingDetails = ({ register, errors, calculateShippingByPostcode, watch, 
           error={errors?.contact?.message}
           defaultValue={user?.phone || user?.contactNumber}
         />
+
+        <div className="col-md-12">
+          <div className="checkout-form-list">
+            <label>
+              CPF ou CNPJ <span className="required">*</span>
+              <span style={{ fontWeight: 400, color: "#666", fontSize: 12, marginLeft: 8 }}>
+                (obrigatório para pagamento com cartão — Mercado Pago)
+              </span>
+            </label>
+            <input
+              {...register("taxDocument", {
+                required: "CPF ou CNPJ é obrigatório",
+                validate: (v) => {
+                  const d = String(v || "").replace(/\D/g, "");
+                  if (d.length !== 11 && d.length !== 14) {
+                    return "Informe um CPF (11 dígitos) ou CNPJ (14 dígitos) válido";
+                  }
+                  return true;
+                },
+              })}
+              type="text"
+              placeholder="000.000.000-00 ou 00.000.000/0000-00"
+              defaultValue=""
+            />
+            {errors?.taxDocument && <ErrorMessage message={errors.taxDocument.message} />}
+          </div>
+        </div>
 
         <div className="order-notes">
           <div className="checkout-form-list">
@@ -278,6 +437,95 @@ const BillingDetails = ({ register, errors, calculateShippingByPostcode, watch, 
           </div>
         </div>
       </div>
+
+      <Modal
+        show={showExistingEmailModal}
+        onHide={() => {
+          setShowExistingEmailModal(false);
+          setModalPassword("");
+          setModalEmailDisplay("");
+        }}
+        centered
+        backdrop="static"
+      >
+        <Modal.Header closeButton>
+          <Modal.Title style={{ fontSize: "1.1rem" }}>E-mail já cadastrado</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <p style={{ marginBottom: 16 }}>
+            Você já está cadastrado com esse e-mail. Deseja fazer login para continuar o checkout?
+          </p>
+          <form onSubmit={handleModalLogin}>
+            <div className="checkout-form-list mb-3">
+              <label>E-mail</label>
+              <input
+                type="email"
+                className="form-control"
+                value={modalEmailDisplay}
+                readOnly
+                disabled
+              />
+            </div>
+            <div className="checkout-form-list mb-3">
+              <label>Senha</label>
+              <input
+                type="password"
+                className="form-control"
+                placeholder="Sua senha"
+                value={modalPassword}
+                onChange={(ev) => setModalPassword(ev.target.value)}
+                autoComplete="current-password"
+              />
+            </div>
+            <div className="d-flex gap-2 flex-wrap">
+              <button
+                type="submit"
+                className="tp-btn"
+                disabled={isLoginLoading}
+                style={{
+                  backgroundColor: "#000",
+                  color: "#fff",
+                  border: "1px solid #000",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = "#333";
+                  e.currentTarget.style.color = "#fff";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = "#000";
+                  e.currentTarget.style.color = "#fff";
+                }}
+              >
+                {isLoginLoading ? "Entrando..." : "Entrar e continuar"}
+              </button>
+              <button
+                type="button"
+                className="tp-btn"
+                style={{
+                  backgroundColor: "#fff",
+                  color: "#000",
+                  border: "1px solid #000",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = "#000";
+                  e.currentTarget.style.color = "#fff";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = "#fff";
+                  e.currentTarget.style.color = "#000";
+                }}
+                onClick={() => {
+                  setShowExistingEmailModal(false);
+                  setModalPassword("");
+                  setModalEmailDisplay("");
+                }}
+              >
+                Alterar e-mail
+              </button>
+            </div>
+          </form>
+        </Modal.Body>
+      </Modal>
     </>
   );
 };
