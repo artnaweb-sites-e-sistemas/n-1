@@ -19,6 +19,7 @@ dist/
 *.pem
 .env
 .env.local
+backend/.env
 .env.development.local
 .env.test.local
 .env.production.local
@@ -45,6 +46,7 @@ ntuser.dat.*
 
 # WordPress
 wp-config.php
+plugin-wordpress/wp-config-n1-mercadopago-SNIPPET.txt
 .htaccess.backup
 
 # Temporary files
