@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import React from 'react';
-import menu_data from './menu-data';
+import menu_data, { externalAnchorProps } from './menu-data';
 
 const Menus = () => {
   return (
@@ -8,7 +8,7 @@ const Menus = () => {
       {menu_data.map((menu, i) => (
         <li key={i} className={`${menu.hasDropdown ? 'has-dropdown' : ''}`}>
           {menu.isExternal ? (
-            <a href={menu.link} target="_blank" rel="noopener noreferrer">
+            <a href={menu.link} {...externalAnchorProps(menu)}>
               {menu.title}
             </a>
           ) : (

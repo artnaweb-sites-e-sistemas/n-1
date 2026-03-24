@@ -46,7 +46,9 @@
               max-width 0.35s cubic-bezier(0.4, 0, 0.2, 1) 0.2s;
 
   &.header-menu-inline__links--open {
-    max-width: 400px;
+    /* Largura suficiente para INÍCIO + SOBRE + LEITURAS + CONTATO (letter-spacing largo) */
+    max-width: min(960px, calc(100vw - 32px));
+    overflow: visible;
     opacity: 1;
     visibility: visible;
     pointer-events: auto;
@@ -83,15 +85,15 @@
 }
 
 .header-menu-inline--expand-left {
-  // links à esquerda do botão, animação da direita para a esquerda
+  // links à esquerda do botão "Menu"; alinhar à esquerda do painel para não cortar o 1º item (Início)
   .header-menu-inline__links {
     order: -1;
-    margin-left: auto; // ancora à direita e expande para a esquerda
+    margin-left: auto;
     display: flex;
-    justify-content: flex-end; // conteúdo alinhado à direita = revela da direita
+    justify-content: flex-start;
   }
   .header-menu-inline__list {
-    transform: none; // sem translate, a revelação vem do max-width + justify-content
+    transform: none;
   }
 }
 

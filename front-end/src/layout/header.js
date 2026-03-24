@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useSelector } from "react-redux";
 // internal
 import logo from "@assets/img/logo/logo-n-1-black.png";
-import menu_data from "@layout/menu-data";
+import menu_data, { externalAnchorProps } from "@layout/menu-data";
 import { Cart, Heart, Search, User } from "@svg/index";
 import useSticky from "@hooks/use-sticky";
 import CartSidebar from "@components/common/sidebar/cart-sidebar";
@@ -69,10 +69,9 @@ const Header = ({ style_2 = false }) => {
                               {menu.isExternal ? (
                                 <a
                                   href={menu.link}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
                                   className="header-menu-inline__link"
                                   onClick={() => setIsHeaderMenuOpen(false)}
+                                  {...externalAnchorProps(menu)}
                                 >
                                   {menu.title}
                                 </a>

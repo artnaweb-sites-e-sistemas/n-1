@@ -1,14 +1,34 @@
 'use client';
 import { useState } from 'react';
 import styles from './cta.module.scss';
+import { notifyError, notifySuccess } from '@utils/toast';
 
 const ShopCta = () => {
   const [email, setEmail] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleNewsletterSubmit = (e) => {
+  const handleNewsletterSubmit = async (e) => {
     e.preventDefault();
-    // Integração com base de leads será adicionada posteriormente
-    console.log('Newsletter submit - email:', email);
+    if (submitting) return;
+    setSubmitting(true);
+    try {
+      const res = await fetch('/api/newsletter/brevo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim() }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (data.ok) {
+        notifySuccess(data.message || 'Inscrição realizada com sucesso!');
+        setEmail('');
+      } else {
+        notifyError(data.message || 'Não foi possível inscrever. Tente novamente.');
+      }
+    } catch {
+      notifyError('Erro de conexão. Tente novamente.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -32,7 +52,9 @@ const ShopCta = () => {
                         required
                         aria-label="E-mail para newsletter"
                       />
-                      <button type="submit">Inscrever</button>
+                      <button type="submit" disabled={submitting}>
+                        {submitting ? 'Enviando…' : 'Inscrever'}
+                      </button>
                     </div>
                   </form>
                 </div>

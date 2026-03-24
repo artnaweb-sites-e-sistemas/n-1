@@ -1,7 +1,7 @@
 'use client';
 import React, { useEffect } from "react";
 import Link from "next/link";
-import menu_data from "@layout/menu-data";
+import menu_data, { externalAnchorProps } from "@layout/menu-data";
 
 const SlideMenu = ({ isOpen, onClose }) => {
   useEffect(() => {
@@ -33,10 +33,9 @@ const SlideMenu = ({ isOpen, onClose }) => {
               {menu.isExternal ? (
                 <a
                   href={menu.link}
-                  target="_blank"
-                  rel="noopener noreferrer"
                   className="slide-menu__link"
                   onClick={onClose}
+                  {...externalAnchorProps(menu)}
                 >
                   {menu.title}
                 </a>

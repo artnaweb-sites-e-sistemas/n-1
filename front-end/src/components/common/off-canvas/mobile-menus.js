@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 // internal
-import menu_data from "@layout/menu-data";
+import menu_data, { externalAnchorProps } from "@layout/menu-data";
 
 const MobileMenus = () => {
   const [subMenu, setSubMenu] = useState("");
@@ -21,7 +21,7 @@ const MobileMenus = () => {
           <React.Fragment key={i}>
             {!menu.hasDropdown &&<li>
               {menu.isExternal ? (
-                <a href={menu.link} target="_blank" rel="noopener noreferrer">{menu.title}</a>
+                <a href={menu.link} {...externalAnchorProps(menu)}>{menu.title}</a>
               ) : (
                 <Link href={menu.link}>{menu.title}</Link>
               )}
@@ -29,7 +29,7 @@ const MobileMenus = () => {
             {menu.hasDropdown && (
               <li className="has-dropdown">
                 {menu.isExternal ? (
-                  <a href={menu.link} target="_blank" rel="noopener noreferrer">{menu.title}</a>
+                  <a href={menu.link} {...externalAnchorProps(menu)}>{menu.title}</a>
                 ) : (
                   <Link href={menu.link}>{menu.title}</Link>
                 )}
