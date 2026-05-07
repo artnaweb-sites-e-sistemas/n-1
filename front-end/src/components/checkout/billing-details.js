@@ -7,6 +7,7 @@ import {
   useCheckEmailExistsMutation,
   useLoginUserMutation,
 } from "src/redux/features/auth/authApi";
+import { fetchAddressByCep } from "@utils/cep";
 
 const BillingDetails = ({
   register,
@@ -33,6 +34,11 @@ const BillingDetails = ({
   const [modalPassword, setModalPassword] = useState("");
   const emailBlurTimerRef = useRef(null);
   const modalEmailRef = useRef("");
+  const cepLookupAbortRef = useRef(null);
+  const calculateShippingRef = useRef(calculateShippingByPostcode);
+  const [cepLookupLoading, setCepLookupLoading] = useState(false);
+
+  calculateShippingRef.current = calculateShippingByPostcode;
 
   // Função para aplicar máscara de CEP (00000-000)
   const applyCepMask = (value) => {
@@ -84,17 +90,19 @@ const BillingDetails = ({
   };
 
   const handleCepKeyDown = (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      e.stopPropagation();
+      const cepDigits =
+        String(watch("zipCode") || "").replace(/\D/g, "") || localCep.replace(/\D/g, "");
+      if (cepDigits.length === 8 && calculateShippingByPostcode) {
+        calculateShippingByPostcode(cepDigits);
+      }
+      return;
+    }
     if ((e.key === "Backspace" || e.key === "Delete") && localCep.length === 0) {
       setLocalCep("");
       setValue("zipCode", "", { shouldValidate: false });
-    }
-  };
-
-  const handleCalculateShipping = (e) => {
-    e.preventDefault();
-    const cepValue = localCep.replace(/\D/g, "") || watch("zipCode");
-    if (cepValue && calculateShippingByPostcode) {
-      calculateShippingByPostcode(cepValue);
     }
   };
 
@@ -141,6 +149,65 @@ const BillingDetails = ({
     onConsumeOpenLoginModalEmail?.();
   }, [openLoginModalEmail, user, onConsumeOpenLoginModalEmail]);
 
+  // ViaCEP: ao completar 8 dígitos, preenche logradouro, cidade e UF (campo "Estado").
+  useEffect(() => {
+    const clean = localCep.replace(/\D/g, "");
+    if (clean.length !== 8) {
+      setCepLookupLoading(false);
+      return undefined;
+    }
+
+    if (cepLookupAbortRef.current) {
+      cepLookupAbortRef.current.abort();
+    }
+
+    const controller = new AbortController();
+    cepLookupAbortRef.current = controller;
+
+    const timer = setTimeout(async () => {
+      setCepLookupLoading(true);
+      try {
+        const addr = await fetchAddressByCep(clean, controller.signal);
+        if (controller.signal.aborted) return;
+
+        if (!addr) {
+          notifyError("CEP não encontrado. Confira os números.");
+          return;
+        }
+
+        if (addr.street) {
+          setValue("address", addr.street, { shouldValidate: true, shouldDirty: true });
+        }
+        if (addr.city) {
+          setValue("city", addr.city, { shouldValidate: true, shouldDirty: true });
+        }
+        if (addr.state) {
+          setValue("country", addr.state, { shouldValidate: true, shouldDirty: true });
+        }
+        if (addr.neighborhood) {
+          setValue("neighborhood", addr.neighborhood, { shouldValidate: true, shouldDirty: true });
+        }
+
+        const shipFn = calculateShippingRef.current;
+        if (typeof shipFn === "function") {
+          shipFn(clean);
+        }
+      } catch (err) {
+        if (err?.name === "AbortError") return;
+        notifyError("Não foi possível buscar o endereço pelo CEP. Tente de novo.");
+      } finally {
+        if (!controller.signal.aborted) {
+          setCepLookupLoading(false);
+        }
+      }
+    }, 450);
+
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [localCep, setValue, getValues]);
+
   const handleModalLogin = async (e) => {
     e.preventDefault();
     const email = modalEmailRef.current || getValues?.("email");
@@ -172,6 +239,8 @@ const BillingDetails = ({
     register: reg,
     error,
     defaultValue,
+    readOnly = false,
+    helpText,
   }) {
     return (
       <div className={`col-md-${col}`}>
@@ -188,7 +257,31 @@ const BillingDetails = ({
             type={type}
             placeholder={placeholder}
             defaultValue={defaultValue ? defaultValue : ""}
+            readOnly={readOnly}
+            tabIndex={readOnly ? -1 : undefined}
+            aria-readonly={readOnly || undefined}
+            style={
+              readOnly
+                ? {
+                    backgroundColor: "#f3f4f6",
+                    color: "#4b5563",
+                    cursor: "not-allowed",
+                  }
+                : undefined
+            }
           />
+          {helpText && (
+            <small
+              style={{
+                display: "block",
+                marginTop: "4px",
+                fontSize: "12px",
+                color: "#6b7280",
+              }}
+            >
+              {helpText}
+            </small>
+          )}
           {error && <ErrorMessage message={error} />}
         </div>
       </div>
@@ -208,7 +301,7 @@ const BillingDetails = ({
       <div className="row">
         <CheckoutFormList
           name="firstName"
-          col="12"
+          col="6"
           label="Nome"
           placeholder="Nome"
           register={register}
@@ -217,7 +310,7 @@ const BillingDetails = ({
         />
         <CheckoutFormList
           name="lastName"
-          col="12"
+          col="6"
           label="Sobrenome"
           placeholder="Sobrenome"
           register={register}
@@ -225,6 +318,83 @@ const BillingDetails = ({
           defaultValue={
             user?.lastName || user?.name?.split(" ").slice(1).join(" ") || ""
           }
+        />
+
+        <div className="col-md-6">
+          <div className="checkout-form-list" style={{ position: "relative" }}>
+            <label>
+              CEP <span className="required">*</span>
+            </label>
+            {(cepLookupLoading || isCalculatingShipping) && (
+              <span
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  right: 0,
+                  fontSize: "12px",
+                  color: "#64748b",
+                  fontStyle: "italic",
+                  whiteSpace: "nowrap",
+                  lineHeight: "26px",
+                }}
+              >
+                {cepLookupLoading ? "Buscando endereço…" : "Calculando frete…"}
+              </span>
+            )}
+            <input
+              {...register("zipCode", {
+                required: "CEP é obrigatório!",
+                validate: {
+                  length: (value) => {
+                    const cleanValue = value ? String(value).replace(/\D/g, "") : "";
+                    if (cleanValue.length !== 8) {
+                      return "CEP deve conter 8 dígitos";
+                    }
+                    return true;
+                  },
+                },
+              })}
+              type="text"
+              placeholder="00000-000"
+              value={localCep}
+              onChange={handleCepChange}
+              onKeyDown={handleCepKeyDown}
+              maxLength={9}
+              style={{ width: "100%" }}
+            />
+            {errors?.zipCode?.message && <ErrorMessage message={errors.zipCode.message} />}
+          </div>
+        </div>
+        <CheckoutFormList
+          col="6"
+          label="Estado"
+          placeholder="UF"
+          name="country"
+          register={register}
+          error={errors?.country?.message}
+          defaultValue={user?.country || user?.state}
+          readOnly
+        />
+
+        <CheckoutFormList
+          col="6"
+          label="Cidade"
+          placeholder="Cidade"
+          name="city"
+          register={register}
+          error={errors?.city?.message}
+          defaultValue={user?.city}
+          readOnly
+        />
+        <CheckoutFormList
+          col="6"
+          label="Bairro"
+          placeholder="Bairro"
+          name="neighborhood"
+          register={register}
+          error={errors?.neighborhood?.message}
+          defaultValue={user?.neighborhood}
+          readOnly
         />
         <CheckoutFormList
           name="address"
@@ -255,68 +425,6 @@ const BillingDetails = ({
           defaultValue={user?.complement}
           isRequired={false}
         />
-        <CheckoutFormList
-          col="12"
-          label="Cidade"
-          placeholder="Cidade"
-          name="city"
-          register={register}
-          error={errors?.city?.message}
-          defaultValue={user?.city}
-        />
-        <CheckoutFormList
-          col="6"
-          label="Estado"
-          placeholder="Estado"
-          name="country"
-          register={register}
-          error={errors?.country?.message}
-          defaultValue={user?.country || user?.state}
-        />
-        <div className="col-md-6">
-          <div className="checkout-form-list">
-            <label>
-              CEP <span className="required">*</span>
-            </label>
-            <div style={{ display: "flex", gap: "10px" }}>
-              <input
-                {...register("zipCode", {
-                  required: "CEP é obrigatório!",
-                  validate: {
-                    length: (value) => {
-                      const cleanValue = value ? String(value).replace(/\D/g, "") : "";
-                      if (cleanValue.length !== 8) {
-                        return "CEP deve conter 8 dígitos";
-                      }
-                      return true;
-                    },
-                  },
-                })}
-                type="text"
-                placeholder="00000-000"
-                value={localCep}
-                onChange={handleCepChange}
-                onKeyDown={handleCepKeyDown}
-                maxLength={9}
-                style={{ flex: 1 }}
-              />
-              <button
-                type="button"
-                onClick={handleCalculateShipping}
-                disabled={isCalculatingShipping}
-                className="tp-btn tp-btn-black"
-                style={{
-                  padding: "10px 15px",
-                  fontSize: "14px",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {isCalculatingShipping ? "Calculando..." : "Calcular Frete"}
-              </button>
-            </div>
-            {errors?.zipCode?.message && <ErrorMessage message={errors.zipCode.message} />}
-          </div>
-        </div>
 
         <div className="col-md-6">
           <div className="checkout-form-list">

@@ -537,7 +537,9 @@ const useCheckoutSubmit = (directProduct = null) => {
     if (shippingOptions.length === 0 || !selectedShippingId) {
       console.log('[CHECKOUT] Erro: Frete não calculado. shippingOptions:', shippingOptions.length, 'selectedShippingId:', selectedShippingId);
       setShippingError(true);
-      notifyError("Por favor, calcule o frete antes de finalizar o pedido. Clique no botão 'Calcular Frete' após informar o CEP.");
+      notifyError(
+        "Informe um CEP válido e aguarde o cálculo do frete; em seguida escolha uma opção de envio antes de finalizar."
+      );
       setIsCheckoutSubmit(false);
       return;
     }
@@ -579,6 +581,7 @@ const useCheckoutSubmit = (directProduct = null) => {
       address: data.address,
       number: data.number || "",
       complement: data.complement || "",
+      neighborhood: data.neighborhood || "",
       contact: data.contact,
       email: data.email,
       city: data.city,
@@ -646,6 +649,7 @@ const useCheckoutSubmit = (directProduct = null) => {
           address: order.address,
           number: order.number,
           complement: order.complement,
+          neighborhood: order.neighborhood,
           contact: order.contact,
           email: order.email,
           city: order.city,
@@ -843,6 +847,7 @@ const useCheckoutSubmit = (directProduct = null) => {
         address: order.address,
         number: order.number,
         complement: order.complement,
+        neighborhood: order.neighborhood,
         contact: order.contact,
         email: order.email,
         city: order.city,

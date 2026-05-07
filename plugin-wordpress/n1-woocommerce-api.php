@@ -3263,6 +3263,7 @@ class N1_WooCommerce_API
                     'email' => isset($params['email']) ? $params['email'] : '',
                     'phone' => isset($params['contact']) ? $params['contact'] : '',
                     'address' => isset($params['address']) ? $params['address'] : '',
+                    'neighborhood' => isset($params['neighborhood']) ? $params['neighborhood'] : '',
                     'city' => isset($params['city']) ? $params['city'] : '',
                     'country' => isset($params['country']) ? $params['country'] : 'BR',
                     'postcode' => isset($params['zipCode']) ? $params['zipCode'] : '',
@@ -3542,6 +3543,8 @@ class N1_WooCommerce_API
                 'email' => isset($shipping_info['email']) ? sanitize_email($shipping_info['email']) : '',
                 'phone' => isset($shipping_info['phone']) ? sanitize_text_field($shipping_info['phone']) : (isset($shipping_info['contact']) ? sanitize_text_field($shipping_info['contact']) : ''),
                 'address_1' => isset($shipping_info['address']) ? sanitize_text_field($shipping_info['address']) : '',
+                // Bairro vai em address_2 (convenção WooCommerce Brasil).
+                'address_2' => isset($shipping_info['neighborhood']) ? sanitize_text_field($shipping_info['neighborhood']) : '',
                 'city' => isset($shipping_info['city']) ? sanitize_text_field($shipping_info['city']) : '',
                 'state' => isset($shipping_info['state']) ? sanitize_text_field($shipping_info['state']) : '',
                 'postcode' => isset($shipping_info['postcode']) ? sanitize_text_field($shipping_info['postcode']) : (isset($shipping_info['zipCode']) ? sanitize_text_field($shipping_info['zipCode']) : ''),
@@ -3998,7 +4001,19 @@ class N1_WooCommerce_API
 
         error_log('N1 API - calculate_shipping: Total do carrinho: ' . $total_cost);
 
-        // Buscar zonas de frete configuradas no WooCommerce
+        // Motor nativo WooCommerce: Correios, plugins de tabela, etc. (custos dinâmicos)
+        $shipping_options = $this->calculate_shipping_via_woocommerce($postcode, $cart_products);
+        if (!empty($shipping_options)) {
+            error_log('N1 API - calculate_shipping: ' . count($shipping_options) . ' opção(ões) via WC shipping');
+            return rest_ensure_response(array(
+                'shipping_options' => $shipping_options,
+                'postcode' => $postcode,
+            ));
+        }
+
+        error_log('N1 API - calculate_shipping: Motor WC não retornou taxas; usando fallback por zona/custo fixo');
+
+        // Buscar zonas de frete configuradas no WooCommerce (fallback)
         $shipping_options = array();
         $data_store = WC_Data_Store::load('shipping-zone');
         $raw_zones = $data_store->get_zones();
@@ -4070,6 +4085,13 @@ class N1_WooCommerce_API
                 $method_id = $method->id;
                 $instance_id = $method->instance_id;
                 $method_title = $method->get_title();
+
+                // Correios e outros plugins calculam valor dinamicamente; o fallback só força custo via get_option('cost') → 0 ("Grátis").
+                $legacy_cost_methods = array('flat_rate', 'free_shipping', 'local_pickup');
+                if (!in_array($method_id, $legacy_cost_methods, true)) {
+                    error_log('N1 API - calculate_shipping: Fallback ignorando método dinâmico: ' . $method_id);
+                    continue;
+                }
 
                 error_log('N1 API - calculate_shipping: Método - ' . $method_title . ' (ID: ' . $method_id . ')');
 
@@ -4144,6 +4166,249 @@ class N1_WooCommerce_API
             'shipping_options' => $shipping_options,
             'postcode' => $postcode,
         ));
+    }
+
+    /**
+     * Remove cache de pacotes na sessão WooCommerce para forçar novo cálculo (evita PAC/SEDEX com custo zerado na REST).
+     */
+    private function n1_clear_wc_shipping_package_session_cache()
+    {
+        if (!WC()->session) {
+            return;
+        }
+
+        for ($i = 0; $i < 15; $i++) {
+            WC()->session->set('shipping_for_package_' . $i, null);
+        }
+    }
+
+    /**
+     * Infere UF brasileira pelos 2 primeiros dígitos do CEP (mesma base do postcode_in_state).
+     *
+     * @param string $postcode Apenas dígitos (8).
+     * @return string Código UF ou string vazia.
+     */
+    private function n1_infer_state_from_postcode($postcode)
+    {
+        $postcode = preg_replace('/[^0-9]/', '', $postcode);
+        if (strlen($postcode) !== 8) {
+            return '';
+        }
+
+        $prefix = substr($postcode, 0, 2);
+        $state_postcodes = array(
+            'SP' => array('01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19'),
+            'RJ' => array('20', '21', '22', '23', '24', '25', '26', '27', '28'),
+            'ES' => array('29'),
+            'MG' => array('30', '31', '32', '33', '34', '35', '36', '37', '38', '39'),
+            'BA' => array('40', '41', '42', '43', '44', '45', '46', '47', '48'),
+            'SE' => array('49'),
+            'PE' => array('50', '51', '52', '53', '54', '55', '56'),
+            'AL' => array('57'),
+            'PB' => array('58'),
+            'RN' => array('59'),
+            'CE' => array('60', '61', '62', '63'),
+            'PI' => array('64'),
+            'MA' => array('65'),
+            'PA' => array('66', '67', '68'),
+            'AP' => array('68'),
+            'AM' => array('69'),
+            'RR' => array('69'),
+            'AC' => array('69'),
+            'DF' => array('70', '71', '72', '73'),
+            'GO' => array('72', '73', '74', '75', '76'),
+            'TO' => array('77'),
+            'MT' => array('78'),
+            'RO' => array('76', '78'),
+            'MS' => array('79'),
+            'PR' => array('80', '81', '82', '83', '84', '85', '86', '87'),
+            'SC' => array('88', '89'),
+            'RS' => array('90', '91', '92', '93', '94', '95', '96', '97', '98', '99'),
+        );
+
+        foreach ($state_postcodes as $state_code => $prefixes) {
+            if (in_array($prefix, $prefixes, true)) {
+                return $state_code;
+            }
+        }
+
+        return '';
+    }
+
+    /**
+     * Endereço de entrega mínimo para o WooCommerce aceitar cálculo de frete (show_shipping / locale BR).
+     *
+     * @param string $postcode CEP (8 dígitos).
+     */
+    private function n1_fill_minimal_br_shipping_for_quote($postcode)
+    {
+        $customer = WC()->customer;
+        if (!$customer) {
+            return;
+        }
+
+        $state = $this->n1_infer_state_from_postcode($postcode);
+
+        $customer->set_shipping_country('BR');
+        if ($state) {
+            $customer->set_shipping_state($state);
+        }
+        $customer->set_shipping_postcode($postcode);
+
+        if (!$customer->get_shipping_city()) {
+            $customer->set_shipping_city('-');
+        }
+        if (!$customer->get_shipping_address_1()) {
+            $customer->set_shipping_address_1('-');
+        }
+
+        $customer->set_calculated_shipping(true);
+    }
+
+    /**
+     * Valor total da taxa (custo + impostos somados no array), tolerante a formato de string.
+     *
+     * @param WC_Shipping_Rate $rate Taxa calculada pelo WC.
+     * @return float
+     */
+    private function n1_get_shipping_rate_total_cost($rate)
+    {
+        if (!is_object($rate) || !is_a($rate, 'WC_Shipping_Rate')) {
+            return 0.0;
+        }
+
+        $raw = $rate->get_cost();
+        if (is_numeric($raw)) {
+            $base = floatval($raw);
+        } else {
+            $clean = preg_replace('/[^\d,.-]/', '', (string) $raw);
+            $clean = str_replace(',', '.', $clean);
+            $base = floatval(wc_format_decimal($clean));
+        }
+
+        $taxes = $rate->get_taxes();
+        if (is_array($taxes) && !empty($taxes)) {
+            $base += floatval(array_sum($taxes));
+        }
+
+        return round($base, wc_get_price_decimals());
+    }
+
+    /**
+     * Calcula frete usando o mesmo fluxo do WooCommerce (compatível com Correios e outros gateways dinâmicos).
+     *
+     * Monta o carrinho temporariamente e chama calculate_totals(), igual ao checkout — pacote manual não replica
+     * line totals / filtros e pode devolver PAC/SEDEX com custo zerado.
+     *
+     * @param string $postcode       CEP apenas dígitos.
+     * @param array  $cart_products Itens no formato da API N1 (id/_id, orderQuantity, preço, desconto).
+     * @return array Lista de opções no formato esperado pelo front (id, title, cost, method_id).
+     */
+    private function calculate_shipping_via_woocommerce($postcode, $cart_products)
+    {
+        if (function_exists('wc_load_cart')) {
+            wc_load_cart();
+        }
+
+        $cart = WC()->cart;
+        if (!$cart) {
+            error_log('N1 API - calculate_shipping_via_woocommerce: WC()->cart indisponível');
+            return array();
+        }
+
+        $lines = array();
+        foreach ($cart_products as $item) {
+            $pid = 0;
+            if (!empty($item['id'])) {
+                $pid = absint($item['id']);
+            } elseif (!empty($item['_id'])) {
+                $pid = absint($item['_id']);
+            }
+
+            if (!$pid) {
+                continue;
+            }
+
+            $product = wc_get_product($pid);
+            if (!$product || !$product->needs_shipping()) {
+                continue;
+            }
+
+            $qty = isset($item['orderQuantity']) ? max(1, absint($item['orderQuantity'])) : 1;
+
+            $lines[] = array(
+                'product_id' => $product->is_type('variation') ? $product->get_parent_id() : $product->get_id(),
+                'variation_id' => $product->is_type('variation') ? $product->get_id() : 0,
+                'variation' => $product->is_type('variation') ? $product->get_attributes() : array(),
+                'quantity' => $qty,
+            );
+        }
+
+        if (empty($lines)) {
+            error_log('N1 API - calculate_shipping_via_woocommerce: sem produtos físicos');
+            return array();
+        }
+
+        $snapshot = array();
+        foreach ($cart->get_cart() as $row) {
+            $snapshot[] = array(
+                'product_id' => $row['product_id'],
+                'quantity' => $row['quantity'],
+                'variation_id' => $row['variation_id'],
+                'variation' => isset($row['variation']) ? $row['variation'] : array(),
+            );
+        }
+
+        $shipping_options = array();
+
+        try {
+            $cart->empty_cart(false);
+
+            foreach ($lines as $line) {
+                $key = $cart->add_to_cart($line['product_id'], $line['quantity'], $line['variation_id'], $line['variation']);
+                if (!$key) {
+                    error_log('N1 API - calculate_shipping_via_woocommerce: add_to_cart falhou para produto ' . $line['product_id']);
+                }
+            }
+
+            if ($cart->is_empty()) {
+                error_log('N1 API - calculate_shipping_via_woocommerce: carrinho vazio após add_to_cart');
+                return array();
+            }
+
+            WC()->shipping()->reset_shipping();
+            $this->n1_clear_wc_shipping_package_session_cache();
+            $this->n1_fill_minimal_br_shipping_for_quote($postcode);
+
+            $cart->calculate_totals();
+
+            $packages = WC()->shipping()->get_packages();
+
+            if (empty($packages) || empty($packages[0]['rates']) || !is_array($packages[0]['rates'])) {
+                error_log('N1 API - calculate_shipping_via_woocommerce: nenhuma taxa após calculate_totals');
+                return array();
+            }
+
+            foreach ($packages[0]['rates'] as $rate) {
+                if (!is_object($rate) || !is_a($rate, 'WC_Shipping_Rate')) {
+                    continue;
+                }
+
+                $shipping_options[] = array(
+                    'id' => $rate->get_id(),
+                    'title' => $rate->get_label(),
+                    'cost' => $this->n1_get_shipping_rate_total_cost($rate),
+                    'method_id' => $rate->get_method_id(),
+                );
+            }
+        } finally {
+            $cart->empty_cart(false);
+            foreach ($snapshot as $snap) {
+                $cart->add_to_cart($snap['product_id'], $snap['quantity'], $snap['variation_id'], $snap['variation']);
+            }
+        }
+
+        return $shipping_options;
     }
 
     /**

@@ -1,6 +1,5 @@
 'use client';
-import React, { useState } from "react";
-import { notifyError } from "@utils/toast";
+import React from "react";
 // internal
 import BillingDetails from "./billing-details";
 import OrderArea from "./order-area";
@@ -11,9 +10,8 @@ const CheckoutArea = ({handleSubmit,submitHandler,watch,isCalculatingShipping,se
       <div className="container">
         <form
           onSubmit={handleSubmit(submitHandler, () => {
-            notifyError(
-              "Preencha os campos obrigatórios, calcule o frete e escolha uma opção de envio antes de finalizar."
-            );
+            // Sem toast genérico: evita alerta ao pressionar Enter no CEP ou em outros campos secundários.
+            // Os erros continuam visíveis nos campos (react-hook-form + ErrorMessage).
           })}
         >
           <div className="row">
