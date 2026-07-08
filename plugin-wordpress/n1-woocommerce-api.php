@@ -22,7 +22,9 @@ class N1_WooCommerce_API
 {
 
     private $namespace = 'n1/v1';
-    private $stripe_secret_key = 'sk_test_51SpZZiR0R7yHOSAazG9L81muQRM7HdTT2LcjRGl6RpBohC65L4Wv3uDEqWdmgMqc2gYdRW3ol7X3TsTlyomVv2TH006iGbXYj1';
+    // SEGURANÇA: a chave secreta do Stripe NÃO fica no código (evita vazamento via Git).
+    // Configure no wp-config.php: define('N1_STRIPE_SECRET_KEY', 'sk_live_ou_test_aqui');
+    // Ver getter get_stripe_secret_key().
     private $default_product_shipping_meta = array(
         '_weight' => '1',
         '_length' => '21',
@@ -628,15 +630,15 @@ class N1_WooCommerce_API
                 }
             }
 
-            // Se a origem está na lista de permitidas, usar ela; senão usar wildcard
-            if (!empty($origin) && in_array($origin, $allowed_origins)) {
+            // SEGURANÇA (FALHA 4): com Allow-Credentials: true nunca usar '*'.
+            // Só enviar Allow-Origin/Allow-Credentials quando a origem estiver na lista.
+            $is_allowed = !empty($origin) && in_array($origin, $allowed_origins, true);
+            if ($is_allowed) {
                 header('Access-Control-Allow-Origin: ' . $origin);
-            } else {
-                header('Access-Control-Allow-Origin: *');
+                header('Access-Control-Allow-Credentials: true');
             }
 
             header('Access-Control-Allow-Methods: GET, POST, OPTIONS, PUT, DELETE, PATCH');
-            header('Access-Control-Allow-Credentials: true');
             header('Access-Control-Allow-Headers: Authorization, Content-Type, X-Requested-With, Accept');
 
             // Responder a requisições OPTIONS (preflight)
@@ -660,13 +662,12 @@ class N1_WooCommerce_API
             );
 
             $origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '';
-            if (!empty($origin) && in_array($origin, $allowed_origins)) {
+            // SEGURANÇA (FALHA 4): com Allow-Credentials: true nunca usar '*'.
+            if (!empty($origin) && in_array($origin, $allowed_origins, true)) {
                 header('Access-Control-Allow-Origin: ' . $origin);
-            } else {
-                header('Access-Control-Allow-Origin: *');
+                header('Access-Control-Allow-Credentials: true');
             }
 
-            header('Access-Control-Allow-Credentials: true');
             header('Access-Control-Allow-Methods: GET, POST, OPTIONS, PUT, DELETE, PATCH');
             header('Access-Control-Allow-Headers: Authorization, Content-Type, X-Requested-With, Accept');
 
@@ -2432,6 +2433,170 @@ class N1_WooCommerce_API
     }
 
     /**
+     * Chave secreta do Stripe. NUNCA hardcoded no código.
+     * wp-config.php: define('N1_STRIPE_SECRET_KEY', 'sk_live_ou_test_aqui');
+     */
+    private function get_stripe_secret_key()
+    {
+        if (defined('N1_STRIPE_SECRET_KEY') && is_string(N1_STRIPE_SECRET_KEY) && N1_STRIPE_SECRET_KEY !== '') {
+            return trim(N1_STRIPE_SECRET_KEY);
+        }
+        $opt = get_option('n1_stripe_secret_key', '');
+        return is_string($opt) && $opt !== '' ? trim($opt) : '';
+    }
+
+    /**
+     * SEGURANÇA (FALHA 2): confirma um pagamento consultando o provedor server-side.
+     * Só retorna true quando o provedor confirma o pagamento E o valor bate com o total
+     * do pedido calculado no servidor. Nunca confia em status vindo do cliente.
+     *
+     * @param string $gateway        'mercadopago' ou 'stripe'
+     * @param string $payment_id     id do pagamento (MP) ou PaymentIntent (Stripe)
+     * @param float  $expected_total total do pedido calculado no servidor (na moeda, ex.: reais)
+     * @return bool
+     */
+    private function verify_payment_confirmed($gateway, $payment_id, $expected_total)
+    {
+        $payment_id = is_string($payment_id) ? trim($payment_id) : (string) $payment_id;
+        if ($payment_id === '') {
+            return false;
+        }
+        $expected_total = round(floatval($expected_total), 2);
+
+        if ($gateway === 'mercadopago') {
+            $access_token = $this->get_mercadopago_access_token();
+            if ($access_token === '') {
+                error_log('N1 API - verify_payment_confirmed: access token Mercado Pago ausente; mantendo pedido pending.');
+                return false;
+            }
+            $res = wp_remote_get(
+                'https://api.mercadopago.com/v1/payments/' . rawurlencode($payment_id),
+                array(
+                    'headers' => array('Authorization' => 'Bearer ' . $access_token),
+                    'timeout' => 30,
+                )
+            );
+            if (is_wp_error($res)) {
+                error_log('N1 API - verify_payment_confirmed (MP): erro de rede - ' . $res->get_error_message());
+                return false;
+            }
+            $code = wp_remote_retrieve_response_code($res);
+            $data = json_decode(wp_remote_retrieve_body($res), true);
+            if ($code < 200 || $code >= 300 || !is_array($data)) {
+                error_log('N1 API - verify_payment_confirmed (MP): HTTP ' . $code . ' ao consultar pagamento ' . $payment_id);
+                return false;
+            }
+            $status = !empty($data['status']) ? sanitize_text_field($data['status']) : '';
+            $amount = isset($data['transaction_amount']) ? round(floatval($data['transaction_amount']), 2) : -1;
+            if ($status !== 'approved') {
+                return false;
+            }
+            if (abs($amount - $expected_total) > 0.01) {
+                error_log('N1 API - verify_payment_confirmed (MP): valor divergente. Cobrado=' . $amount . ' Esperado=' . $expected_total . ' (pagamento ' . $payment_id . ').');
+                return false;
+            }
+            return true;
+        }
+
+        if ($gateway === 'stripe') {
+            $secret = $this->get_stripe_secret_key();
+            if ($secret === '') {
+                error_log('N1 API - verify_payment_confirmed: chave Stripe ausente; mantendo pedido pending.');
+                return false;
+            }
+            $res = wp_remote_get(
+                'https://api.stripe.com/v1/payment_intents/' . rawurlencode($payment_id),
+                array(
+                    'headers' => array('Authorization' => 'Bearer ' . $secret),
+                    'timeout' => 30,
+                )
+            );
+            if (is_wp_error($res)) {
+                error_log('N1 API - verify_payment_confirmed (Stripe): erro de rede - ' . $res->get_error_message());
+                return false;
+            }
+            $code = wp_remote_retrieve_response_code($res);
+            $data = json_decode(wp_remote_retrieve_body($res), true);
+            if ($code < 200 || $code >= 300 || !is_array($data)) {
+                error_log('N1 API - verify_payment_confirmed (Stripe): HTTP ' . $code . ' ao consultar PaymentIntent ' . $payment_id);
+                return false;
+            }
+            $status = !empty($data['status']) ? sanitize_text_field($data['status']) : '';
+            $amount_cents = isset($data['amount']) ? intval($data['amount']) : -1;
+            $expected_cents = intval(round($expected_total * 100));
+            if ($status !== 'succeeded') {
+                return false;
+            }
+            if ($amount_cents !== $expected_cents) {
+                error_log('N1 API - verify_payment_confirmed (Stripe): valor divergente. Cobrado=' . $amount_cents . ' Esperado=' . $expected_cents . ' (PI ' . $payment_id . ').');
+                return false;
+            }
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * SEGURANÇA (FALHA 1): recalcula o total do carrinho no servidor.
+     * Para produtos reais do WooCommerce usa $product->get_price() (ignora o preço do cliente).
+     * Para itens sem produto no WooCommerce (catálogo externo do Next) mantém o preço enviado,
+     * registrando um aviso — não há preço no servidor para validar.
+     * Aplica frete e desconto de cupom informados no payload.
+     *
+     * @param array $cart_products
+     * @param array $params
+     * @return float
+     */
+    private function calculate_cart_amount_server_side($cart_products, $params)
+    {
+        if (!is_array($cart_products)) {
+            return 0;
+        }
+
+        $subtotal = 0;
+        foreach ($cart_products as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+            $raw_id = isset($item['_id']) ? $item['_id'] : (isset($item['id']) ? $item['id'] : 0);
+            $product_id = is_numeric($raw_id) ? intval($raw_id) : 0;
+            $quantity = isset($item['orderQuantity']) ? max(1, intval($item['orderQuantity'])) : 1;
+
+            $product = $product_id > 0 ? wc_get_product($product_id) : null;
+            if ($product) {
+                $subtotal += floatval($product->get_price()) * $quantity;
+            } else {
+                // TODO(segurança): este item deveria existir como produto no WooCommerce.
+                $client_price = isset($item['price']) ? floatval($item['price']) : 0;
+                if ($client_price > 0) {
+                    error_log('N1 API - calculate_cart_amount_server_side: item sem produto no WooCommerce; usando price do cliente (' . $client_price . ').');
+                    $subtotal += $client_price * $quantity;
+                }
+            }
+        }
+
+        $shipping = isset($params['shippingCost']) ? floatval($params['shippingCost']) : 0;
+        if ($shipping < 0) {
+            $shipping = 0;
+        }
+
+        // O front envia o desconto ora em couponInfo.discountValue, ora no campo plano 'discount'.
+        $discount = 0;
+        if (isset($params['couponInfo']) && is_array($params['couponInfo']) && isset($params['couponInfo']['discountValue'])) {
+            $discount = floatval($params['couponInfo']['discountValue']);
+        } elseif (isset($params['discount'])) {
+            $discount = floatval($params['discount']);
+        }
+        if ($discount < 0) {
+            $discount = 0;
+        }
+
+        $total = $subtotal + $shipping - $discount;
+        return $total > 0 ? round($total, 2) : 0;
+    }
+
+    /**
      * Public Key (para busca de payment_method por BIN). wp-config: define('N1_MERCADO_PAGO_PUBLIC_KEY', '...');
      */
     private function get_mercadopago_public_key()
@@ -3188,6 +3353,25 @@ class N1_WooCommerce_API
         $amount = isset($params['price']) ? floatval($params['price']) : 0;
         $payment_method = isset($params['payment_method']) ? sanitize_text_field($params['payment_method']) : 'card';
 
+        // SEGURANÇA (FALHA 1): nunca cobrar o valor cru enviado pelo cliente.
+        // Se o carrinho vier no payload, recalculamos o total no servidor usando os
+        // preços reais dos produtos WooCommerce (mais frete/desconto informados).
+        $cart_products = isset($params['cart'])
+            ? $params['cart']
+            : (isset($params['cart_products']) ? $params['cart_products'] : null);
+        if (is_array($cart_products) && !empty($cart_products)) {
+            $server_amount = $this->calculate_cart_amount_server_side($cart_products, $params);
+            if ($server_amount > 0) {
+                $amount = $server_amount;
+            }
+        } else {
+            // TODO(segurança): o front deveria enviar o carrinho para permitir o recálculo
+            // server-side do valor. Enquanto isso, confiamos no price do cliente — risco de
+            // fraude de preço nesta rota. Mitigado em add_order pela verificação server-side
+            // do pagamento (verify_payment_confirmed) antes de marcar como pago.
+            error_log('N1 API - create_payment_intent: AVISO — cobrando price do cliente sem carrinho para validar (risco de fraude de preço).');
+        }
+
         if ($amount <= 0) {
             return new WP_Error('invalid_amount', 'Valor inválido', array('status' => 400));
         }
@@ -3198,6 +3382,17 @@ class N1_WooCommerce_API
         // Verificar se a biblioteca Stripe está disponível
         if (!function_exists('curl_init')) {
             return new WP_Error('stripe_unavailable', 'Stripe não está disponível', array('status' => 500));
+        }
+
+        // SEGURANÇA (FALHA 3): chave secreta lida do wp-config.php, nunca do código.
+        $stripe_secret_key = $this->get_stripe_secret_key();
+        if ($stripe_secret_key === '') {
+            error_log('N1 API - create_payment_intent: N1_STRIPE_SECRET_KEY não configurada.');
+            return new WP_Error(
+                'stripe_not_configured',
+                'Stripe não configurado. Defina N1_STRIPE_SECRET_KEY no wp-config.php.',
+                array('status' => 500)
+            );
         }
 
         // Determinar método de pagamento
@@ -3238,7 +3433,7 @@ class N1_WooCommerce_API
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($stripe_data));
-        curl_setopt($ch, CURLOPT_USERPWD, $this->stripe_secret_key . ':');
+        curl_setopt($ch, CURLOPT_USERPWD, $stripe_secret_key . ':');
         curl_setopt($ch, CURLOPT_HTTPHEADER, array(
             'Content-Type: application/x-www-form-urlencoded',
         ));
@@ -3491,9 +3686,9 @@ class N1_WooCommerce_API
                 $wc_payment_gateway = 'stripe';
             }
 
-            if (isset($params['paymentStatus'])) {
-                $payment_status = sanitize_text_field($params['paymentStatus']);
-            }
+            // SEGURANÇA (FALHA 2): NÃO confiar em $params['paymentStatus'] nem no status
+            // vindo do cliente. O pedido nasce sempre 'pending' e só é confirmado após a
+            // verificação server-side do pagamento (verify_payment_confirmed), mais abaixo.
 
             // Calcular total (produtos Woo + itens só da loja Next / catálogo externo)
             $subtotal = 0;
@@ -3522,7 +3717,10 @@ class N1_WooCommerce_API
                 if ($product_id > 0) {
                     $product = wc_get_product($product_id);
                     if ($product) {
-                        $line_total = $price * $quantity;
+                        // SEGURANÇA (FALHA 1): IGNORAR o preço enviado pelo cliente.
+                        // Usar sempre o preço do servidor (evita fraude de preço).
+                        $server_price = floatval($product->get_price());
+                        $line_total = $server_price * $quantity;
                         $line_items[] = array(
                             'type' => 'product',
                             'product_id' => $product_id,
@@ -3535,8 +3733,12 @@ class N1_WooCommerce_API
                     }
                 }
 
-                // Sem produto no WooCommerce (catálogo Next, ID inválido, etc.) — linha manual no pedido
+                // Sem produto no WooCommerce (catálogo Next, ID inválido, etc.) — linha manual no pedido.
+                // TODO(segurança): idealmente estes itens deveriam existir como produtos no
+                // WooCommerce para permitir validar o preço no servidor. Sem produto, não há
+                // preço-fonte para conferir, então mantemos o valor do cliente com aviso.
                 if ($price > 0) {
+                    error_log('N1 API - add_order: item sem produto no WooCommerce ("' . $title . '"); usando price do cliente (' . $price . ') — sem validação server-side.');
                     $line_total = $price * $quantity;
                     $line_items[] = array(
                         'type' => 'custom',
@@ -3650,12 +3852,10 @@ class N1_WooCommerce_API
                 $order->update_meta_data('_stripe_payment_intent_id', $payment_intent_id);
             }
 
-            // Definir status do pagamento (MP usa "approved")
-            if ($payment_status === 'succeeded' || $payment_status === 'paid' || $payment_status === 'approved') {
-                $order->set_status('processing');
-            } else {
-                $order->set_status('pending');
-            }
+            // SEGURANÇA (FALHA 2): o pedido SEMPRE nasce 'pending'.
+            // A confirmação (processing) só acontece após verificação server-side do
+            // pagamento pelo payment_id (verify_payment_confirmed), logo após o save.
+            $order->set_status('pending');
 
             // Calcular totais
             $order->calculate_totals();
@@ -3690,7 +3890,24 @@ class N1_WooCommerce_API
                 error_log('N1 API - Pedido criado mas não foi possível recarregar. ID: ' . $order_id);
             }
 
-            $resp_order = $saved_order ? $saved_order : $order;
+            // SEGURANÇA (FALHA 2): confirmar o pagamento consultando o provedor (server-side)
+            // e só então marcar como pago. Cartão aprovado confirma na hora; PIX segue pending
+            // e é confirmado depois pelo webhook do Mercado Pago (fluxo assíncrono preservado).
+            $confirm_order = $saved_order ? $saved_order : $order;
+            // Total esperado = recálculo server-side (preço real dos produtos WooCommerce +
+            // frete/desconto do payload). Espelha o valor efetivamente cobrado e não confia no
+            // preço enviado pelo cliente para produtos que existem no WooCommerce.
+            $order_total_server = $this->calculate_cart_amount_server_side($cart_products, $params);
+            $already_paid = in_array($confirm_order->get_status(), array('processing', 'completed'), true);
+
+            if (!$already_paid && $payment_intent_id && $order_total_server > 0 && $this->verify_payment_confirmed($wc_payment_gateway, $payment_intent_id, $order_total_server)) {
+                $confirm_order->payment_complete((string) $payment_intent_id);
+                error_log('N1 API - add_order: pagamento confirmado server-side. Pedido ' . $order_id . ' -> ' . $confirm_order->get_status());
+            } else {
+                error_log('N1 API - add_order: pagamento NÃO confirmado agora (gateway=' . $wc_payment_gateway . ', payment_id=' . ($payment_intent_id ? $payment_intent_id : 'n/d') . '). Pedido ' . $order_id . ' permanece pending.');
+            }
+
+            $resp_order = $confirm_order;
 
             return rest_ensure_response(array(
                 'success' => true,

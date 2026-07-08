@@ -20,9 +20,16 @@ Abra o `wp-config.php` na raiz do WordPress (pelo cPanel → Gerenciador de arqu
 define('N1_MERCADO_PAGO_ACCESS_TOKEN', 'SEU_ACCESS_TOKEN_AQUI');
 define('N1_MERCADO_PAGO_PUBLIC_KEY', 'SUA_PUBLIC_KEY_AQUI');
 
+// Stripe — chave secreta (NUNCA deixe no código/Git). Use sk_test_... ou sk_live_...
+define('N1_STRIPE_SECRET_KEY', 'sk_live_ou_test_aqui');
+
 // URL da loja Next.js (Vercel) — para links de volta do Checkout Pro, se usar
 define('N1_STORE_URL', 'https://n-1-seven.vercel.app');
 ```
+
+> **Segurança:** a chave secreta do Stripe que antes ficava dentro do código foi removida.
+> Configure-a apenas no `wp-config.php`. Como a chave antiga já esteve versionada no Git,
+> revogue-a no painel do Stripe (Developers → API keys) e gere uma nova.
 
 - **Access Token** e **Public Key** estão em: Mercado Pago → Suas integrações → Credenciais.
 - A **Public Key** no front (Vercel) continua em `NEXT_PUBLIC_MERCADO_PAGO_PUBLIC_KEY` — deve ser a **mesma** que `N1_MERCADO_PAGO_PUBLIC_KEY`.
