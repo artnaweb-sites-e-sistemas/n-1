@@ -23,6 +23,13 @@ class N1_WooCommerce_API
 
     private $namespace = 'n1/v1';
     private $stripe_secret_key = 'sk_test_51SpZZiR0R7yHOSAazG9L81muQRM7HdTT2LcjRGl6RpBohC65L4Wv3uDEqWdmgMqc2gYdRW3ol7X3TsTlyomVv2TH006iGbXYj1';
+    private $default_product_shipping_meta = array(
+        '_weight' => '1',
+        '_length' => '21',
+        '_width' => '1.5',
+        '_height' => '28',
+    );
+    private $default_product_shipping_option = 'n1_default_product_shipping_meta_applied_v1';
 
     public function __construct()
     {
@@ -30,6 +37,82 @@ class N1_WooCommerce_API
         add_action('rest_api_init', array($this, 'add_cors_support'));
         add_action('add_meta_boxes', array($this, 'register_product_meta_box'));
         add_action('save_post_product', array($this, 'save_product_custom_fields'));
+        add_action('admin_init', array($this, 'apply_default_shipping_meta_to_existing_products'));
+        add_action('woocommerce_admin_process_product_object', array($this, 'apply_default_shipping_meta_to_product_object'));
+        add_action('woocommerce_admin_process_variation_object', array($this, 'apply_default_shipping_meta_to_product_object'));
+    }
+
+    private function is_empty_shipping_measurement($value)
+    {
+        if ($value === '' || $value === null) {
+            return true;
+        }
+
+        return is_numeric($value) && floatval($value) <= 0;
+    }
+
+    private function apply_default_shipping_meta_to_product_id($product_id)
+    {
+        $product_id = absint($product_id);
+        if (!$product_id) {
+            return false;
+        }
+
+        $updated = false;
+        foreach ($this->default_product_shipping_meta as $meta_key => $default_value) {
+            $current_value = get_post_meta($product_id, $meta_key, true);
+            if ($this->is_empty_shipping_measurement($current_value)) {
+                update_post_meta($product_id, $meta_key, $default_value);
+                $updated = true;
+            }
+        }
+
+        return $updated;
+    }
+
+    public function apply_default_shipping_meta_to_product_object($product)
+    {
+        if (!is_object($product) || !method_exists($product, 'get_id')) {
+            return;
+        }
+
+        if (method_exists($product, 'get_weight') && $this->is_empty_shipping_measurement($product->get_weight())) {
+            $product->set_weight($this->default_product_shipping_meta['_weight']);
+        }
+        if (method_exists($product, 'get_length') && $this->is_empty_shipping_measurement($product->get_length())) {
+            $product->set_length($this->default_product_shipping_meta['_length']);
+        }
+        if (method_exists($product, 'get_width') && $this->is_empty_shipping_measurement($product->get_width())) {
+            $product->set_width($this->default_product_shipping_meta['_width']);
+        }
+        if (method_exists($product, 'get_height') && $this->is_empty_shipping_measurement($product->get_height())) {
+            $product->set_height($this->default_product_shipping_meta['_height']);
+        }
+    }
+
+    public function apply_default_shipping_meta_to_existing_products()
+    {
+        if (get_option($this->default_product_shipping_option) === 'yes') {
+            return;
+        }
+
+        if (!class_exists('WooCommerce')) {
+            return;
+        }
+
+        $product_ids = get_posts(array(
+            'post_type' => array('product', 'product_variation'),
+            'post_status' => array('publish', 'draft', 'pending', 'private'),
+            'fields' => 'ids',
+            'posts_per_page' => -1,
+            'no_found_rows' => true,
+        ));
+
+        foreach ($product_ids as $product_id) {
+            $this->apply_default_shipping_meta_to_product_id($product_id);
+        }
+
+        update_option($this->default_product_shipping_option, 'yes', false);
     }
 
     public function register_product_meta_box()
@@ -3553,8 +3636,8 @@ class N1_WooCommerce_API
 
             $shipping_address = $billing_address;
 
-            $order->set_billing_address($billing_address);
-            $order->set_shipping_address($shipping_address);
+            $order->set_address($billing_address, 'billing');
+            $order->set_address($shipping_address, 'shipping');
 
             $order->set_payment_method($wc_payment_gateway);
             $order->set_payment_method_title($wc_payment_title);
@@ -4294,6 +4377,177 @@ class N1_WooCommerce_API
         return round($base, wc_get_price_decimals());
     }
 
+    private function n1_get_cart_item_quantity($item)
+    {
+        if (isset($item['orderQuantity'])) {
+            return max(1, absint($item['orderQuantity']));
+        }
+        if (isset($item['quantity'])) {
+            return max(1, absint($item['quantity']));
+        }
+
+        return 1;
+    }
+
+    private function n1_get_wc_product_id_from_cart_item($item)
+    {
+        $raw_id = null;
+        if (isset($item['id'])) {
+            $raw_id = $item['id'];
+        } elseif (isset($item['_id'])) {
+            $raw_id = $item['_id'];
+        }
+
+        if ($raw_id === null || $raw_id === '') {
+            return 0;
+        }
+
+        if (is_int($raw_id)) {
+            return absint($raw_id);
+        }
+
+        $raw_id = trim((string) $raw_id);
+        if (!ctype_digit($raw_id)) {
+            return 0;
+        }
+
+        return absint($raw_id);
+    }
+
+    private function n1_get_cart_item_unit_price($item, $product = null)
+    {
+        $price = 0;
+        if (isset($item['price'])) {
+            $price = floatval($item['price']);
+        } elseif (isset($item['originalPrice'])) {
+            $price = floatval($item['originalPrice']);
+        } elseif ($product && method_exists($product, 'get_price')) {
+            $price = floatval($product->get_price());
+        }
+
+        $discount = isset($item['discount']) ? floatval($item['discount']) : 0;
+        if ($discount > 0 && $discount <= 100) {
+            $price = $price - ($price * $discount / 100);
+        }
+
+        return max(0, $price);
+    }
+
+    private function n1_create_external_quote_product($item)
+    {
+        if (!class_exists('WC_Product_Simple')) {
+            return null;
+        }
+
+        $product = new WC_Product_Simple();
+        $product->set_name(isset($item['title']) ? sanitize_text_field($item['title']) : 'Produto N-1');
+        $product->set_virtual(false);
+        $product->set_downloadable(false);
+        $product->set_weight($this->default_product_shipping_meta['_weight']);
+        $product->set_length($this->default_product_shipping_meta['_length']);
+        $product->set_width($this->default_product_shipping_meta['_width']);
+        $product->set_height($this->default_product_shipping_meta['_height']);
+
+        $price = $this->n1_get_cart_item_unit_price($item, null);
+        $product->set_price($price);
+        $product->set_regular_price($price);
+
+        return $product;
+    }
+
+    private function n1_extract_shipping_options_from_packages($packages)
+    {
+        $shipping_options = array();
+
+        if (empty($packages) || empty($packages[0]['rates']) || !is_array($packages[0]['rates'])) {
+            return $shipping_options;
+        }
+
+        foreach ($packages[0]['rates'] as $rate) {
+            if (!is_object($rate) || !is_a($rate, 'WC_Shipping_Rate')) {
+                continue;
+            }
+
+            $shipping_options[] = array(
+                'id' => $rate->get_id(),
+                'title' => $rate->get_label(),
+                'cost' => $this->n1_get_shipping_rate_total_cost($rate),
+                'method_id' => $rate->get_method_id(),
+            );
+        }
+
+        return $shipping_options;
+    }
+
+    private function n1_calculate_shipping_for_manual_package($postcode, $cart_products)
+    {
+        $contents = array();
+        $contents_cost = 0;
+        $index = 0;
+
+        foreach ($cart_products as $item) {
+            $pid = $this->n1_get_wc_product_id_from_cart_item($item);
+            $product = $pid ? wc_get_product($pid) : null;
+            if (!$product) {
+                $product = $this->n1_create_external_quote_product($item);
+            }
+
+            if (!$product || !$product->needs_shipping()) {
+                continue;
+            }
+
+            $qty = $this->n1_get_cart_item_quantity($item);
+            $line_total = round($this->n1_get_cart_item_unit_price($item, $product) * $qty, wc_get_price_decimals());
+            $cart_item_key = 'n1_quote_' . $index++;
+
+            $contents[$cart_item_key] = array(
+                'key' => $cart_item_key,
+                'product_id' => $product->is_type('variation') ? $product->get_parent_id() : $product->get_id(),
+                'variation_id' => $product->is_type('variation') ? $product->get_id() : 0,
+                'variation' => $product->is_type('variation') ? $product->get_attributes() : array(),
+                'quantity' => $qty,
+                'data' => $product,
+                'line_total' => $line_total,
+                'line_subtotal' => $line_total,
+                'line_tax' => 0,
+                'line_subtotal_tax' => 0,
+            );
+            $contents_cost += $line_total;
+        }
+
+        if (empty($contents)) {
+            error_log('N1 API - n1_calculate_shipping_for_manual_package: sem produtos físicos no pacote');
+            return array();
+        }
+
+        $state = $this->n1_infer_state_from_postcode($postcode);
+        $package = array(
+            'contents' => $contents,
+            'contents_cost' => $contents_cost,
+            'applied_coupons' => array(),
+            'user' => array(
+                'ID' => get_current_user_id(),
+            ),
+            'destination' => array(
+                'country' => 'BR',
+                'state' => $state,
+                'postcode' => $postcode,
+                'city' => '-',
+                'address' => '-',
+                'address_1' => '-',
+                'address_2' => '',
+            ),
+            'cart_subtotal' => $contents_cost,
+        );
+
+        WC()->shipping()->reset_shipping();
+        $this->n1_clear_wc_shipping_package_session_cache();
+        $this->n1_fill_minimal_br_shipping_for_quote($postcode);
+        WC()->shipping()->calculate_shipping(array($package));
+
+        return $this->n1_extract_shipping_options_from_packages(WC()->shipping()->get_packages());
+    }
+
     /**
      * Calcula frete usando o mesmo fluxo do WooCommerce (compatível com Correios e outros gateways dinâmicos).
      *
@@ -4317,24 +4571,25 @@ class N1_WooCommerce_API
         }
 
         $lines = array();
+        $has_external_products = false;
         foreach ($cart_products as $item) {
-            $pid = 0;
-            if (!empty($item['id'])) {
-                $pid = absint($item['id']);
-            } elseif (!empty($item['_id'])) {
-                $pid = absint($item['_id']);
-            }
+            $pid = $this->n1_get_wc_product_id_from_cart_item($item);
 
             if (!$pid) {
+                $has_external_products = true;
                 continue;
             }
 
             $product = wc_get_product($pid);
-            if (!$product || !$product->needs_shipping()) {
+            if (!$product) {
+                $has_external_products = true;
+                continue;
+            }
+            if (!$product->needs_shipping()) {
                 continue;
             }
 
-            $qty = isset($item['orderQuantity']) ? max(1, absint($item['orderQuantity'])) : 1;
+            $qty = $this->n1_get_cart_item_quantity($item);
 
             $lines[] = array(
                 'product_id' => $product->is_type('variation') ? $product->get_parent_id() : $product->get_id(),
@@ -4342,6 +4597,11 @@ class N1_WooCommerce_API
                 'variation' => $product->is_type('variation') ? $product->get_attributes() : array(),
                 'quantity' => $qty,
             );
+        }
+
+        if ($has_external_products) {
+            error_log('N1 API - calculate_shipping_via_woocommerce: usando pacote manual para produtos externos');
+            return $this->n1_calculate_shipping_for_manual_package($postcode, $cart_products);
         }
 
         if (empty($lines)) {
@@ -4389,18 +4649,7 @@ class N1_WooCommerce_API
                 return array();
             }
 
-            foreach ($packages[0]['rates'] as $rate) {
-                if (!is_object($rate) || !is_a($rate, 'WC_Shipping_Rate')) {
-                    continue;
-                }
-
-                $shipping_options[] = array(
-                    'id' => $rate->get_id(),
-                    'title' => $rate->get_label(),
-                    'cost' => $this->n1_get_shipping_rate_total_cost($rate),
-                    'method_id' => $rate->get_method_id(),
-                );
-            }
+            $shipping_options = $this->n1_extract_shipping_options_from_packages($packages);
         } finally {
             $cart->empty_cart(false);
             foreach ($snapshot as $snap) {
