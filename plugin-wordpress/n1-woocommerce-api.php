@@ -597,6 +597,96 @@ class N1_WooCommerce_API
     }
 
     /**
+     * Origens (CORS) permitidas. Lista única usada pelos dois filtros para não divergir.
+     *
+     * @return string[]
+     */
+    private function get_allowed_cors_origins()
+    {
+        return array(
+            'https://n-1.artnaweb.com.br',
+            'http://n-1.artnaweb.com.br',
+            'https://loja.n-1edicoes.org',
+            'http://loja.n-1edicoes.org',
+            'https://n-1-seven.vercel.app',
+            'http://localhost:3000',
+            'http://localhost:3001',
+        );
+    }
+
+    /**
+     * Verifica se a origem pode receber os headers de CORS com credenciais.
+     * Aceita as origens fixas e, de forma CONTROLADA, os deploys de preview do Vercel
+     * do próprio projeto (https://n-1-seven*.vercel.app) — nunca todo '*.vercel.app'.
+     *
+     * @param string $origin
+     * @return bool
+     */
+    private function is_cors_origin_allowed($origin)
+    {
+        if (empty($origin) || !is_string($origin)) {
+            return false;
+        }
+
+        if (in_array($origin, $this->get_allowed_cors_origins(), true)) {
+            return true;
+        }
+
+        // Previews do Vercel: exige https, prefixo do slug do projeto e sufixo exato .vercel.app
+        $prefix = 'https://n-1-seven';
+        $suffix = '.vercel.app';
+        if (
+            strpos($origin, $prefix) === 0
+            && substr($origin, -strlen($suffix)) === $suffix
+        ) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Resolve a origem da requisição a partir de Origin (ou Referer como fallback).
+     *
+     * @return string
+     */
+    private function get_request_origin()
+    {
+        if (isset($_SERVER['HTTP_ORIGIN'])) {
+            return $_SERVER['HTTP_ORIGIN'];
+        }
+        if (isset($_SERVER['HTTP_REFERER'])) {
+            $parsed = parse_url($_SERVER['HTTP_REFERER']);
+            if (!empty($parsed['scheme']) && !empty($parsed['host'])) {
+                $origin = $parsed['scheme'] . '://' . $parsed['host'];
+                if (isset($parsed['port'])) {
+                    $origin .= ':' . $parsed['port'];
+                }
+                return $origin;
+            }
+        }
+        return '';
+    }
+
+    /**
+     * Envia os headers de CORS. Com Allow-Credentials: true NUNCA usar '*':
+     * Allow-Origin/Allow-Credentials só são enviados para origens permitidas.
+     *
+     * @param string $origin
+     * @return void
+     */
+    private function send_cors_headers($origin)
+    {
+        if ($this->is_cors_origin_allowed($origin)) {
+            header('Access-Control-Allow-Origin: ' . $origin);
+            header('Access-Control-Allow-Credentials: true');
+        }
+
+        header('Access-Control-Allow-Methods: GET, POST, OPTIONS, PUT, DELETE, PATCH');
+        header('Access-Control-Allow-Headers: Authorization, Content-Type, X-Requested-With, Accept');
+    }
+
+    /**
      * Add CORS support
      */
     public function add_cors_support()
@@ -608,38 +698,7 @@ class N1_WooCommerce_API
 
         remove_filter('rest_pre_serve_request', 'rest_send_cors_headers');
         add_filter('rest_pre_serve_request', function ($value) {
-            // Lista de origens permitidas
-            $allowed_origins = array(
-                'https://n-1.artnaweb.com.br',
-                'http://n-1.artnaweb.com.br',
-                'https://loja.n-1edicoes.org',
-                'http://loja.n-1edicoes.org',
-                'http://localhost:3000',
-                'http://localhost:3001',
-            );
-
-            // Obter origem da requisição
-            $origin = '';
-            if (isset($_SERVER['HTTP_ORIGIN'])) {
-                $origin = $_SERVER['HTTP_ORIGIN'];
-            } elseif (isset($_SERVER['HTTP_REFERER'])) {
-                $parsed = parse_url($_SERVER['HTTP_REFERER']);
-                $origin = $parsed['scheme'] . '://' . $parsed['host'];
-                if (isset($parsed['port'])) {
-                    $origin .= ':' . $parsed['port'];
-                }
-            }
-
-            // SEGURANÇA (FALHA 4): com Allow-Credentials: true nunca usar '*'.
-            // Só enviar Allow-Origin/Allow-Credentials quando a origem estiver na lista.
-            $is_allowed = !empty($origin) && in_array($origin, $allowed_origins, true);
-            if ($is_allowed) {
-                header('Access-Control-Allow-Origin: ' . $origin);
-                header('Access-Control-Allow-Credentials: true');
-            }
-
-            header('Access-Control-Allow-Methods: GET, POST, OPTIONS, PUT, DELETE, PATCH');
-            header('Access-Control-Allow-Headers: Authorization, Content-Type, X-Requested-With, Accept');
+            $this->send_cors_headers($this->get_request_origin());
 
             // Responder a requisições OPTIONS (preflight)
             if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
@@ -652,25 +711,7 @@ class N1_WooCommerce_API
 
         // Garantir CORS mesmo em erros
         add_filter('rest_pre_dispatch', function ($result, $server, $request) {
-            $allowed_origins = array(
-                'https://n-1.artnaweb.com.br',
-                'http://n-1.artnaweb.com.br',
-                'https://loja.n-1edicoes.org',
-                'http://loja.n-1edicoes.org',
-                'http://localhost:3000',
-                'http://localhost:3001',
-            );
-
-            $origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '';
-            // SEGURANÇA (FALHA 4): com Allow-Credentials: true nunca usar '*'.
-            if (!empty($origin) && in_array($origin, $allowed_origins, true)) {
-                header('Access-Control-Allow-Origin: ' . $origin);
-                header('Access-Control-Allow-Credentials: true');
-            }
-
-            header('Access-Control-Allow-Methods: GET, POST, OPTIONS, PUT, DELETE, PATCH');
-            header('Access-Control-Allow-Headers: Authorization, Content-Type, X-Requested-With, Accept');
-
+            $this->send_cors_headers(isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '');
             return $result;
         }, 10, 3);
     }
