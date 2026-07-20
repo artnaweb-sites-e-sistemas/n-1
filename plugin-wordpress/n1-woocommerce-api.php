@@ -1050,6 +1050,32 @@ class N1_WooCommerce_API
     }
 
     /**
+     * Normaliza caracteres especiais do slug (alinhado ao front: ₂→2, etc.).
+     */
+    private function normalize_slug_chars($slug)
+    {
+        if ($slug === null || $slug === '') {
+            return '';
+        }
+        $slug = (string) $slug;
+        // Decodificar %xx se vier encoded
+        $decoded = rawurldecode($slug);
+        if ($decoded !== '') {
+            $slug = $decoded;
+        }
+        $map = array(
+            '₂' => '2',
+            '₃' => '3',
+            '₄' => '4',
+            '²' => '2',
+            '³' => '3',
+            '⁴' => '4',
+        );
+        $slug = strtr($slug, $map);
+        return $slug;
+    }
+
+    /**
      * Generate product slug from title (for /livros/slug format)
      */
     private function generate_product_slug($title)
@@ -1058,12 +1084,12 @@ class N1_WooCommerce_API
             return '';
         }
 
+        $slug = $this->normalize_slug_chars($title);
+
         // Usar função do WordPress se disponível, senão usar alternativa
         if (function_exists('remove_accents')) {
-            $slug = remove_accents($title);
+            $slug = remove_accents($slug);
         } else {
-            // Alternativa manual para remover acentos
-            $slug = $title;
             $slug = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $slug);
         }
 
@@ -1118,8 +1144,14 @@ class N1_WooCommerce_API
         }
 
         // Generate new permalink format: /livros/slug
+        // Preferir post_name do Woo (coluna Slug do CSV); fallback pelo título
         $product_title = $product->get_name();
-        $slug = $this->generate_product_slug($product_title);
+        $slug = $product->get_slug();
+        if (empty($slug)) {
+            $slug = $this->generate_product_slug($product_title);
+        } else {
+            $slug = sanitize_title($this->normalize_slug_chars($slug));
+        }
         $new_permalink = home_url('/livros/' . $slug);
 
         // Get catalog content (editorial content from related post/page or meta fields)
@@ -1428,6 +1460,7 @@ class N1_WooCommerce_API
         }
 
         $slug = sanitize_text_field($request['slug']);
+        $slug = sanitize_title($this->normalize_slug_chars($slug));
 
         if (empty($slug)) {
             return new WP_Error('invalid_slug', 'Slug inválido', array('status' => 400));

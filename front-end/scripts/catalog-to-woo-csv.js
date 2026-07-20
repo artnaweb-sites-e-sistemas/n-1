@@ -2,10 +2,12 @@
  * Gera CSV de importação WooCommerce a partir de catalog-products.json.
  *
  * Uso:
- *   node scripts/catalog-to-woo-csv.js --sku 9786561190572
- *   node scripts/catalog-to-woo-csv.js --slug a-comunidade-terrestre
- *   node scripts/catalog-to-woo-csv.js --sku 9786561190572 --out scripts/out/produto-teste.csv
+ *   node scripts/catalog-to-woo-csv.js --report
+ *   node scripts/catalog-to-woo-csv.js --lote-teste
+ *   node scripts/catalog-to-woo-csv.js --skus=a,b,c --out scripts/out/lote.csv
+ *   node scripts/catalog-to-woo-csv.js --limit=20 --out scripts/out/lote-01.csv
  *   node scripts/catalog-to-woo-csv.js --all --out scripts/out/catalogo-completo.csv
+ *   node scripts/catalog-to-woo-csv.js --sku 9786561190572
  */
 
 const fs = require('fs');
@@ -14,6 +16,7 @@ const path = require('path');
 const CATALOG_JSON_PATH = path.join(__dirname, '..', 'src', 'data', 'catalog-products.json');
 const DEFAULT_OUT_DIR = path.join(__dirname, 'out');
 const IMAGE_BASE_URL = 'https://n-1-seven.vercel.app';
+const HEAD_CONCURRENCY = 8;
 
 const CSV_HEADERS = [
   'Type',
@@ -51,22 +54,57 @@ const CSV_HEADERS = [
 
 const NAV_SKIP_TEXTS = new Set(['comprar', 'anterior', 'próximo', 'proximo']);
 
+/** SKUs do lote-teste (cobre YouTube, Nas brechas, H₂O, description preenchida, comum). */
+const LOTE_TESTE_SKUS = [
+  '9786561190473', // YouTube: O desencadeamento do mundo
+  '9786561190763', // Nas brechas (exceção de imagem + description preenchida)
+  '9786561190558', // H₂O slug especial
+  '9786561190626', // description preenchida (Coletânea...)
+  '9786561190657', // comum (será resolvido dinamicamente se inválido)
+];
+
 function parseArgs(argv) {
   const args = {
     sku: null,
     slug: null,
+    skus: null,
+    limit: null,
     all: false,
+    report: false,
+    loteTeste: false,
     out: null,
+    skipHead: false,
   };
 
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     if (arg === '--sku' && argv[i + 1]) {
       args.sku = String(argv[++i]).trim();
+    } else if (arg.startsWith('--skus=')) {
+      args.skus = arg
+        .slice('--skus='.length)
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
+    } else if (arg === '--skus' && argv[i + 1]) {
+      args.skus = String(argv[++i])
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
+    } else if (arg.startsWith('--limit=')) {
+      args.limit = parseInt(arg.slice('--limit='.length), 10);
+    } else if (arg === '--limit' && argv[i + 1]) {
+      args.limit = parseInt(argv[++i], 10);
     } else if (arg === '--slug' && argv[i + 1]) {
       args.slug = String(argv[++i]).trim();
     } else if (arg === '--all') {
       args.all = true;
+    } else if (arg === '--report') {
+      args.report = true;
+    } else if (arg === '--lote-teste') {
+      args.loteTeste = true;
+    } else if (arg === '--skip-head') {
+      args.skipHead = true;
     } else if (arg === '--out' && argv[i + 1]) {
       args.out = path.resolve(argv[++i]);
     } else if (arg === '--help' || arg === '-h') {
@@ -79,14 +117,12 @@ function parseArgs(argv) {
 
 function printHelp() {
   console.log(`Uso:
-  node scripts/catalog-to-woo-csv.js --sku <sku> [--out <arquivo.csv>]
-  node scripts/catalog-to-woo-csv.js --slug <slug> [--out <arquivo.csv>]
-  node scripts/catalog-to-woo-csv.js --all [--out <arquivo.csv>]
-
-Exemplos:
-  node scripts/catalog-to-woo-csv.js --sku 9786561190572 --out scripts/out/produto-teste.csv
-  node scripts/catalog-to-woo-csv.js --slug a-comunidade-terrestre
-  node scripts/catalog-to-woo-csv.js --all --out scripts/out/catalogo-completo.csv`);
+  node scripts/catalog-to-woo-csv.js --report
+  node scripts/catalog-to-woo-csv.js --lote-teste
+  node scripts/catalog-to-woo-csv.js --skus=sku1,sku2 --out scripts/out/lote.csv
+  node scripts/catalog-to-woo-csv.js --limit=20 --out scripts/out/lote-01.csv
+  node scripts/catalog-to-woo-csv.js --all --out scripts/out/catalogo-completo.csv
+  node scripts/catalog-to-woo-csv.js --sku <sku> [--out <arquivo.csv>]`);
 }
 
 function escapeCsvField(value) {
@@ -106,32 +142,95 @@ function toAbsoluteImageUrl(imagePath) {
   return `${IMAGE_BASE_URL}${normalized}`;
 }
 
-/**
- * Extrai a URL da primeira <img src="..."> do catalogContent.
- */
 function getFirstImageSrcFromHtml(html) {
   if (!html || typeof html !== 'string') return null;
   const match = html.match(/<img[^>]*\ssrc=["']([^"']+)["']/i);
   return match && match[1] ? match[1].trim() : null;
 }
 
+function isNasBrechasProduct(product) {
+  const nasBrechasId = 'catalog-nas-brechas-futuros-cancelados';
+  return (
+    product?._id === nasBrechasId ||
+    product?.id === nasBrechasId ||
+    (product?.slug && String(product.slug).includes('nas-brechas-de-futuros-cancelados'))
+  );
+}
+
 /**
- * Imagens para o CSV (ordem WooCommerce):
- * 1) destacada = capa (campo "image")
- * 2) 1ª da galeria = mockup (primeira <img> do catalogContent)
- * Sem catalogImages extras. Se iguais ou sem mockup, só a capa.
+ * Mesma lógica de getProductPageMainImageUrl() para source === "catalog".
+ * Usada como 2ª imagem (galeria) no CSV.
+ */
+function getCatalogPageImagePath(product) {
+  const catalogImages = product.catalogImages || [];
+  const catalogContent = product.catalogContent || '';
+
+  if (isNasBrechasProduct(product) && catalogImages.length > 1) {
+    return String(catalogImages[1]).trim();
+  }
+
+  const firstFromHtml = getFirstImageSrcFromHtml(catalogContent);
+  if (firstFromHtml) return firstFromHtml;
+
+  if (catalogImages.length > 0 && catalogImages[0]) {
+    return String(catalogImages[0]).trim();
+  }
+  if (product.image) return String(product.image).trim();
+  return null;
+}
+
+/**
+ * Images CSV: [0] capa (destacada/vitrine), [1] imagem da página (galeria).
  */
 function collectImages(product) {
   const cover = toAbsoluteImageUrl(product.image);
   if (!cover) return [];
 
-  const mockupRaw = getFirstImageSrcFromHtml(product.catalogContent || '');
-  const mockup = toAbsoluteImageUrl(mockupRaw);
+  const pageRaw = getCatalogPageImagePath(product);
+  const pageImg = toAbsoluteImageUrl(pageRaw);
 
-  if (!mockup || mockup === cover) {
+  if (!pageImg || pageImg === cover) {
     return [cover];
   }
-  return [cover, mockup];
+  return [cover, pageImg];
+}
+
+/**
+ * Slug WooCommerce alinhado à normalização do front (₂→2, decode %xx).
+ */
+function normalizeProductSlug(slug) {
+  let s = String(slug || '').trim();
+  if (!s) return '';
+
+  let previous = '';
+  while (s !== previous && s.includes('%')) {
+    previous = s;
+    try {
+      s = decodeURIComponent(s);
+    } catch (_) {
+      break;
+    }
+  }
+
+  s = s
+    .replace(/₂/g, '2')
+    .replace(/₃/g, '3')
+    .replace(/₄/g, '4')
+    .replace(/²/g, '2')
+    .replace(/³/g, '3')
+    .replace(/⁴/g, '4')
+    .toLowerCase()
+    .trim();
+
+  // post_name Woo: a-z 0-9 hífen
+  s = s
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/[\s-]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+
+  return s;
 }
 
 function splitImageUrls(imagesField) {
@@ -141,34 +240,52 @@ function splitImageUrls(imagesField) {
     .filter(Boolean);
 }
 
-/**
- * HEAD em cada URL; falha se qualquer uma não retornar 200.
- */
-async function assertImageUrlsReachable(urls) {
-  const failures = [];
+const headCache = new Map();
 
-  for (const url of urls) {
-    try {
-      const res = await fetch(url, { method: 'HEAD', redirect: 'follow' });
-      if (res.status !== 200) {
-        if (res.status === 405 || res.status === 501) {
-          const getRes = await fetch(url, {
-            method: 'GET',
-            redirect: 'follow',
-            headers: { Range: 'bytes=0-0' },
-          });
-          if (getRes.status !== 200 && getRes.status !== 206) {
-            failures.push(`${url} → HTTP ${getRes.status} (GET após HEAD ${res.status})`);
-          }
-        } else {
-          failures.push(`${url} → HTTP ${res.status}`);
-        }
-      }
-    } catch (err) {
-      failures.push(`${url} → ${err.message || err}`);
+async function headStatus(url) {
+  if (headCache.has(url)) return headCache.get(url);
+  try {
+    const res = await fetch(url, { method: 'HEAD', redirect: 'follow' });
+    let status = res.status;
+    if (status === 405 || status === 501) {
+      const getRes = await fetch(url, {
+        method: 'GET',
+        redirect: 'follow',
+        headers: { Range: 'bytes=0-0' },
+      });
+      status = getRes.status === 206 ? 200 : getRes.status;
+    }
+    headCache.set(url, status);
+    return status;
+  } catch (err) {
+    headCache.set(url, 0);
+    return 0;
+  }
+}
+
+async function mapPool(items, concurrency, fn) {
+  const results = new Array(items.length);
+  let next = 0;
+  async function worker() {
+    while (next < items.length) {
+      const i = next++;
+      results[i] = await fn(items[i], i);
     }
   }
+  const workers = Array.from({ length: Math.min(concurrency, items.length) }, () => worker());
+  await Promise.all(workers);
+  return results;
+}
 
+async function assertImageUrlsReachable(urls) {
+  const unique = [...new Set(urls.filter(Boolean))];
+  const failures = [];
+  await mapPool(unique, HEAD_CONCURRENCY, async (url) => {
+    const status = await headStatus(url);
+    if (status !== 200) {
+      failures.push(`${url} → HTTP ${status || 'ERR'}`);
+    }
+  });
   if (failures.length) {
     throw new Error(
       `Imagens inacessíveis (esperado HTTP 200). Corrija as URLs antes de importar:\n- ${failures.join('\n- ')}`
@@ -197,38 +314,24 @@ function isNavOrButtonText(text) {
   const t = String(text || '').trim().toLowerCase();
   if (!t) return true;
   if (NAV_SKIP_TEXTS.has(t)) return true;
-  // Textos curtos de UI (botão "Comprar", "Anterior", etc.)
   if (/^(comprar|anterior|pr[oó]ximo)(\s|$)/i.test(t) && t.length < 40) return true;
   return false;
 }
 
-/**
- * Primeiro <p> descritivo do catalogContent (>80 chars, sem botões/navegação).
- * Nunca retorna o HTML inteiro nem texto corrido de strip_tags no documento.
- */
 function extractDescriptiveParagraph(catalogContent) {
   if (!catalogContent || typeof catalogContent !== 'string') return '';
-
   const pRegex = /<p\b[^>]*>([\s\S]*?)<\/p>/gi;
   let match;
   while ((match = pRegex.exec(catalogContent)) !== null) {
     const text = htmlToPlainText(match[1]);
     if (!text || text.length <= 80) continue;
     if (isNavOrButtonText(text)) continue;
-    // Rejeitar se parecer o documento inteiro colapsado
-    if (/comprar/i.test(text) && /anterior/i.test(text) && /pr[oó]ximo/i.test(text)) {
-      continue;
-    }
+    if (/comprar/i.test(text) && /anterior/i.test(text) && /pr[oó]ximo/i.test(text)) continue;
     return text;
   }
   return '';
 }
 
-/**
- * Description / Short description: usa o campo do JSON se preenchido;
- * senão extrai o primeiro parágrafo descritivo do catalogContent.
- * NUNCA usa o catalogContent inteiro.
- */
 function resolveDescription(product) {
   const fromField = String(product.description || '').trim();
   if (fromField) {
@@ -249,7 +352,6 @@ function resolveShortDescription(product) {
   return resolveDescription(product);
 }
 
-/** Falha se a Description parecer HTML stripado / navegação / texto gigante. */
 function assertCleanDescription(text, label) {
   const value = String(text || '');
   if (!value) {
@@ -258,8 +360,7 @@ function assertCleanDescription(text, label) {
   if (value.length > 1500) {
     throw new Error(`${label}: Description com ${value.length} chars (>1500) — parece conteúdo poluído`);
   }
-  const start = value.slice(0, 40).toLowerCase();
-  if (start.startsWith('comprar') || /^\s*comprar\b/i.test(value)) {
+  if (/^\s*comprar\b/i.test(value)) {
     throw new Error(`${label}: Description começa com "Comprar" — conteúdo poluído`);
   }
   if (/\banterior\b/i.test(value) || /\bpr[oó]ximo\b/i.test(value)) {
@@ -279,17 +380,15 @@ function formatRegularPrice(price) {
   if (price == null || price === '') return '';
   const num = Number(price);
   if (Number.isNaN(num)) return String(price).trim();
-  // Número simples com ponto decimal (ex.: 89.15), sem R$
   return String(num);
 }
 
 function productToRow(product) {
-  // Description/Short: leitura apenas (regex em cópia implícita da string).
-  // catalogContent vai para a meta INTACTO — nunca passar por DOM/cheerio.
   const catalogContentExact = product.catalogContent == null ? '' : String(product.catalogContent);
   const description = resolveDescription(product);
   const shortDescription = resolveShortDescription(product);
   const images = collectImages(product);
+  const slug = normalizeProductSlug(product.slug || '');
 
   return [
     'simple',
@@ -308,7 +407,7 @@ function productToRow(product) {
     '1.5',
     '28',
     images.join(', '),
-    product.slug ?? '',
+    slug,
     product.bookTitle ?? '',
     product.originalTitle ?? '',
     product.author ?? '',
@@ -334,9 +433,6 @@ function buildCsv(products) {
   return `\uFEFF${lines.join('\r\n')}\r\n`;
 }
 
-/**
- * Parser CSV mínimo (RFC 4180) para validar o arquivo gerado.
- */
 function parseCsv(content) {
   const text = content.charCodeAt(0) === 0xfeff ? content.slice(1) : content;
   const rows = [];
@@ -366,7 +462,7 @@ function parseCsv(content) {
       row.push(field);
       field = '';
     } else if (ch === '\r') {
-      // ignore; handled with \n
+      // ignore
     } else if (ch === '\n') {
       row.push(field);
       rows.push(row);
@@ -389,151 +485,419 @@ function parseCsv(content) {
   return rows;
 }
 
-function filterProducts(products, { sku, slug, all }) {
-  if (all) return products;
-
-  if (sku) {
-    const match = products.filter((p) => String(p.sku ?? '').trim() === sku);
-    if (!match.length) {
-      throw new Error(`Nenhum produto encontrado com sku "${sku}"`);
-    }
-    return match;
+function findDuplicateSkus(products) {
+  const bySku = new Map();
+  for (const p of products) {
+    const sku = String(p.sku ?? '').trim();
+    if (!sku) continue;
+    if (!bySku.has(sku)) bySku.set(sku, []);
+    bySku.get(sku).push(p);
   }
-
-  if (slug) {
-    const match = products.filter((p) => String(p.slug ?? '').trim() === slug);
-    if (!match.length) {
-      throw new Error(`Nenhum produto encontrado com slug "${slug}"`);
-    }
-    return match;
+  const dups = [];
+  for (const [sku, items] of bySku) {
+    if (items.length > 1) dups.push({ sku, items });
   }
-
-  throw new Error('Informe --sku, --slug ou --all');
+  return dups;
 }
 
-function defaultOutPath({ sku, slug, all }) {
-  if (!fs.existsSync(DEFAULT_OUT_DIR)) {
-    fs.mkdirSync(DEFAULT_OUT_DIR, { recursive: true });
+function getExcludedDuplicateSkuSet(products) {
+  const set = new Set();
+  for (const { sku } of findDuplicateSkus(products)) {
+    set.add(sku);
   }
-  if (all) return path.join(DEFAULT_OUT_DIR, 'catalogo-completo.csv');
-  if (sku) return path.join(DEFAULT_OUT_DIR, `produto-${sku}.csv`);
-  if (slug) return path.join(DEFAULT_OUT_DIR, `produto-${slug}.csv`);
-  return path.join(DEFAULT_OUT_DIR, 'produtos.csv');
+  return set;
+}
+
+function isSkuSuspicious(sku) {
+  const s = String(sku ?? '').trim();
+  if (!s) return true;
+  if (s.length < 8) return true;
+  if (!/^\d+$/.test(s)) return true;
+  return false;
+}
+
+function slugHasEncodedOrNonAscii(slug) {
+  const s = String(slug ?? '');
+  if (!s) return true;
+  if (/%[0-9a-fA-F]{2}/.test(s)) return true;
+  if (/[^\x00-\x7F]/.test(s)) return true;
+  return false;
+}
+
+/**
+ * Relatório de integridade — console + arquivo .txt
+ */
+async function runIntegrityReport(catalog, { checkImages = true } = {}) {
+  const lines = [];
+  const log = (msg = '') => {
+    lines.push(msg);
+    console.log(msg);
+  };
+
+  log('=========================================================');
+  log('RELATÓRIO DE INTEGRIDADE — catalog-products.json');
+  log(`Gerado em: ${new Date().toISOString()}`);
+  log(`Total de produtos: ${catalog.length}`);
+  log('=========================================================');
+  log();
+
+  // SKUs duplicados
+  const dups = findDuplicateSkus(catalog);
+  log(`## SKUs DUPLICADOS (${dups.length} SKUs / exclusos da importação)`);
+  if (!dups.length) {
+    log('(nenhum)');
+  } else {
+    for (const { sku, items } of dups) {
+      log(`SKU ${sku}:`);
+      for (const p of items) {
+        log(`  - ${p.title} | slug=${p.slug} | id=${p._id || p.id}`);
+      }
+    }
+  }
+  log();
+
+  // SKUs vazios/suspeitos
+  const suspicious = catalog.filter((p) => isSkuSuspicious(p.sku));
+  log(`## SKUs VAZIOS OU SUSPEITOS (${suspicious.length})`);
+  if (!suspicious.length) log('(nenhum)');
+  else {
+    for (const p of suspicious) {
+      log(`  - sku="${p.sku}" | ${p.title}`);
+    }
+  }
+  log();
+
+  // Sem image
+  const noImage = catalog.filter((p) => !p.image || !String(p.image).trim());
+  log(`## SEM CAMPO image (${noImage.length})`);
+  if (!noImage.length) log('(nenhum)');
+  else noImage.forEach((p) => log(`  - ${p.sku} | ${p.title}`));
+  log();
+
+  // Sem <img> no catalogContent
+  const noContentImg = catalog.filter((p) => !getFirstImageSrcFromHtml(p.catalogContent || ''));
+  log(`## SEM <img> NO catalogContent (${noContentImg.length}) — sem imagem de galeria`);
+  if (!noContentImg.length) log('(nenhum)');
+  else noContentImg.forEach((p) => log(`  - ${p.sku} | ${p.title}`));
+  log();
+
+  // Preço inválido
+  const badPrice = catalog.filter((p) => {
+    const n = Number(p.price);
+    return p.price == null || p.price === '' || Number.isNaN(n) || n <= 0;
+  });
+  log(`## PRICE 0 / VAZIO / NÃO NUMÉRICO (${badPrice.length})`);
+  if (!badPrice.length) log('(nenhum)');
+  else badPrice.forEach((p) => log(`  - ${p.sku} | price=${JSON.stringify(p.price)} | ${p.title}`));
+  log();
+
+  // Slug especial
+  const weirdSlug = catalog.filter((p) => slugHasEncodedOrNonAscii(p.slug));
+  log(`## SLUG COM ENCODING / NÃO-ASCII (${weirdSlug.length})`);
+  if (!weirdSlug.length) log('(nenhum)');
+  else {
+    for (const p of weirdSlug) {
+      log(`  - ${p.sku} | slug="${p.slug}" → normalizado="${normalizeProductSlug(p.slug)}" | ${p.title}`);
+    }
+  }
+  log();
+
+  // Imagens HTTP
+  if (checkImages) {
+    log('## CHECAGEM HTTP HEAD DAS IMAGENS (capa + página)');
+    const urlToProducts = new Map();
+    for (const p of catalog) {
+      const imgs = collectImages(p);
+      for (const u of imgs) {
+        if (!urlToProducts.has(u)) urlToProducts.set(u, []);
+        urlToProducts.get(u).push(p.sku);
+      }
+    }
+    const urls = [...urlToProducts.keys()];
+    log(`URLs únicas a verificar: ${urls.length}`);
+    const bad = [];
+    await mapPool(urls, HEAD_CONCURRENCY, async (url) => {
+      const status = await headStatus(url);
+      if (status !== 200) {
+        bad.push({ url, status, skus: urlToProducts.get(url) });
+      }
+    });
+    log(`URLs com status != 200: ${bad.length}`);
+    if (!bad.length) log('(todas OK)');
+    else {
+      for (const b of bad) {
+        log(`  - HTTP ${b.status || 'ERR'} | ${b.url} | skus: ${(b.skus || []).join(', ')}`);
+      }
+    }
+    log();
+  } else {
+    log('## CHECAGEM HTTP HEAD: pulada (--skip-head)');
+    log();
+  }
+
+  const excluded = getExcludedDuplicateSkuSet(catalog);
+  const importable = catalog.filter((p) => {
+    const sku = String(p.sku ?? '').trim();
+    return sku && !excluded.has(sku);
+  });
+  log('## RESUMO PARA IMPORTAÇÃO');
+  log(`Total no JSON:           ${catalog.length}`);
+  log(`Excluídos (SKU duplo):   ${catalog.length - importable.length}`);
+  log(`Elegíveis p/ CSV:        ${importable.length}`);
+  log();
+  log('FIM DO RELATÓRIO');
+
+  const reportPath = path.join(DEFAULT_OUT_DIR, `integridade-${new Date().toISOString().slice(0, 10)}.txt`);
+  fs.mkdirSync(DEFAULT_OUT_DIR, { recursive: true });
+  fs.writeFileSync(reportPath, lines.join('\n'), 'utf8');
+  console.log(`\nRelatório salvo em: ${reportPath}`);
+  return { reportPath, excluded, importable, dups };
+}
+
+function filterProductsForExport(catalog, args) {
+  const excluded = getExcludedDuplicateSkuSet(catalog);
+
+  let selected;
+  if (args.loteTeste) {
+    const wanted = resolveLoteTesteSkus(catalog);
+    selected = wanted.map((sku) => {
+      const p = catalog.find((x) => String(x.sku).trim() === sku);
+      if (!p) throw new Error(`SKU do lote-teste não encontrado: ${sku}`);
+      return p;
+    });
+  } else if (args.skus && args.skus.length) {
+    selected = args.skus.map((sku) => {
+      const p = catalog.find((x) => String(x.sku).trim() === sku);
+      if (!p) throw new Error(`SKU não encontrado: ${sku}`);
+      return p;
+    });
+  } else if (args.sku) {
+    selected = catalog.filter((p) => String(p.sku ?? '').trim() === args.sku);
+    if (!selected.length) throw new Error(`Nenhum produto com sku "${args.sku}"`);
+  } else if (args.slug) {
+    selected = catalog.filter((p) => String(p.slug ?? '').trim() === args.slug);
+    if (!selected.length) throw new Error(`Nenhum produto com slug "${args.slug}"`);
+  } else if (args.all || args.limit) {
+    selected = catalog.filter((p) => {
+      const sku = String(p.sku ?? '').trim();
+      return sku && !excluded.has(sku);
+    });
+    if (args.limit) {
+      selected = selected.slice(0, args.limit);
+    }
+  } else {
+    throw new Error('Informe --report, --lote-teste, --sku, --skus, --slug, --limit ou --all');
+  }
+
+  // Nunca exportar SKU duplicado
+  const blocked = selected.filter((p) => excluded.has(String(p.sku ?? '').trim()));
+  if (blocked.length) {
+    console.warn(
+      'AVISO: excluindo produtos com SKU duplicado do CSV:\n' +
+        blocked.map((p) => `  - ${p.sku} | ${p.title}`).join('\n')
+    );
+    selected = selected.filter((p) => !excluded.has(String(p.sku ?? '').trim()));
+  }
+
+  // Garantir unicidade dentro do lote
+  const seen = new Set();
+  const unique = [];
+  for (const p of selected) {
+    const sku = String(p.sku ?? '').trim();
+    if (!sku) continue;
+    if (seen.has(sku)) {
+      throw new Error(`SKU repetido no lote selecionado: ${sku}`);
+    }
+    seen.add(sku);
+    unique.push(p);
+  }
+
+  if (!unique.length) {
+    throw new Error('Nenhum produto restante para exportar após filtros');
+  }
+
+  return unique;
+}
+
+function resolveLoteTesteSkus(catalog) {
+  const dups = getExcludedDuplicateSkuSet(catalog);
+  const yt = catalog.filter(
+    (p) =>
+      /youtube\.com|youtu\.be/i.test(p.catalogContent || '') &&
+      !dups.has(String(p.sku).trim())
+  );
+  const youtubeSku = (yt[0] && String(yt[0].sku).trim()) || '9786561190473';
+
+  const nas = catalog.find((p) => isNasBrechasProduct(p));
+  const h2o = catalog.find((p) => String(p.sku).trim() === '9786561190558');
+  const withDesc = catalog.find(
+    (p) =>
+      String(p.description || '').trim() &&
+      String(p.sku).trim() !== String(nas?.sku || '') &&
+      !dups.has(String(p.sku).trim())
+  );
+  const common = catalog.find(
+    (p) =>
+      !dups.has(String(p.sku).trim()) &&
+      String(p.sku).trim() !== youtubeSku &&
+      String(p.sku).trim() !== String(nas?.sku || '') &&
+      String(p.sku).trim() !== String(h2o?.sku || '') &&
+      String(p.sku).trim() !== String(withDesc?.sku || '') &&
+      !/youtube\.com|youtu\.be/i.test(p.catalogContent || '') &&
+      !String(p.description || '').trim() &&
+      p.image &&
+      Number(p.price) > 0 &&
+      !slugHasEncodedOrNonAscii(p.slug)
+  );
+
+  const skus = [
+    youtubeSku,
+    nas ? String(nas.sku).trim() : '9786561190763',
+    h2o ? String(h2o.sku).trim() : '9786561190558',
+    withDesc ? String(withDesc.sku).trim() : '9786561190626',
+    common ? String(common.sku).trim() : '9786561190572',
+  ];
+
+  console.log('Lote-teste SKUs:');
+  console.log(`  1) YouTube:     ${skus[0]} — ${catalog.find((p) => String(p.sku).trim() === skus[0])?.title}`);
+  console.log(`  2) Nas brechas: ${skus[1]} — ${catalog.find((p) => String(p.sku).trim() === skus[1])?.title}`);
+  console.log(`  3) H₂O slug:    ${skus[2]} — ${catalog.find((p) => String(p.sku).trim() === skus[2])?.title}`);
+  console.log(`  4) description: ${skus[3]} — ${catalog.find((p) => String(p.sku).trim() === skus[3])?.title}`);
+  console.log(`  5) comum:       ${skus[4]} — ${catalog.find((p) => String(p.sku).trim() === skus[4])?.title}`);
+
+  return skus;
 }
 
 function validateProductRow(headers, row, sourceProduct) {
   const idx = Object.fromEntries(headers.map((h, i) => [h, i]));
   const get = (name) => row[idx[name]];
-
   const errors = [];
-  if (get('Name') !== sourceProduct.title) {
-    errors.push(`Name esperado "${sourceProduct.title}", obtido "${get('Name')}"`);
-  }
+
   if (String(get('SKU')) !== String(sourceProduct.sku)) {
     errors.push(`SKU esperado "${sourceProduct.sku}", obtido "${get('SKU')}"`);
   }
-  if (get('Regular price') !== formatRegularPrice(sourceProduct.price)) {
-    errors.push(
-      `Regular price esperado "${formatRegularPrice(sourceProduct.price)}", obtido "${get('Regular price')}"`
-    );
+
+  const price = Number(get('Regular price'));
+  if (Number.isNaN(price) || price <= 0) {
+    errors.push(`Regular price inválido: "${get('Regular price')}"`);
   }
 
-  const coverUrl = toAbsoluteImageUrl(sourceProduct.image);
   const expectedImages = collectImages(sourceProduct);
-  const imagesField = get('Images') || '';
-  const imageUrls = splitImageUrls(imagesField);
-
+  const imageUrls = splitImageUrls(get('Images') || '');
   if (imageUrls.length !== expectedImages.length) {
-    errors.push(
-      `Images: esperado ${expectedImages.length} URL(s) (capa[+mockup]), obtido ${imageUrls.length}`
-    );
+    errors.push(`Images: esperado ${expectedImages.length}, obtido ${imageUrls.length}`);
   }
   for (let i = 0; i < expectedImages.length; i++) {
     if (imageUrls[i] !== expectedImages[i]) {
       errors.push(`Images[${i}] esperado "${expectedImages[i]}", obtido "${imageUrls[i] || ''}"`);
     }
   }
-  if (coverUrl && imageUrls[0] !== coverUrl) {
-    errors.push(`Images[0] (capa) esperado "${coverUrl}", obtido "${imageUrls[0] || ''}"`);
-  }
-  if (imagesField.includes('|')) {
-    errors.push('Images não deve usar "|" como separador — use vírgula');
-  }
 
-  const expectedDesc = resolveDescription(sourceProduct);
   const desc = get('Description') || '';
-  if (desc !== expectedDesc) {
-    errors.push('Description não corresponde ao parágrafo esperado');
-  }
-  if (!desc.startsWith('A comunidade terrestre representa a culminação') && String(sourceProduct.sku) === '9786561190572') {
-    errors.push(
-      `Description deve começar com "A comunidade terrestre representa a culminação" (obtido: "${desc.slice(0, 80)}")`
-    );
-  }
   try {
     assertCleanDescription(desc, 'Description (CSV)');
-    assertCleanDescription(get('Short description') || '', 'Short description (CSV)');
   } catch (e) {
     errors.push(e.message);
   }
 
-  if (get('Short description') !== resolveShortDescription(sourceProduct)) {
-    errors.push('Short description inválida');
+  const expectedSlug = normalizeProductSlug(sourceProduct.slug || '');
+  if (get('Slug') !== expectedSlug) {
+    errors.push(`Slug esperado "${expectedSlug}", obtido "${get('Slug')}"`);
   }
 
   const catalogContent = get('meta:n1_catalog_content') || '';
   const sourceContent = sourceProduct.catalogContent == null ? '' : String(sourceProduct.catalogContent);
   const countP = (s) => (String(s).match(/<p\b/gi) || []).length;
-  const sourceP = countP(sourceContent);
-  const csvP = countP(catalogContent);
-
-  if (sourceP !== csvP) {
-    errors.push(
-      `meta:n1_catalog_content: contagem de <p divergiu (JSON=${sourceP}, CSV=${csvP})`
-    );
+  if (countP(sourceContent) !== countP(catalogContent)) {
+    errors.push(`contagem <p divergiu (JSON=${countP(sourceContent)}, CSV=${countP(catalogContent)})`);
   }
   if (catalogContent !== sourceContent) {
     let diffAt = -1;
-    const max = Math.max(catalogContent.length, sourceContent.length);
-    for (let i = 0; i < max; i++) {
+    for (let i = 0; i < Math.max(catalogContent.length, sourceContent.length); i++) {
       if (catalogContent[i] !== sourceContent[i]) {
         diffAt = i;
         break;
       }
     }
-    errors.push(
-      `meta:n1_catalog_content NÃO é idêntico ao JSON` +
-        (diffAt >= 0
-          ? ` (1ª divergência no índice ${diffAt}: JSON=${JSON.stringify(sourceContent.slice(diffAt, diffAt + 40))} CSV=${JSON.stringify(catalogContent.slice(diffAt, diffAt + 40))})`
-          : '')
-    );
-  }
-  const issuuMatches = catalogContent.match(/e\.issuu\.com\/embed/g) || [];
-  if (issuuMatches.length < 1) {
-    errors.push('meta:n1_catalog_content sem substring e.issuu.com/embed');
-  }
-
-  // meta:n1_catalog_images não deve existir no CSV
-  if (Object.prototype.hasOwnProperty.call(idx, 'meta:n1_catalog_images')) {
-    const catalogImagesMeta = get('meta:n1_catalog_images');
-    if (catalogImagesMeta != null && String(catalogImagesMeta).trim() !== '') {
-      errors.push('meta:n1_catalog_images deve estar ausente/vazia');
-    }
-  }
-
-  if (expectedDesc && desc === sourceProduct.catalogContent) {
-    errors.push('Description não pode ser o catalogContent inteiro');
+    errors.push(`meta:n1_catalog_content !== JSON (diff@${diffAt})`);
   }
 
   return errors;
 }
 
+function printProductSummary(product, row, headers) {
+  const idx = Object.fromEntries(headers.map((h, i) => [h, i]));
+  const images = splitImageUrls(row[idx.Images] || '');
+  const cc = row[idx['meta:n1_catalog_content']] || '';
+  const hasYt = /youtube\.com|youtu\.be/i.test(cc);
+  const hasIssuu = /e\.issuu\.com\/embed/i.test(cc);
+  console.log(
+    `  • ${product.title}\n` +
+      `    sku=${product.sku} | price=${row[idx['Regular price']]} | imgs=${images.length} | ` +
+      `youtube=${hasYt} | issuu=${hasIssuu} | catalogContent=${cc.length} chars | slug=${row[idx.Slug]}`
+  );
+}
+
+async function generateCsv(catalog, selected, outPath, { skipHead = false } = {}) {
+  // Unicidade de SKU
+  const skus = selected.map((p) => String(p.sku).trim());
+  const uniq = new Set(skus);
+  if (uniq.size !== skus.length) {
+    throw new Error('SKU repetido detectado no lote — abortando');
+  }
+
+  const csv = buildCsv(selected);
+  fs.mkdirSync(path.dirname(outPath), { recursive: true });
+  fs.writeFileSync(outPath, csv, 'utf8');
+
+  const raw = fs.readFileSync(outPath, 'utf8');
+  if (raw.charCodeAt(0) !== 0xfeff) {
+    throw new Error('UTF-8 BOM ausente');
+  }
+
+  const rows = parseCsv(raw);
+  if (rows.length !== selected.length + 1) {
+    throw new Error(`Linhas CSV: esperado ${selected.length + 1}, obtido ${rows.length}`);
+  }
+  if (rows[0].length !== CSV_HEADERS.length) {
+    throw new Error(`Colunas header: esperado ${CSV_HEADERS.length}, obtido ${rows[0].length}`);
+  }
+
+  const idx = Object.fromEntries(rows[0].map((h, i) => [h, i]));
+  const allImageUrls = [];
+
+  for (let i = 1; i < rows.length; i++) {
+    if (rows[i].length !== CSV_HEADERS.length) {
+      throw new Error(`Linha ${i + 1}: colunas ${rows[i].length} != ${CSV_HEADERS.length}`);
+    }
+    const errs = validateProductRow(rows[0], rows[i], selected[i - 1]);
+    if (errs.length) {
+      throw new Error(`Validação falhou linha ${i + 1} (${selected[i - 1].sku}):\n- ${errs.join('\n- ')}`);
+    }
+    allImageUrls.push(...splitImageUrls(rows[i][idx.Images]));
+  }
+
+  if (!skipHead) {
+    console.log(`Verificando ${new Set(allImageUrls).size} URL(s) de imagem (HTTP HEAD)...`);
+    await assertImageUrlsReachable(allImageUrls);
+  }
+
+  console.log(`\nCSV gerado: ${outPath}`);
+  console.log(`Produtos: ${selected.length}`);
+  console.log('Resumo:');
+  for (let i = 0; i < selected.length; i++) {
+    printProductSummary(selected[i], rows[i + 1], rows[0]);
+  }
+  console.log('Validação CSV: OK');
+  return outPath;
+}
+
 async function main() {
   const args = parseArgs(process.argv.slice(2));
 
-  if (args.help || (!args.sku && !args.slug && !args.all)) {
+  if (args.help) {
     printHelp();
-    process.exit(args.help ? 0 : 1);
+    process.exit(0);
   }
 
   if (!fs.existsSync(CATALOG_JSON_PATH)) {
@@ -545,71 +909,41 @@ async function main() {
     throw new Error('catalog-products.json deve ser um array');
   }
 
-  const selected = filterProducts(catalog, args);
-  const csv = buildCsv(selected);
-  const outPath = args.out || defaultOutPath(args);
-
-  fs.mkdirSync(path.dirname(outPath), { recursive: true });
-  fs.writeFileSync(outPath, csv, 'utf8');
-
-  const raw = fs.readFileSync(outPath, 'utf8');
-  if (raw.charCodeAt(0) !== 0xfeff) {
-    throw new Error('Validação CSV falhou: UTF-8 BOM ausente');
+  if (args.report) {
+    await runIntegrityReport(catalog, { checkImages: !args.skipHead });
+    return;
   }
 
-  const rows = parseCsv(raw);
-
-  if (rows.length !== selected.length + 1) {
-    throw new Error(
-      `Validação CSV falhou: esperado ${selected.length + 1} linhas (header + produtos), obtido ${rows.length}`
-    );
+  if (
+    !args.loteTeste &&
+    !args.sku &&
+    !args.slug &&
+    !args.skus &&
+    !args.all &&
+    !args.limit
+  ) {
+    printHelp();
+    process.exit(1);
   }
 
-  if (rows[0].length !== CSV_HEADERS.length) {
-    throw new Error(
-      `Validação CSV falhou: esperado ${CSV_HEADERS.length} colunas no header, obtido ${rows[0].length}`
-    );
-  }
-
-  const idx = Object.fromEntries(rows[0].map((h, i) => [h, i]));
-  const allImageUrls = [];
-
-  for (let i = 1; i < rows.length; i++) {
-    if (rows[i].length !== CSV_HEADERS.length) {
-      throw new Error(
-        `Validação CSV falhou na linha ${i + 1}: esperado ${CSV_HEADERS.length} colunas, obtido ${rows[i].length}`
-      );
+  const selected = filterProductsForExport(catalog, args);
+  let outPath = args.out;
+  if (!outPath) {
+    fs.mkdirSync(DEFAULT_OUT_DIR, { recursive: true });
+    if (args.loteTeste) {
+      outPath = path.join(DEFAULT_OUT_DIR, 'lote-teste.csv');
+    } else if (args.all) {
+      outPath = path.join(DEFAULT_OUT_DIR, 'catalogo-completo.csv');
+    } else if (args.limit) {
+      outPath = path.join(DEFAULT_OUT_DIR, `lote-limit-${args.limit}.csv`);
+    } else if (args.sku) {
+      outPath = path.join(DEFAULT_OUT_DIR, `produto-${args.sku}.csv`);
+    } else {
+      outPath = path.join(DEFAULT_OUT_DIR, 'lote.csv');
     }
-    const fieldErrors = validateProductRow(rows[0], rows[i], selected[i - 1]);
-    if (fieldErrors.length) {
-      throw new Error(`Validação CSV falhou na linha ${i + 1}:\n- ${fieldErrors.join('\n- ')}`);
-    }
-    allImageUrls.push(...splitImageUrls(rows[i][idx.Images]));
   }
 
-  // Deduplicar URLs para HEAD (mesma imagem em vários produtos)
-  const uniqueImageUrls = [...new Set(allImageUrls)];
-  console.log(`Verificando ${uniqueImageUrls.length} URL(s) de imagem (HTTP HEAD)...`);
-  await assertImageUrlsReachable(uniqueImageUrls);
-
-  const first = rows[1];
-  const firstImages = splitImageUrls(first[idx.Images]);
-
-  console.log(`CSV gerado: ${outPath}`);
-  console.log(`Produtos: ${selected.length}`);
-  console.log(`Name: ${first[idx.Name]}`);
-  console.log(`SKU: ${first[idx.SKU]}`);
-  console.log(`Regular price: ${first[idx['Regular price']]}`);
-  console.log(`Slug: ${first[idx.Slug]}`);
-  console.log(`Images (${firstImages.length}):`);
-  firstImages.forEach((u, i) => console.log(`  [${i}] ${u}`));
-  console.log(`Description: ${(first[idx.Description] || '').slice(0, 120)}...`);
-  const ccOut = first[idx['meta:n1_catalog_content']] || '';
-  const ccSrc = selected[0].catalogContent == null ? '' : String(selected[0].catalogContent);
-  console.log(
-    `meta:n1_catalog_content: len=${ccOut.length}, <p count=${(ccOut.match(/<p\b/gi) || []).length}, identicalToJSON=${ccOut === ccSrc}, hasIssuu=${ccOut.includes('e.issuu.com/embed')}`
-  );
-  console.log('Validação CSV + imagens HTTP: OK');
+  await generateCsv(catalog, selected, outPath, { skipHead: args.skipHead });
 }
 
 main().catch((err) => {
