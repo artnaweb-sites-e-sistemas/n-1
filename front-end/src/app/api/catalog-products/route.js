@@ -1,13 +1,19 @@
 import { NextResponse } from 'next/server';
 import catalogProducts from '@data/catalog-products.json';
+import {
+  buildWooSkuSet,
+  filterCatalogByWooSkus,
+  getWooApiBaseUrl,
+} from '@utils/catalog-sku-dedup';
 
 /**
  * API Route para servir produtos do catálogo local + WooCommerce
  * GET /api/catalog-products
  * Query params: page, per_page
- * 
+ *
  * Produtos são ordenados por data de criação (mais recentes primeiro)
  * Produtos do WooCommerce aparecem primeiro, seguidos pelos do catálogo local
+ * Itens do catálogo cujo SKU já existe no WooCommerce são ocultados
  */
 export async function GET(request) {
   try {
@@ -18,7 +24,7 @@ export async function GET(request) {
     // Adicionar timestamp de data de criação aos produtos do catálogo local
     // Definir uma data base antiga para o catálogo (ex: 01/01/2024) para que novos produtos apareçam primeiro
     const CATALOG_BASE_DATE = new Date('2024-01-01T00:00:00Z').getTime();
-    
+
     const catalogProductsWithDate = catalogProducts.map((product, index) => ({
       ...product,
       // Produtos do catálogo são mais antigos que qualquer produto novo no WooCommerce
@@ -32,23 +38,22 @@ export async function GET(request) {
     let timeoutId = null;
     let wooCommerceError = null;
     try {
-      const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://n-1.artnaweb.com.br/wp-json/n1/v1';
+      const apiBaseUrl = getWooApiBaseUrl();
       // ATENÇÃO: A rota correta no WordPress é /products (sem o /api extra)
       // Adicionar timestamp para evitar cache no WordPress
       const wooCommerceUrl = `${apiBaseUrl}/products?per_page=100&orderby=date&order=DESC&_t=${Date.now()}`;
-      
+
       console.log('[Catalog API] Buscando produtos do WooCommerce:', wooCommerceUrl);
-      
-      // Criar AbortController para timeout
+
       const controller = new AbortController();
       timeoutId = setTimeout(() => controller.abort(), 5000);
-      
+
       const wooCommerceResponse = await fetch(wooCommerceUrl, {
         headers: {
           'Content-Type': 'application/json',
         },
         signal: controller.signal,
-        cache: 'no-store', // Não usar cache para garantir produtos atualizados
+        cache: 'no-store',
       });
 
       console.log('[Catalog API] Status da resposta WooCommerce:', wooCommerceResponse.status);
@@ -56,21 +61,20 @@ export async function GET(request) {
       if (wooCommerceResponse.ok) {
         const wooCommerceData = await wooCommerceResponse.json();
         console.log('[Catalog API] Produtos retornados do WooCommerce:', wooCommerceData.products?.length || 0);
-        
+
         wooCommerceProducts = (wooCommerceData.products || []).map(product => {
-          // Converter timestamp de segundos (WP) para milissegundos (JS) se necessário
           let timestamp = product.date_created_timestamp;
-          if (timestamp && timestamp < 10000000000) { // Se estiver em segundos
+          if (timestamp && timestamp < 10000000000) {
             timestamp = timestamp * 1000;
           }
-          
+
           return {
             ...product,
             source: 'woocommerce',
             date_created_timestamp: timestamp || (product.date_created ? new Date(product.date_created).getTime() : Date.now()),
           };
         });
-        
+
         console.log('[Catalog API] Produtos processados do WooCommerce:', wooCommerceProducts.length);
       } else {
         const errorText = await wooCommerceResponse.text();
@@ -78,24 +82,26 @@ export async function GET(request) {
         wooCommerceError = `HTTP ${wooCommerceResponse.status}: ${errorText.substring(0, 100)}`;
       }
     } catch (error) {
-      // Se falhar ao buscar do WooCommerce, continuar apenas com catálogo local
       console.error('[Catalog API] Erro ao buscar produtos do WooCommerce:', error.message);
       wooCommerceError = error.message;
     } finally {
-      // Limpar timeout se ainda estiver ativo
       if (timeoutId) {
         clearTimeout(timeoutId);
       }
     }
 
+    const wooSkus = buildWooSkuSet(wooCommerceProducts);
+    const { visible: catalogVisible, hiddenCount: catalog_hidden_by_sku } =
+      filterCatalogByWooSkus(catalogProductsWithDate, wooSkus);
+
     // Mesclar produtos: WooCommerce primeiro (mais recentes), depois catálogo local
-    const allProducts = [...wooCommerceProducts, ...catalogProductsWithDate];
+    const allProducts = [...wooCommerceProducts, ...catalogVisible];
 
     // Ordenar por data de criação (mais recentes primeiro)
     allProducts.sort((a, b) => {
       const timestampA = a.date_created_timestamp || 0;
       const timestampB = b.date_created_timestamp || 0;
-      return timestampB - timestampA; // Descendente (mais recente primeiro)
+      return timestampB - timestampA;
     });
 
     // Paginação
@@ -105,11 +111,11 @@ export async function GET(request) {
     const total = allProducts.length;
     const pages = Math.ceil(total / perPage);
 
-    // Log para debug
     console.log('[Catalog API] Resumo:', {
       total_products: total,
       wooCommerce_count: wooCommerceProducts.length,
       catalog_count: catalogProducts.length,
+      catalog_hidden_by_sku,
       page,
       perPage,
       products_in_page: paginatedProducts.length,
@@ -128,6 +134,7 @@ export async function GET(request) {
       catalog_count: catalogProducts.length,
       debug: {
         wooCommerce_error: wooCommerceError || null,
+        catalog_hidden_by_sku,
         first_products: paginatedProducts.slice(0, 3).map(p => ({
           title: p.title,
           source: p.source,
@@ -143,5 +150,3 @@ export async function GET(request) {
     );
   }
 }
-
-

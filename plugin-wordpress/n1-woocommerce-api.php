@@ -42,6 +42,298 @@ class N1_WooCommerce_API
         add_action('admin_init', array($this, 'apply_default_shipping_meta_to_existing_products'));
         add_action('woocommerce_admin_process_product_object', array($this, 'apply_default_shipping_meta_to_product_object'));
         add_action('woocommerce_admin_process_variation_object', array($this, 'apply_default_shipping_meta_to_product_object'));
+
+        // Preservar <iframe> (Issuu etc.) e HTML íntegro em n1_catalog_content
+        add_filter('wp_kses_allowed_html', array($this, 'allow_n1_iframe_in_kses'), 10, 2);
+        add_filter('sanitize_post_meta_n1_catalog_content', array($this, 'preserve_raw_catalog_content_meta'), 10, 1);
+        add_action('woocommerce_product_import_inserted_product_object', array($this, 'preserve_catalog_content_on_import'), 20, 2);
+        add_action('init', array($this, 'register_n1_catalog_content_meta'), 20);
+
+        if (defined('WP_CLI') && WP_CLI) {
+            WP_CLI::add_command('n1 sync-catalog-content', array($this, 'cli_sync_catalog_content'));
+        }
+    }
+
+    /**
+     * Registra a meta sem sanitize destrutivo (preserva <p>, iframe, etc.).
+     */
+    public function register_n1_catalog_content_meta()
+    {
+        register_post_meta('product', 'n1_catalog_content', array(
+            'type' => 'string',
+            'single' => true,
+            'show_in_rest' => false,
+            'auth_callback' => function () {
+                return current_user_can('edit_products');
+            },
+            'sanitize_callback' => array($this, 'preserve_raw_catalog_content_meta'),
+        ));
+    }
+
+    /**
+     * HTML permitido para n1_catalog_content (inclui iframe do Issuu).
+     */
+    private function get_n1_catalog_allowed_html()
+    {
+        $allowed_html = wp_kses_allowed_html('post');
+        // Garantir tags de parágrafo/quebra (alguns filtros de import as removem)
+        $allowed_html['p'] = array(
+            'class' => true,
+            'style' => true,
+            'id' => true,
+            'dir' => true,
+            'lang' => true,
+        );
+        $allowed_html['br'] = array(
+            'class' => true,
+            'style' => true,
+        );
+        $allowed_html['iframe'] = array(
+            'src' => true,
+            'width' => true,
+            'height' => true,
+            'frameborder' => true,
+            'allow' => true,
+            'allowfullscreen' => true,
+            'loading' => true,
+            'referrerpolicy' => true,
+            'title' => true,
+            'class' => true,
+            'style' => true,
+            'scrolling' => true,
+            'name' => true,
+            'id' => true,
+        );
+        $allowed_html['video'] = array(
+            'src' => true,
+            'controls' => true,
+            'autoplay' => true,
+            'loop' => true,
+            'muted' => true,
+            'poster' => true,
+            'preload' => true,
+            'width' => true,
+            'height' => true,
+            'class' => true,
+            'style' => true,
+        );
+        $allowed_html['source'] = array(
+            'src' => true,
+            'type' => true,
+        );
+        if (!isset($allowed_html['figure'])) {
+            $allowed_html['figure'] = array('class' => true, 'style' => true, 'id' => true);
+        }
+        if (!isset($allowed_html['figcaption'])) {
+            $allowed_html['figcaption'] = array('class' => true, 'style' => true);
+        }
+        return $allowed_html;
+    }
+
+    /**
+     * Detecta iframe do Issuu já embutido no HTML editorial.
+     */
+    private function catalog_content_has_issuu_iframe($content)
+    {
+        if (empty($content) || !is_string($content)) {
+            return false;
+        }
+        return (bool) preg_match('/<iframe\b[^>]*src=["\'][^"\']*issuu[^"\']*["\']/i', $content);
+    }
+
+    /**
+     * Permite <iframe> no contexto post (evita wp_kses remover Issuu na importação/editor).
+     */
+    public function allow_n1_iframe_in_kses($allowed, $context)
+    {
+        if ($context === 'post' || $context === true) {
+            $iframe_attrs = array(
+                'src' => true,
+                'width' => true,
+                'height' => true,
+                'frameborder' => true,
+                'allow' => true,
+                'allowfullscreen' => true,
+                'loading' => true,
+                'referrerpolicy' => true,
+                'title' => true,
+                'class' => true,
+                'style' => true,
+                'scrolling' => true,
+                'name' => true,
+                'id' => true,
+            );
+            if (!isset($allowed['iframe'])) {
+                $allowed['iframe'] = $iframe_attrs;
+            } else {
+                $allowed['iframe'] = array_merge((array) $allowed['iframe'], $iframe_attrs);
+            }
+            if (!isset($allowed['p'])) {
+                $allowed['p'] = array('class' => true, 'style' => true, 'id' => true);
+            }
+            if (!isset($allowed['br'])) {
+                $allowed['br'] = array();
+            }
+        }
+        return $allowed;
+    }
+
+    /**
+     * Não sanitizar n1_catalog_content (HTML editorial deve permanecer idêntico ao JSON).
+     */
+    public function preserve_raw_catalog_content_meta($meta_value)
+    {
+        return $meta_value;
+    }
+
+    /**
+     * Extrai n1_catalog_content dos dados parseados do importador WooCommerce.
+     */
+    private function extract_catalog_content_from_import_data($data)
+    {
+        if (!is_array($data)) {
+            return null;
+        }
+
+        if (isset($data['meta:n1_catalog_content']) && $data['meta:n1_catalog_content'] !== '') {
+            return $data['meta:n1_catalog_content'];
+        }
+
+        if (!empty($data['meta_data']) && is_array($data['meta_data'])) {
+            foreach ($data['meta_data'] as $meta) {
+                if (!is_array($meta)) {
+                    continue;
+                }
+                $key = isset($meta['key']) ? $meta['key'] : '';
+                if ($key === 'n1_catalog_content' || $key === 'meta:n1_catalog_content') {
+                    return isset($meta['value']) ? $meta['value'] : null;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Após import CSV: grava n1_catalog_content com update_post_meta (sem wp_kses),
+     * garantindo HTML idêntico ao CSV (incluindo iframe do Issuu).
+     */
+    public function preserve_catalog_content_on_import($product, $data)
+    {
+        if (!is_object($product) || !method_exists($product, 'get_id')) {
+            return;
+        }
+
+        $product_id = absint($product->get_id());
+        if (!$product_id) {
+            return;
+        }
+
+        $raw = $this->extract_catalog_content_from_import_data($data);
+        if ($raw === null || $raw === '') {
+            // Fallback: valor já setado no objeto (pode ter sido sanitizado)
+            if (method_exists($product, 'get_meta')) {
+                $raw = $product->get_meta('n1_catalog_content', true);
+            }
+        }
+
+        if ($raw === null || $raw === '') {
+            return;
+        }
+
+        // Gravação direta — não passa por wp_kses / content filters
+        update_post_meta($product_id, 'n1_catalog_content', $raw);
+
+        // Limpar pdf auto-preenchido se o conteúdo já tem Issuu (evita bloco duplicado)
+        if ($this->catalog_content_has_issuu_iframe($raw)) {
+            $existing_pdf = get_post_meta($product_id, 'n1_catalog_pdf', true);
+            if (!empty($existing_pdf) && stripos((string) $existing_pdf, 'issuu') !== false) {
+                // Só limpa se parece extração automática (issuu); não mexe em PDF real
+                delete_post_meta($product_id, 'n1_catalog_pdf');
+            }
+        }
+
+        $saved = get_post_meta($product_id, 'n1_catalog_content', true);
+        $orig_p = preg_match_all('/<p\b/i', (string) $raw);
+        $saved_p = preg_match_all('/<p\b/i', (string) $saved);
+        if ($orig_p > 0 && $saved_p === 0) {
+            error_log('[N1] ALERTA: tags <p> perdidas ao salvar n1_catalog_content product_id=' . $product_id);
+            // Regravar forçando valor cru
+            update_post_meta($product_id, 'n1_catalog_content', $raw);
+        }
+
+        if (strpos($raw, 'e.issuu.com/embed') === false && strpos($raw, '<iframe') === false) {
+            error_log('[N1] n1_catalog_content importado sem iframe/Issuu para product_id=' . $product_id);
+        }
+    }
+
+    /**
+     * WP-CLI: wp n1 sync-catalog-content <sku> <arquivo.html|json>
+     * Grava n1_catalog_content sem sanitização (HTML idêntico à fonte).
+     *
+     * Se o arquivo for JSON (array do catálogo), localiza o produto pelo SKU e usa catalogContent.
+     * Se for HTML, usa o conteúdo do arquivo direto.
+     */
+    public function cli_sync_catalog_content($args)
+    {
+        if (!defined('WP_CLI') || !WP_CLI) {
+            return;
+        }
+
+        list($sku, $file) = array_pad($args, 2, null);
+        $sku = is_string($sku) ? trim($sku) : '';
+        if ($sku === '' || empty($file) || !file_exists($file)) {
+            WP_CLI::error('Uso: wp n1 sync-catalog-content <sku> <arquivo.html|json>');
+        }
+
+        $raw_file = file_get_contents($file);
+        if ($raw_file === false) {
+            WP_CLI::error('Não foi possível ler o arquivo: ' . $file);
+        }
+
+        $content = $raw_file;
+        $ext = strtolower(pathinfo($file, PATHINFO_EXTENSION));
+        if ($ext === 'json') {
+            $decoded = json_decode($raw_file, true);
+            if (!is_array($decoded)) {
+                WP_CLI::error('JSON inválido');
+            }
+            $items = isset($decoded[0]) ? $decoded : array($decoded);
+            $found = null;
+            foreach ($items as $item) {
+                if (!is_array($item)) {
+                    continue;
+                }
+                $item_sku = isset($item['sku']) ? trim((string) $item['sku']) : '';
+                if ($item_sku === $sku) {
+                    $found = $item;
+                    break;
+                }
+            }
+            if (!$found) {
+                WP_CLI::error('SKU não encontrado no JSON: ' . $sku);
+            }
+            $content = isset($found['catalogContent']) ? $found['catalogContent'] : '';
+        }
+
+        $product_id = wc_get_product_id_by_sku($sku);
+        if (!$product_id) {
+            WP_CLI::error('Produto WooCommerce não encontrado para SKU: ' . $sku);
+        }
+
+        update_post_meta($product_id, 'n1_catalog_content', $content);
+        $saved = get_post_meta($product_id, 'n1_catalog_content', true);
+        $ok = ($saved === $content);
+        $has_issuu = (strpos((string) $saved, 'e.issuu.com/embed') !== false);
+
+        WP_CLI::success(sprintf(
+            'n1_catalog_content atualizado para product_id=%d sku=%s len=%d identical=%s has_issuu=%s',
+            $product_id,
+            $sku,
+            strlen((string) $saved),
+            $ok ? 'yes' : 'no',
+            $has_issuu ? 'yes' : 'no'
+        ));
     }
 
     private function is_empty_shipping_measurement($value)
@@ -223,50 +515,15 @@ class N1_WooCommerce_API
         if (isset($_POST['n1_catalog_content'])) {
             $raw_content = wp_unslash($_POST['n1_catalog_content']);
             // Administradores com unfiltered_html: guardar o HTML exatamente como no editor
-            // (evita wp_kses remover atributos de img/figure/blocos do Gutenberg).
+            // (evita wp_kses remover atributos de img/figure/blocos do Gutenberg / iframe Issuu).
             if (current_user_can('unfiltered_html')) {
                 update_post_meta($post_id, 'n1_catalog_content', $raw_content);
             } else {
-                $allowed_html = wp_kses_allowed_html('post');
-                $allowed_html['iframe'] = array(
-                    'src' => true,
-                    'width' => true,
-                    'height' => true,
-                    'frameborder' => true,
-                    'allow' => true,
-                    'allowfullscreen' => true,
-                    'loading' => true,
-                    'referrerpolicy' => true,
-                    'title' => true,
-                    'class' => true,
-                    'style' => true,
+                update_post_meta(
+                    $post_id,
+                    'n1_catalog_content',
+                    wp_kses($raw_content, $this->get_n1_catalog_allowed_html())
                 );
-                $allowed_html['video'] = array(
-                    'src' => true,
-                    'controls' => true,
-                    'autoplay' => true,
-                    'loop' => true,
-                    'muted' => true,
-                    'poster' => true,
-                    'preload' => true,
-                    'width' => true,
-                    'height' => true,
-                    'class' => true,
-                    'style' => true,
-                );
-                $allowed_html['source'] = array(
-                    'src' => true,
-                    'type' => true,
-                );
-                // Blocos comuns do editor (caso wp_kses_allowed_html('post') do site seja restritivo)
-                if (!isset($allowed_html['figure'])) {
-                    $allowed_html['figure'] = array('class' => true, 'style' => true, 'id' => true);
-                }
-                if (!isset($allowed_html['figcaption'])) {
-                    $allowed_html['figcaption'] = array('class' => true, 'style' => true);
-                }
-
-                update_post_meta($post_id, 'n1_catalog_content', wp_kses($raw_content, $allowed_html));
             }
         }
     }
@@ -899,41 +1156,17 @@ class N1_WooCommerce_API
 
         if (!empty($catalog_content)) {
             $result['content'] = $this->format_catalog_content_for_output($catalog_content);
-            
-            // Se o conteúdo já tem iframe do Issuu, extrair
-            if (empty($catalog_pdf)) {
-                preg_match('/<iframe[^>]+src=["\']([^"\']*issuu[^"\']*)["\'][^>]*>/i', $catalog_content, $issuu_match);
-                if (!empty($issuu_match[1])) {
-                    $result['pdf'] = html_entity_decode($issuu_match[1], ENT_QUOTES, 'UTF-8');
-                }
-            }
-            
-            // Se o conteúdo já tem imagens, extrair URLs
-            if (empty($catalog_images)) {
-                preg_match_all('/<img[^>]+src=["\']([^"\']+)["\'][^>]*>/i', $catalog_content, $img_matches);
-                if (!empty($img_matches[1])) {
-                    // Filtrar apenas imagens do nosso domínio ou imagens relevantes
-                    $extracted_images = array();
-                    foreach ($img_matches[1] as $img_url) {
-                        // Ignorar placeholders e logos
-                        if (strpos($img_url, 'placeholder') === false && 
-                            strpos($img_url, 'logo') === false &&
-                            (strpos($img_url, 'n-1.artnaweb.com.br') !== false || 
-                             strpos($img_url, 'catalog_image') !== false ||
-                             strpos($img_url, 'IMG_') !== false)) {
-                            $extracted_images[] = $img_url;
-                        }
-                    }
-                    if (!empty($extracted_images)) {
-                        $result['images'] = array_unique($extracted_images);
-                    }
-                }
-            }
+
+            // NÃO extrair Issuu do HTML para $result['pdf']: o iframe já é
+            // renderizado dentro de catalogContent — extrair gerava flipbook duplicado
+            // ("Visualização do Livro"). pdf só via meta n1_catalog_pdf abaixo,
+            // e apenas se o conteúdo NÃO tiver iframe Issuu.
         }
         if (!empty($catalog_images)) {
             $result['images'] = is_array($catalog_images) ? $catalog_images : array($catalog_images);
         }
-        if (!empty($catalog_pdf)) {
+        // pdf explícito: só se o conteúdo editorial não tiver iframe Issuu
+        if (!empty($catalog_pdf) && !$this->catalog_content_has_issuu_iframe($catalog_content)) {
             $result['pdf'] = $catalog_pdf;
         }
 
@@ -982,17 +1215,16 @@ class N1_WooCommerce_API
                 $result['pdf'] = $pdf_match[1];
             }
 
-            // Look for Issuu iframe in content (if no PDF found)
-            if (empty($result['pdf'])) {
-                preg_match('/<iframe[^>]+src=["\']([^"\']*issuu[^"\']*)["\'][^>]*>/i', $result['content'], $issuu_match);
-                if (!empty($issuu_match[1])) {
-                    $result['pdf'] = html_entity_decode($issuu_match[1], ENT_QUOTES, 'UTF-8');
-                }
-            }
+            // NÃO extrair iframe Issuu do conteúdo do post relacionado:
+            // esse HTML já vai em $result['content'] e seria renderizado em duplicata.
 
-            // Check for PDF in meta
+            // Check for PDF in meta (não Issuu se o conteúdo já tem iframe)
             $pdf_meta = get_post_meta($related_post->ID, 'n1_catalog_pdf', true);
-            if (empty($result['pdf']) && !empty($pdf_meta)) {
+            if (
+                empty($result['pdf']) &&
+                !empty($pdf_meta) &&
+                !$this->catalog_content_has_issuu_iframe($result['content'])
+            ) {
                 $result['pdf'] = $pdf_meta;
             }
         }
@@ -1016,7 +1248,10 @@ class N1_WooCommerce_API
             if (empty($result['pdf'])) {
                 $acf_pdf = get_field('catalog_pdf', $product_id);
                 if ($acf_pdf) {
-                    $result['pdf'] = is_array($acf_pdf) ? $acf_pdf['url'] : $acf_pdf;
+                    $pdf_url = is_array($acf_pdf) ? $acf_pdf['url'] : $acf_pdf;
+                    if (!$this->catalog_content_has_issuu_iframe($result['content'])) {
+                        $result['pdf'] = $pdf_url;
+                    }
                 }
             }
         }
@@ -1122,47 +1357,34 @@ class N1_WooCommerce_API
             return new WP_Error('invalid_slug', 'Slug inválido', array('status' => 400));
         }
 
-        // Buscar produto pelo slug gerado a partir do título
-        // Limitar a busca para melhor performance
-        $args = array(
-            'post_type' => 'product',
-            'post_status' => 'publish',
-            'posts_per_page' => 100, // Limitar para melhor performance
-            'orderby' => 'date',
-            'order' => 'DESC',
-        );
-
-        $query = new WP_Query($args);
         $product = null;
 
-        if ($query->have_posts()) {
-            while ($query->have_posts()) {
-                $query->the_post();
-                $prod = wc_get_product(get_the_ID());
-
-                if (!$prod) {
-                    continue;
-                }
-
-                $prod_slug = $this->generate_product_slug($prod->get_name());
-
-                if ($prod_slug === $slug) {
-                    $product = $prod;
-                    break;
-                }
-            }
-            wp_reset_postdata();
+        // 1) post_name do WooCommerce (coluna Slug do CSV / permalink nativo)
+        $by_name = get_posts(array(
+            'name' => $slug,
+            'post_type' => 'product',
+            'post_status' => 'publish',
+            'numberposts' => 1,
+        ));
+        if (!empty($by_name[0])) {
+            $product = wc_get_product($by_name[0]->ID);
         }
 
-        // Se não encontrou nos primeiros 100, tentar mais produtos
-        if (!$product && $query->found_posts > 100) {
-            $args['posts_per_page'] = -1; // Buscar todos
-            $args['offset'] = 100;
-            $query2 = new WP_Query($args);
+        // 2) Fallback: slug gerado a partir do título (compatibilidade)
+        if (!$product) {
+            $args = array(
+                'post_type' => 'product',
+                'post_status' => 'publish',
+                'posts_per_page' => 100,
+                'orderby' => 'date',
+                'order' => 'DESC',
+            );
 
-            if ($query2->have_posts()) {
-                while ($query2->have_posts()) {
-                    $query2->the_post();
+            $query = new WP_Query($args);
+
+            if ($query->have_posts()) {
+                while ($query->have_posts()) {
+                    $query->the_post();
                     $prod = wc_get_product(get_the_ID());
 
                     if (!$prod) {
@@ -1177,6 +1399,32 @@ class N1_WooCommerce_API
                     }
                 }
                 wp_reset_postdata();
+            }
+
+            // Se não encontrou nos primeiros 100, tentar mais produtos
+            if (!$product && !empty($query->found_posts) && $query->found_posts > 100) {
+                $args['posts_per_page'] = -1;
+                $args['offset'] = 100;
+                $query2 = new WP_Query($args);
+
+                if ($query2->have_posts()) {
+                    while ($query2->have_posts()) {
+                        $query2->the_post();
+                        $prod = wc_get_product(get_the_ID());
+
+                        if (!$prod) {
+                            continue;
+                        }
+
+                        $prod_slug = $this->generate_product_slug($prod->get_name());
+
+                        if ($prod_slug === $slug) {
+                            $product = $prod;
+                            break;
+                        }
+                    }
+                    wp_reset_postdata();
+                }
             }
         }
 

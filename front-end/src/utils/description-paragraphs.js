@@ -17,13 +17,44 @@ export function getFirstParagraphAndRest(content, isHtml) {
       const restContent = raw.replace(/<p[^>]*>[\s\S]*?<\/p>/i, "").trim();
       return { firstParagraph, restContent };
     }
+    // Sem <p>: NÃO fazer strip_tags do HTML inteiro (gera "Comprar ... Anterior Próximo").
+    // Mantém o HTML completo em restContent; o caller pode usar product.description
+    // para o parágrafo ao lado do título.
     return {
-      firstParagraph: raw.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim(),
-      restContent: "",
+      firstParagraph: "",
+      restContent: raw,
     };
   }
   const parts = raw.split(/\n\n+/);
   const firstParagraph = (parts[0] || "").trim();
   const restContent = parts.slice(1).join("\n\n").trim();
   return { firstParagraph, restContent };
+}
+
+/**
+ * Parágrafo limpo para exibir ao lado do título.
+ * Prefere o 1º <p> do catalogContent; se ausente/poluído, usa description.
+ */
+export function getProductLeadParagraph(product) {
+  const catalogContent = product?.catalogContent || "";
+  const description = String(product?.description || "").trim();
+  const isHtml = Boolean(catalogContent && String(catalogContent).trim());
+  const rawContent = catalogContent || description || "";
+  const { firstParagraph } = getFirstParagraphAndRest(rawContent, isHtml);
+
+  if (firstParagraph && !isPollutedLeadParagraph(firstParagraph)) {
+    return firstParagraph;
+  }
+  if (description && !isPollutedLeadParagraph(description)) {
+    return description;
+  }
+  return firstParagraph || "";
+}
+
+function isPollutedLeadParagraph(text) {
+  const t = String(text || "");
+  if (t.length > 1500) return true;
+  if (/^\s*comprar\b/i.test(t)) return true;
+  if (/\banterior\b/i.test(t) && /\bpr[oó]ximo\b/i.test(t)) return true;
+  return false;
 }

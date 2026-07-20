@@ -1,23 +1,24 @@
 import { NextResponse } from 'next/server';
 import catalogProducts from '@data/catalog-products.json';
+import { isCatalogProductReplacedByWoo } from '@utils/catalog-sku-dedup';
 
 /**
  * API Route para buscar um produto específico do catálogo local
  * GET /api/catalog-products/[id]
+ *
+ * Se o SKU já existir no WooCommerce, retorna 404 para a página /livros/[slug]
+ * cair no produto real do WooCommerce (mesmo slug).
  */
 export async function GET(request, { params }) {
   try {
     let { id } = params;
 
-    // Decodificar o ID/slug caso venha codificado
     try {
       id = decodeURIComponent(id);
     } catch (e) {
-      // Se falhar o decode, usar o valor original
       console.log('Não foi possível decodificar o slug:', id);
     }
 
-    // Normalizar caracteres especiais (substituir ₂ por 2, etc)
     id = id
       .replace(/₂/g, '2')
       .replace(/₃/g, '3')
@@ -26,10 +27,8 @@ export async function GET(request, { params }) {
       .replace(/³/g, '3')
       .replace(/⁴/g, '4');
 
-    // Normalizar para comparação (lowercase)
     const normalizedId = id.toLowerCase().trim();
 
-    // Buscar por ID ou slug (case-insensitive)
     const product = catalogProducts.find((p) => {
       const productId = (p._id || '').toString().toLowerCase();
       const productIdAlt = (p.id || '').toString().toLowerCase();
@@ -52,7 +51,6 @@ export async function GET(request, { params }) {
         productId === normalizedId ||
         productSlug === normalizedId ||
         productIdAlt === normalizedId ||
-        // Também verificar match exato (sem normalização) para compatibilidade
         p._id === id ||
         p.id === id ||
         p.slug === id ||
@@ -67,7 +65,27 @@ export async function GET(request, { params }) {
       );
     }
 
-    return NextResponse.json(product);
+    const replaced = await isCatalogProductReplacedByWoo(product);
+    if (replaced) {
+      console.log('[Catalog API id] Produto do catálogo ocultado por SKU no WooCommerce:', {
+        sku: product.sku,
+        slug: product.slug,
+        title: product.title,
+      });
+      return NextResponse.json(
+        {
+          error: 'Produto migrado para WooCommerce',
+          code: 'replaced_by_woocommerce',
+          sku: product.sku,
+        },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({
+      ...product,
+      source: product.source || 'catalog',
+    });
   } catch (error) {
     console.error('Error fetching catalog product:', error);
     return NextResponse.json(
@@ -76,5 +94,3 @@ export async function GET(request, { params }) {
     );
   }
 }
-
-

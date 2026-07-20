@@ -16,7 +16,6 @@ export default function LivroPage() {
   useEffect(() => {
     const fetchProductBySlug = async () => {
       try {
-        // Next.js já faz decode automático do slug da URL
         let slug = params?.slug;
         
         if (!slug) {
@@ -24,8 +23,6 @@ export default function LivroPage() {
           return;
         }
 
-        // Garantir que o slug está decodificado (caso de double encoding)
-        // Tentar decodificar múltiplas vezes se necessário
         let decodedSlug = slug;
         let previousSlug = '';
         while (decodedSlug !== previousSlug && decodedSlug.includes('%')) {
@@ -33,11 +30,10 @@ export default function LivroPage() {
           try {
             decodedSlug = decodeURIComponent(decodedSlug);
           } catch (e) {
-            break; // Se falhar, usar o último valor válido
+            break;
           }
         }
         
-        // Normalizar caracteres especiais (substituir ₂ por 2, etc)
         decodedSlug = decodedSlug
           .replace(/₂/g, '2')
           .replace(/₃/g, '3')
@@ -51,8 +47,34 @@ export default function LivroPage() {
         console.log('[LivroPage] Slug recebido:', params?.slug);
         console.log('[LivroPage] Slug decodificado:', slug);
 
-        // Primeiro, tentar buscar do catálogo local
-        // Usar o slug decodificado diretamente (Next.js API routes fazem decode automático)
+        // 1) WooCommerce primeiro: produto migrado assume o slug do catálogo
+        try {
+          const apiUrl = `${API_BASE_URL()}/api/products/slug/${encodeURIComponent(slug)}`;
+          console.log('[LivroPage] Buscando no WooCommerce:', apiUrl);
+
+          const response = await fetch(apiUrl, {
+            cache: 'no-store',
+          });
+
+          if (response.ok) {
+            const product = await response.json();
+            if (product && product.id) {
+              console.log('[LivroPage] Produto encontrado no WooCommerce:', product?.title);
+              setProductId(product.id);
+              setIsLoading(false);
+              if (product.title) {
+                document.title = `N-1 - ${product.title}`;
+              }
+              return;
+            }
+          } else {
+            console.log(`[LivroPage] WooCommerce retornou ${response.status}`);
+          }
+        } catch (wooErr) {
+          console.error('[LivroPage] Erro ao buscar no WooCommerce:', wooErr);
+        }
+
+        // 2) Fallback: catálogo estático (já oculta SKUs migrados na API)
         try {
           const catalogUrl = `/api/catalog-products/${slug}`;
           console.log('[LivroPage] Buscando no catálogo local:', catalogUrl);
@@ -68,11 +90,9 @@ export default function LivroPage() {
             console.log('[LivroPage] Produto encontrado no catálogo:', catalogProduct?.title);
             
             if (catalogProduct && catalogProduct.source === 'catalog') {
-              // Produto do catálogo local - passar diretamente
               setProductId(catalogProduct);
               setIsLoading(false);
               
-              // Atualizar o título da página
               if (catalogProduct.title) {
                 document.title = `N-1 - ${catalogProduct.title}`;
               }
@@ -83,37 +103,11 @@ export default function LivroPage() {
             console.log(`[LivroPage] Catálogo local retornou ${catalogResponse.status}:`, errorData);
           }
         } catch (catalogErr) {
-          // Se falhar, continuar para buscar no WooCommerce
           console.error('[LivroPage] Erro ao buscar no catálogo local:', catalogErr);
         }
 
-        // Se não encontrou no catálogo, buscar no WooCommerce
-        // Codificar apenas uma vez para a URL da API externa
-        const apiUrl = `${API_BASE_URL()}/api/products/slug/${encodeURIComponent(slug)}`;
-        console.log('[LivroPage] Buscando no WooCommerce:', apiUrl);
-        
-        const response = await fetch(apiUrl, {
-          cache: 'no-store',
-        });
-        
-        if (response.ok) {
-          const product = await response.json();
-          if (product && product.id) {
-            setProductId(product.id);
-            setIsLoading(false);
-            
-            // Atualizar o título da página para produtos do WooCommerce
-            if (product.title) {
-              document.title = `N-1 - ${product.title}`;
-            }
-          } else {
-            setError('Produto não encontrado');
-            setIsLoading(false);
-          }
-        } else {
-          setError('Produto não encontrado');
-          setIsLoading(false);
-        }
+        setError('Produto não encontrado');
+        setIsLoading(false);
       } catch (err) {
         console.error('[LivroPage] Erro ao buscar produto:', err);
         setError('Erro ao carregar produto');
@@ -158,4 +152,3 @@ export default function LivroPage() {
 
   return <ShopDetailsMainArea id={productId} />;
 }
-

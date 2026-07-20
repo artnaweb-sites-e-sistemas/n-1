@@ -1,46 +1,45 @@
 import React from "react";
-import Image from "next/image";
 import styles from './prd-details-description.module.scss';
 import { getFirstParagraphAndRest } from "src/utils/description-paragraphs";
 import { removeMainImageFromCatalogHtml } from "src/utils/product-page-main-image";
+import { hasCatalogLayout } from "@utils/catalog-layout";
 
 const PrdDetailsDescription = ({ product, mainImageUrl }) => {
   const catalogContent = product?.catalogContent;
-  const catalogImages = product?.catalogImages || [];
   const catalogPdf = product?.catalogPdf;
   const description = product?.description;
+  const useCatalogLayout = hasCatalogLayout(product);
 
   // Conteúdo sem o primeiro parágrafo (já exibido abaixo do título)
   const rawContent = catalogContent || description || '';
-  const isHtml = !!catalogContent;
+  const isHtml = useCatalogLayout;
   let { restContent } = getFirstParagraphAndRest(rawContent, isHtml);
   // Se houver apenas um parágrafo no conteúdo HTML, renderizar o conteúdo completo aqui
   // para não "sumir" a descrição longa na aba.
-  if (catalogContent && (!restContent || !String(restContent).trim())) {
+  if (useCatalogLayout && (!restContent || !String(restContent).trim())) {
     restContent = rawContent;
   }
-  // Só remove a capa duplicada no HTML para produtos do catálogo local.
-  // No WooCommerce, a capa vem do produto e o src do editor pode ser idêntico — isso apagava todas as imagens da aba.
-  if (
-    catalogContent &&
-    mainImageUrl &&
-    restContent &&
-    product?.source === "catalog"
-  ) {
+  // Remover o mockup/capa principal duplicado no HTML editorial
+  // (compara por basename: URL do WP vs /images/... no catalogContent)
+  if (useCatalogLayout && mainImageUrl && restContent) {
     restContent = removeMainImageFromCatalogHtml(restContent, mainImageUrl);
   }
+
+  // Issuu: só bloco separado se NÃO houver iframe Issuu já no conteúdo editorial
+  const contentHasIssuuIframe =
+    useCatalogLayout &&
+    /<iframe\b[^>]*src=["'][^"']*issuu[^"']*["']/i.test(String(catalogContent));
+  const showSeparatePdfBlock = Boolean(catalogPdf) && !contentHasIssuuIframe;
 
   return (
     <div className={`product__details-description pt-95 ${styles.descriptionWrapper}`}>
       <div className={`product__details-description-content ${styles.descriptionContent}`}>
-              {/* Título - só mostrar se não tiver conteúdo do catálogo (que já tem título) */}
-              {!catalogContent && (
+              {!useCatalogLayout && (
                 <h3 className="product-desc-title">{product?.title}</h3>
               )}
               
-              {/* Conteúdo editorial do catálogo ou descrição (sem o primeiro parágrafo) */}
               {restContent ? (
-                catalogContent ? (
+                useCatalogLayout ? (
                   <div 
                     className={styles.catalogContent}
                     dangerouslySetInnerHTML={{ __html: restContent }}
@@ -52,14 +51,9 @@ const PrdDetailsDescription = ({ product, mainImageUrl }) => {
                 )
               ) : null}
 
-              {/* Galeria de imagens internas do catálogo - removida pois já está no HTML */}
-              {/* As imagens já vêm no catalogContent, então não precisamos duplicar */}
-
-              {/* PDF ou Visualizador Issuu */}
-              {catalogPdf && (
+              {showSeparatePdfBlock && (
                 <div className={styles.pdfSection}>
                   {catalogPdf.includes('issuu.com') ? (
-                    // Se for URL do Issuu, renderizar iframe
                     <div className={styles.issuuViewer}>
                       <h4 className={styles.pdfTitle}>Visualização do Livro</h4>
                       <iframe
@@ -71,7 +65,6 @@ const PrdDetailsDescription = ({ product, mainImageUrl }) => {
                       />
                     </div>
                   ) : (
-                    // Se for PDF direto, mostrar botão
                     <a
                       href={catalogPdf}
                       target="_blank"

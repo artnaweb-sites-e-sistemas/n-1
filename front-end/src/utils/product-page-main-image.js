@@ -1,7 +1,6 @@
 /**
- * Imagem para listagens (home, grid, modal): mockup.
- * Usa product.image (no JSON estão os mockups restaurados do commit).
- * NÃO usar na página interna do produto (lá é capa reta via getProductPageMainImageUrl).
+ * Imagem para listagens (home, grid, modal).
+ * Usa product.image (capa / destacada). NÃO usar na página interna do produto.
  * @param {object} product
  * @returns {string}
  */
@@ -16,7 +15,6 @@ export function getListingImageUrl(product) {
 
 /**
  * Extrai a URL da primeira <img src="..."> do HTML.
- * Usado quando catalogImages está vazio mas a capa reta está na descrição (ex.: Ueinzz).
  */
 function getFirstImageSrcFromHtml(html) {
   if (!html || typeof html !== "string") return "";
@@ -24,10 +22,36 @@ function getFirstImageSrcFromHtml(html) {
   return match && match[1] ? match[1].trim() : "";
 }
 
+function isNasBrechasProduct(product) {
+  const nasBrechasId = "catalog-nas-brechas-futuros-cancelados";
+  return (
+    product?._id === nasBrechasId ||
+    product?.id === nasBrechasId ||
+    (product?.slug && String(product.slug).includes("nas-brechas-de-futuros-cancelados"))
+  );
+}
+
 /**
- * URL da imagem principal = primeira imagem da descrição (capa reta).
- * Para produtos do catálogo: usar a primeira imagem da descrição (catalogImages[0] ou extrair do HTML quando catalogImages vazio).
- * Exceção: "Nas brechas..." usa a segunda imagem.
+ * Basename do arquivo da URL (sem query/hash; sem sufixo -300x169).
+ */
+export function imageBasename(url) {
+  if (!url || typeof url !== "string") return "";
+  let pathPart = url.trim().split("?")[0].split("#")[0];
+  try {
+    if (/^https?:\/\//i.test(pathPart)) {
+      pathPart = new URL(pathPart).pathname;
+    }
+  } catch (_) {
+    // keep pathPart
+  }
+  const name = (pathPart.split("/").pop() || "").trim();
+  return name.replace(/-\d+x\d+(\.[a-zA-Z0-9]+)$/i, "$1").toLowerCase();
+}
+
+/**
+ * URL da imagem principal da página do produto.
+ * - Catálogo estático (source === "catalog"): 1ª <img> do catalogContent
+ * - WooCommerce (migrado): 1ª imagem da galeria = images[1]
  * @param {object} product
  * @returns {string}
  */
@@ -37,49 +61,55 @@ export function getProductPageMainImageUrl(product) {
   const catalogImages = product.catalogImages || [];
   const catalogContent = product.catalogContent || "";
   const image = product.image;
-  const images = product.images || [];
+  const images = Array.isArray(product.images) ? product.images : [];
 
+  // Produtos ainda no catálogo estático
   if (product.source === "catalog") {
-    // 1) Exceção: "Nas brechas..." usa a segunda imagem da descrição (catalog_xxx_1_catalog_image_product_2.png)
-    const nasBrechasId = "catalog-nas-brechas-futuros-cancelados";
-    const isNasBrechas =
-      product._id === nasBrechasId ||
-      product.id === nasBrechasId ||
-      (product.slug && product.slug.includes("nas-brechas-de-futuros-cancelados"));
-    if (isNasBrechas && catalogImages.length > 1) return catalogImages[1].trim();
+    if (isNasBrechasProduct(product) && catalogImages.length > 1) {
+      return catalogImages[1].trim();
+    }
 
-    // 2) Primeira imagem da descrição = primeira <img> no HTML (capa reta)
     const firstFromHtml = getFirstImageSrcFromHtml(catalogContent);
-    if (firstFromHtml && firstFromHtml.startsWith("/images/")) return firstFromHtml;
+    if (firstFromHtml) return firstFromHtml;
 
-    // 3) Se não tem img no HTML, usar catalogImages[0]
-    if (catalogImages.length > 0 && catalogImages[0]) return catalogImages[0].trim();
-
-    // 3) Fallback
+    if (catalogImages.length > 0 && catalogImages[0]) return String(catalogImages[0]).trim();
     if (image && String(image).trim() !== "") return String(image).trim();
     if (images.length > 0 && images[0]) return String(images[0]).trim();
     return "";
   }
 
+  // WooCommerce: destacada = images[0]/image; mockup = images[1] (1ª da galeria)
+  if (images.length > 1 && images[1] && String(images[1]).trim() !== "") {
+    return String(images[1]).trim();
+  }
   if (image && String(image).trim() !== "") return String(image).trim();
   if (images.length > 0 && images[0]) return String(images[0]).trim();
   return "";
 }
 
 /**
- * Remove da HTML do catálogo a primeira ocorrência da <img> com o src indicado,
- * para não duplicar a capa na descrição (já exibida como imagem principal).
- * @param {string} html - catalogContent HTML
- * @param {string} imageUrlToRemove - URL da imagem a remover (ex: /images/catalog_xxx_0.png)
+ * Remove da HTML a PRIMEIRA <img> cujo src tenha o mesmo basename da imagem principal.
+ * Casa URL do WP (.../uploads/.../foo.png) com /images/foo.png no catalogContent.
+ * @param {string} html
+ * @param {string} imageUrlToRemove
  * @returns {string}
  */
 export function removeMainImageFromCatalogHtml(html, imageUrlToRemove) {
   if (!html || !imageUrlToRemove || typeof html !== "string") return html || "";
 
-  const escaped = imageUrlToRemove.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const imgRegex = new RegExp(
-    '<img[^>]*src=["\']?' + escaped + '["\']?[^>]*/?>',
-    "i"
-  );
-  return html.replace(imgRegex, "");
+  const targetBase = imageBasename(imageUrlToRemove);
+  if (!targetBase) return html;
+
+  const imgTagRegex = /<img\b[^>]*>/gi;
+  let match;
+  while ((match = imgTagRegex.exec(html)) !== null) {
+    const tag = match[0];
+    const srcMatch = tag.match(/\ssrc=["']([^"']+)["']/i);
+    if (!srcMatch) continue;
+    if (imageBasename(srcMatch[1]) === targetBase) {
+      return html.slice(0, match.index) + html.slice(match.index + tag.length);
+    }
+  }
+
+  return html;
 }

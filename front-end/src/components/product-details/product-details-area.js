@@ -12,8 +12,9 @@ import ProductDetailsTags from "./product-details-tags";
 import ProductDetailsMetadata from "./product-details-metadata";
 import { add_cart_product } from "src/redux/features/cartSlice";
 import { add_to_wishlist } from "src/redux/features/wishlist-slice";
-import { getFirstParagraphAndRest } from "src/utils/description-paragraphs";
+import { getProductLeadParagraph } from "src/utils/description-paragraphs";
 import { getProductPageMainImageUrl } from "src/utils/product-page-main-image";
+import { hasCatalogLayout } from "@utils/catalog-layout";
 
 const ProductDetailsArea = ({ product }) => {
   const {
@@ -52,8 +53,8 @@ const ProductDetailsArea = ({ product }) => {
   // Usar images se relatedImages não existir
   let productImages = relatedImages || images || [];
 
-  // Para produtos do catálogo, incluir todas as imagens (capa + imagens internas)
-  if (product?.source === 'catalog') {
+  // Para produtos com layout editorial (catálogo ou migrados), incluir imagens internas
+  if (hasCatalogLayout(product)) {
     const catalogImages = product?.catalogImages || [];
     // Começar com todas as imagens do array images (inclui capa + outras)
     const allImages = images && images.length > 0 ? images : (image ? [image] : []);
@@ -358,9 +359,7 @@ const ProductDetailsArea = ({ product }) => {
                 <h3 className="product__details-title">{title}</h3>
 
                 {(() => {
-                  const rawContent = product?.catalogContent || product?.description || "";
-                  const isHtml = !!product?.catalogContent;
-                  const { firstParagraph } = getFirstParagraphAndRest(rawContent, isHtml);
+                  const firstParagraph = getProductLeadParagraph(product);
                   return firstParagraph ? <p className="mt-20">{firstParagraph}</p> : null;
                 })()}
 
