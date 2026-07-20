@@ -1144,13 +1144,16 @@ class N1_WooCommerce_API
         }
 
         // Generate new permalink format: /livros/slug
-        // Preferir post_name do Woo (coluna Slug do CSV); fallback pelo título
+        // Sempre o slug REAL do produto (post_name / coluna Slug do CSV).
+        // NÃO regenerar a partir do título (isso muda URLs do catálogo).
         $product_title = $product->get_name();
         $slug = $product->get_slug();
         if (empty($slug)) {
             $slug = $this->generate_product_slug($product_title);
         } else {
-            $slug = sanitize_title($this->normalize_slug_chars($slug));
+            // Apenas normalizar ₂→2 / %xx se necessário; preservar o post_name
+            $slug = $this->normalize_slug_chars($slug);
+            $slug = strtolower($slug);
         }
         $new_permalink = home_url('/livros/' . $slug);
 
@@ -1459,80 +1462,58 @@ class N1_WooCommerce_API
             return new WP_Error('woocommerce_not_active', 'WooCommerce não está ativo', array('status' => 500));
         }
 
-        $slug = sanitize_text_field($request['slug']);
-        $slug = sanitize_title($this->normalize_slug_chars($slug));
+        $raw_slug = sanitize_text_field($request['slug']);
+        $slug = strtolower($this->normalize_slug_chars($raw_slug));
+        // sanitize_title só no fallback de busca; post_name costuma já ser limpo
+        $slug_sanitized = sanitize_title($slug);
 
-        if (empty($slug)) {
+        if (empty($slug) && empty($slug_sanitized)) {
             return new WP_Error('invalid_slug', 'Slug inválido', array('status' => 400));
         }
 
         $product = null;
 
-        // 1) post_name do WooCommerce (coluna Slug do CSV / permalink nativo)
-        $by_name = get_posts(array(
-            'name' => $slug,
-            'post_type' => 'product',
-            'post_status' => 'publish',
-            'numberposts' => 1,
-        ));
-        if (!empty($by_name[0])) {
-            $product = wc_get_product($by_name[0]->ID);
+        // 1) post_name exato (coluna Slug do CSV / permalink nativo) — caminho principal
+        foreach (array_unique(array_filter(array($slug_sanitized, $slug))) as $try_slug) {
+            $by_name = get_posts(array(
+                'name' => $try_slug,
+                'post_type' => 'product',
+                'post_status' => 'publish',
+                'numberposts' => 1,
+            ));
+            if (!empty($by_name[0])) {
+                $product = wc_get_product($by_name[0]->ID);
+                if ($product) {
+                    break;
+                }
+            }
         }
 
-        // 2) Fallback: slug gerado a partir do título (compatibilidade)
+        // 2) Fallback: comparar get_slug() real OU slug gerado do título (produtos antigos)
         if (!$product) {
             $args = array(
                 'post_type' => 'product',
                 'post_status' => 'publish',
-                'posts_per_page' => 100,
+                'posts_per_page' => -1,
                 'orderby' => 'date',
                 'order' => 'DESC',
+                'fields' => 'ids',
             );
-
-            $query = new WP_Query($args);
-
-            if ($query->have_posts()) {
-                while ($query->have_posts()) {
-                    $query->the_post();
-                    $prod = wc_get_product(get_the_ID());
-
-                    if (!$prod) {
-                        continue;
-                    }
-
-                    $prod_slug = $this->generate_product_slug($prod->get_name());
-
-                    if ($prod_slug === $slug) {
-                        $product = $prod;
-                        break;
-                    }
+            $ids = get_posts($args);
+            foreach ($ids as $pid) {
+                $prod = wc_get_product($pid);
+                if (!$prod) {
+                    continue;
                 }
-                wp_reset_postdata();
-            }
-
-            // Se não encontrou nos primeiros 100, tentar mais produtos
-            if (!$product && !empty($query->found_posts) && $query->found_posts > 100) {
-                $args['posts_per_page'] = -1;
-                $args['offset'] = 100;
-                $query2 = new WP_Query($args);
-
-                if ($query2->have_posts()) {
-                    while ($query2->have_posts()) {
-                        $query2->the_post();
-                        $prod = wc_get_product(get_the_ID());
-
-                        if (!$prod) {
-                            continue;
-                        }
-
-                        $prod_slug = $this->generate_product_slug($prod->get_name());
-
-                        if ($prod_slug === $slug) {
-                            $product = $prod;
-                            break;
-                        }
-                    }
-                    wp_reset_postdata();
+                $real = strtolower($this->normalize_slug_chars($prod->get_slug()));
+                if ($real && ($real === $slug || $real === $slug_sanitized)) {
+                    $product = $prod;
+                    break;
+                }
+                $generated = $this->generate_product_slug($prod->get_name());
+                if ($generated && ($generated === $slug || $generated === $slug_sanitized)) {
+                    $product = $prod;
+                    break;
                 }
             }
         }

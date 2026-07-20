@@ -4,6 +4,8 @@
  * Uso:
  *   node scripts/catalog-to-woo-csv.js --report
  *   node scripts/catalog-to-woo-csv.js --lote-teste
+ *   node scripts/catalog-to-woo-csv.js --completo
+ *   node scripts/catalog-to-woo-csv.js --completo --split=50
  *   node scripts/catalog-to-woo-csv.js --skus=a,b,c --out scripts/out/lote.csv
  *   node scripts/catalog-to-woo-csv.js --limit=20 --out scripts/out/lote-01.csv
  *   node scripts/catalog-to-woo-csv.js --all --out scripts/out/catalogo-completo.csv
@@ -15,8 +17,12 @@ const path = require('path');
 
 const CATALOG_JSON_PATH = path.join(__dirname, '..', 'src', 'data', 'catalog-products.json');
 const DEFAULT_OUT_DIR = path.join(__dirname, 'out');
+const DEFAULT_COMPLETO_OUT = path.join(DEFAULT_OUT_DIR, 'catalogo-completo.csv');
+const PENDENCIAS_ISBN_PATH = path.join(DEFAULT_OUT_DIR, 'pendencias-isbn.txt');
 const IMAGE_BASE_URL = 'https://n-1-seven.vercel.app';
 const HEAD_CONCURRENCY = 8;
+const DEFAULT_API_BASE =
+  process.env.NEXT_PUBLIC_API_BASE_URL || 'https://n-1.artnaweb.com.br/wp-json/n1/v1';
 
 const CSV_HEADERS = [
   'Type',
@@ -72,8 +78,12 @@ function parseArgs(argv) {
     all: false,
     report: false,
     loteTeste: false,
+    completo: false,
+    split: null,
     out: null,
     skipHead: false,
+    help: false,
+    apiBase: DEFAULT_API_BASE,
   };
 
   for (let i = 0; i < argv.length; i++) {
@@ -103,13 +113,25 @@ function parseArgs(argv) {
       args.report = true;
     } else if (arg === '--lote-teste') {
       args.loteTeste = true;
+    } else if (arg === '--completo') {
+      args.completo = true;
+    } else if (arg.startsWith('--split=')) {
+      args.split = parseInt(arg.slice('--split='.length), 10);
+    } else if (arg === '--split' && argv[i + 1]) {
+      args.split = parseInt(argv[++i], 10);
     } else if (arg === '--skip-head') {
       args.skipHead = true;
     } else if (arg === '--out' && argv[i + 1]) {
       args.out = path.resolve(argv[++i]);
+    } else if (arg.startsWith('--api=')) {
+      args.apiBase = arg.slice('--api='.length).replace(/\/$/, '');
     } else if (arg === '--help' || arg === '-h') {
       args.help = true;
     }
+  }
+
+  if (args.split != null && (!Number.isFinite(args.split) || args.split < 1)) {
+    throw new Error('--split deve ser um inteiro >= 1');
   }
 
   return args;
@@ -119,10 +141,19 @@ function printHelp() {
   console.log(`Uso:
   node scripts/catalog-to-woo-csv.js --report
   node scripts/catalog-to-woo-csv.js --lote-teste
+  node scripts/catalog-to-woo-csv.js --completo
+  node scripts/catalog-to-woo-csv.js --completo --split=50
   node scripts/catalog-to-woo-csv.js --skus=sku1,sku2 --out scripts/out/lote.csv
   node scripts/catalog-to-woo-csv.js --limit=20 --out scripts/out/lote-01.csv
   node scripts/catalog-to-woo-csv.js --all --out scripts/out/catalogo-completo.csv
-  node scripts/catalog-to-woo-csv.js --sku <sku> [--out <arquivo.csv>]`);
+  node scripts/catalog-to-woo-csv.js --sku <sku> [--out <arquivo.csv>]
+
+Opções:
+  --completo     Exporta todos do catálogo exceto os já no Woo (SKU ou slug)
+  --split=N      Divide o CSV em arquivos de N produtos
+  --skip-head    Pula verificação HTTP HEAD das imagens
+  --out <path>   Arquivo de saída (padrão --completo: scripts/out/catalogo-completo.csv)
+  --help         Mostra esta ajuda`);
 }
 
 function escapeCsvField(value) {
@@ -196,7 +227,8 @@ function collectImages(product) {
 }
 
 /**
- * Slug WooCommerce alinhado à normalização do front (₂→2, decode %xx).
+ * Preserva o slug do catálogo exatamente após decode + subscritos + lowercase/trim.
+ * NÃO remove hífens, palavras nem re-slugifica ASCII.
  */
 function normalizeProductSlug(slug) {
   let s = String(slug || '').trim();
@@ -212,7 +244,7 @@ function normalizeProductSlug(slug) {
     }
   }
 
-  s = s
+  return s
     .replace(/₂/g, '2')
     .replace(/₃/g, '3')
     .replace(/₄/g, '4')
@@ -221,16 +253,6 @@ function normalizeProductSlug(slug) {
     .replace(/⁴/g, '4')
     .toLowerCase()
     .trim();
-
-  // post_name Woo: a-z 0-9 hífen
-  s = s
-    .normalize('NFD')
-    .replace(/\p{Diacritic}/gu, '')
-    .replace(/[^a-z0-9\s-]/g, '')
-    .replace(/[\s-]+/g, '-')
-    .replace(/^-+|-+$/g, '');
-
-  return s;
 }
 
 function splitImageUrls(imagesField) {
@@ -257,7 +279,7 @@ async function headStatus(url) {
     }
     headCache.set(url, status);
     return status;
-  } catch (err) {
+  } catch (_) {
     headCache.set(url, 0);
     return 0;
   }
@@ -272,25 +294,39 @@ async function mapPool(items, concurrency, fn) {
       results[i] = await fn(items[i], i);
     }
   }
-  const workers = Array.from({ length: Math.min(concurrency, items.length) }, () => worker());
+  const workers = Array.from({ length: Math.min(concurrency, Math.max(items.length, 1)) }, () =>
+    worker()
+  );
   await Promise.all(workers);
   return results;
 }
 
-async function assertImageUrlsReachable(urls) {
-  const unique = [...new Set(urls.filter(Boolean))];
-  const failures = [];
-  await mapPool(unique, HEAD_CONCURRENCY, async (url) => {
-    const status = await headStatus(url);
-    if (status !== 200) {
-      failures.push(`${url} → HTTP ${status || 'ERR'}`);
-    }
-  });
-  if (failures.length) {
-    throw new Error(
-      `Imagens inacessíveis (esperado HTTP 200). Corrija as URLs antes de importar:\n- ${failures.join('\n- ')}`
-    );
+/**
+ * Verifica URLs; remove as que não retornam HTTP 200 (não aborta).
+ */
+async function filterReachableImageUrls(urls, { skipHead = false } = {}) {
+  const list = (urls || []).filter(Boolean);
+  if (skipHead || !list.length) {
+    return { kept: list, removed: [] };
   }
+
+  const unique = [...new Set(list)];
+  const statusByUrl = new Map();
+  await mapPool(unique, HEAD_CONCURRENCY, async (url) => {
+    statusByUrl.set(url, await headStatus(url));
+  });
+
+  const kept = [];
+  const removed = [];
+  for (const url of list) {
+    const status = statusByUrl.get(url);
+    if (status === 200) {
+      kept.push(url);
+    } else {
+      removed.push({ url, status: status || 0 });
+    }
+  }
+  return { kept, removed };
 }
 
 function htmlToPlainText(htmlFragment) {
@@ -329,42 +365,69 @@ function extractDescriptiveParagraph(catalogContent) {
     if (/comprar/i.test(text) && /anterior/i.test(text) && /pr[oó]ximo/i.test(text)) continue;
     return text;
   }
+
+  // Fallback: produtos sem <p> (layouts com div/span) — texto plano do HTML
+  const plain = htmlToPlainText(catalogContent);
+  if (!plain) return '';
+  const parts = plain.split(/(?<=[.!?…])\s+/);
+  let acc = '';
+  for (const part of parts) {
+    const t = String(part || '').trim();
+    if (!t || isNavOrButtonText(t)) continue;
+    if (/^(comprar|anterior|pr[oó]ximo)$/i.test(t)) continue;
+    acc = acc ? `${acc} ${t}` : t;
+    if (acc.length > 80 && !isNavPollutedDescription(acc)) {
+      return acc.length > 2000 ? acc.slice(0, 2000).trim() : acc;
+    }
+  }
+  if (acc.length > 40 && !isNavPollutedDescription(acc)) return acc;
   return '';
+}
+
+function isNavPollutedDescription(text) {
+  const value = String(text || '').trim();
+  if (!value) return false;
+  if (isNavOrButtonText(value)) return true;
+  if (/^\s*comprar\b/i.test(value)) return true;
+  // Trio clássico de navegação do catálogo (não confundir com "próximo" literário)
+  if (
+    /comprar/i.test(value) &&
+    /\banterior\b/i.test(value) &&
+    /\bpr[oó]ximo\b/i.test(value) &&
+    value.length < 200
+  ) {
+    return true;
+  }
+  return false;
 }
 
 function resolveDescription(product) {
   const fromField = String(product.description || '').trim();
-  if (fromField) {
-    assertCleanDescription(fromField, 'description (JSON)');
+  if (fromField && !isNavPollutedDescription(fromField)) {
     return fromField;
   }
   const extracted = extractDescriptiveParagraph(product.catalogContent || '');
-  assertCleanDescription(extracted, `description extraída (sku=${product.sku || '?'})`);
-  return extracted;
-}
-
-function resolveShortDescription(product) {
-  const fromField = String(product.shortDescription || '').trim();
-  if (fromField) {
-    assertCleanDescription(fromField, 'shortDescription (JSON)');
-    return fromField;
+  if (extracted) {
+    if (isNavPollutedDescription(extracted)) {
+      throw new Error(
+        `description extraída (sku=${product.sku || product._originalSku || '?'}): Description poluída com navegação`
+      );
+    }
+    return extracted;
   }
-  return resolveDescription(product);
+  console.warn(
+    `AVISO: description vazia para sku=${product.sku || product._originalSku || '?'} | ${product.title || ''}`
+  );
+  return '';
 }
 
 function assertCleanDescription(text, label) {
   const value = String(text || '');
   if (!value) {
-    throw new Error(`${label}: Description vazia — não foi possível extrair parágrafo descritivo`);
+    return; // vazio permitido (listado como aviso na geração)
   }
-  if (value.length > 1500) {
-    throw new Error(`${label}: Description com ${value.length} chars (>1500) — parece conteúdo poluído`);
-  }
-  if (/^\s*comprar\b/i.test(value)) {
-    throw new Error(`${label}: Description começa com "Comprar" — conteúdo poluído`);
-  }
-  if (/\banterior\b/i.test(value) || /\bpr[oó]ximo\b/i.test(value)) {
-    throw new Error(`${label}: Description contém "Anterior"/"Próximo" — conteúdo poluído`);
+  if (isNavPollutedDescription(value)) {
+    throw new Error(`${label}: Description poluída com navegação (Comprar/Anterior/Próximo)`);
   }
 }
 
@@ -383,11 +446,16 @@ function formatRegularPrice(price) {
   return String(num);
 }
 
+/**
+ * SKU do CSV usa o sku preparado (pode estar vazio em duplicatas).
+ * Slug = normalizeProductSlug(product.slug) sem re-slugificar.
+ * Images: usa product._images se já filtradas por HEAD.
+ */
 function productToRow(product) {
   const catalogContentExact = product.catalogContent == null ? '' : String(product.catalogContent);
   const description = resolveDescription(product);
-  const shortDescription = resolveShortDescription(product);
-  const images = collectImages(product);
+  const shortDescription = description;
+  const images = Array.isArray(product._images) ? product._images : collectImages(product);
   const slug = normalizeProductSlug(product.slug || '');
 
   return [
@@ -462,7 +530,7 @@ function parseCsv(content) {
       row.push(field);
       field = '';
     } else if (ch === '\r') {
-      // ignore
+      // ignore — CRLF handled by \n
     } else if (ch === '\n') {
       row.push(field);
       rows.push(row);
@@ -500,12 +568,53 @@ function findDuplicateSkus(products) {
   return dups;
 }
 
-function getExcludedDuplicateSkuSet(products) {
-  const set = new Set();
-  for (const { sku } of findDuplicateSkus(products)) {
-    set.add(sku);
+/**
+ * Primeiro produto (ordem do array) mantém o SKU; demais recebem SKU vazio.
+ * Nunca duas linhas com o mesmo SKU não-vazio.
+ */
+function applyDuplicateSkuRule(products) {
+  const seenSkus = new Set();
+  const emptied = [];
+  const prepared = products.map((p) => {
+    const originalSku = String(p.sku ?? '').trim();
+    if (!originalSku) {
+      return { ...p, sku: '', _originalSku: '' };
+    }
+    if (seenSkus.has(originalSku)) {
+      emptied.push({
+        title: p.title || '',
+        originalSku,
+        slug: p.slug || '',
+        id: p._id || p.id || '',
+      });
+      return { ...p, sku: '', _originalSku: originalSku };
+    }
+    seenSkus.add(originalSku);
+    return { ...p, sku: originalSku, _originalSku: originalSku };
+  });
+  return { prepared, emptied };
+}
+
+function writePendenciasIsbn(emptied) {
+  fs.mkdirSync(DEFAULT_OUT_DIR, { recursive: true });
+  const lines = [
+    'Pendências ISBN / SKU duplicado',
+    `Gerado em: ${new Date().toISOString()}`,
+    'Produtos que receberam SKU vazio na importação (2ª+ ocorrência do mesmo SKU):',
+    '',
+  ];
+  if (!emptied.length) {
+    lines.push('(nenhum)');
+  } else {
+    for (const item of emptied) {
+      lines.push(
+        `- título: ${item.title} | sku original: ${item.originalSku} | slug: ${item.slug} | id: ${item.id}`
+      );
+    }
   }
-  return set;
+  fs.writeFileSync(PENDENCIAS_ISBN_PATH, lines.join('\n') + '\n', 'utf8');
+  console.log(`Pendências ISBN gravadas: ${PENDENCIAS_ISBN_PATH} (${emptied.length} produto(s))`);
+  return PENDENCIAS_ISBN_PATH;
 }
 
 function isSkuSuspicious(sku) {
@@ -525,6 +634,75 @@ function slugHasEncodedOrNonAscii(slug) {
 }
 
 /**
+ * Busca TODOS os produtos Woo paginados até não haver mais / page > pages.
+ */
+async function fetchAllWooProducts(apiBaseUrl = DEFAULT_API_BASE, { perPage = 100, timeoutMs = 30000 } = {}) {
+  const products = [];
+  let page = 1;
+  let pages = 1;
+
+  console.log(`Buscando produtos WooCommerce em ${apiBaseUrl}/products ...`);
+
+  while (page <= pages) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const url = `${apiBaseUrl}/products?per_page=${perPage}&page=${page}&orderby=date&order=DESC&_t=${Date.now()}`;
+      const response = await fetch(url, {
+        headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
+      });
+      if (!response.ok) {
+        throw new Error(`Falha ao buscar Woo page=${page}: HTTP ${response.status}`);
+      }
+      const data = await response.json();
+      const batch = Array.isArray(data.products) ? data.products : Array.isArray(data) ? data : [];
+      products.push(...batch);
+      pages = Math.max(1, parseInt(data.pages || 1, 10));
+      console.log(`  página ${page}/${pages}: +${batch.length} (total ${products.length})`);
+      if (!batch.length) break;
+      page += 1;
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  }
+
+  return products;
+}
+
+function buildWooSets(wooProducts) {
+  const skus = new Set();
+  const slugs = new Set();
+  for (const p of wooProducts || []) {
+    const sku = String(p?.sku ?? '').trim();
+    if (sku) skus.add(sku);
+    const slug = normalizeProductSlug(p?.slug);
+    if (slug) slugs.add(slug);
+  }
+  return { skus, slugs };
+}
+
+function excludeAlreadyInWoo(catalog, wooSkus, wooSlugs) {
+  const remaining = [];
+  const excluded = [];
+  for (const p of catalog) {
+    const sku = String(p.sku ?? '').trim();
+    const slug = normalizeProductSlug(p.slug);
+    const bySku = sku && wooSkus.has(sku);
+    const bySlug = slug && wooSlugs.has(slug);
+    if (bySku || bySlug) {
+      excluded.push({
+        product: p,
+        reason: bySku && bySlug ? 'sku+slug' : bySku ? 'sku' : 'slug',
+      });
+    } else {
+      remaining.push(p);
+    }
+  }
+  return { remaining, excluded };
+}
+
+/**
  * Relatório de integridade — console + arquivo .txt
  */
 async function runIntegrityReport(catalog, { checkImages = true } = {}) {
@@ -541,22 +719,23 @@ async function runIntegrityReport(catalog, { checkImages = true } = {}) {
   log('=========================================================');
   log();
 
-  // SKUs duplicados
   const dups = findDuplicateSkus(catalog);
-  log(`## SKUs DUPLICADOS (${dups.length} SKUs / exclusos da importação)`);
+  log(`## SKUs DUPLICADOS (${dups.length} SKUs)`);
+  log('Regra de importação: o 1º produto na ordem do catálogo mantém o SKU;');
+  log('as ocorrências seguintes são importadas com SKU vazio (coluna SKU = "").');
   if (!dups.length) {
     log('(nenhum)');
   } else {
     for (const { sku, items } of dups) {
-      log(`SKU ${sku}:`);
-      for (const p of items) {
-        log(`  - ${p.title} | slug=${p.slug} | id=${p._id || p.id}`);
-      }
+      log(`SKU ${sku} (${items.length} produtos):`);
+      items.forEach((p, i) => {
+        const fate = i === 0 ? 'MANTÉM SKU' : 'SKU VAZIO na importação';
+        log(`  - [${fate}] ${p.title} | slug=${p.slug} | id=${p._id || p.id}`);
+      });
     }
   }
   log();
 
-  // SKUs vazios/suspeitos
   const suspicious = catalog.filter((p) => isSkuSuspicious(p.sku));
   log(`## SKUs VAZIOS OU SUSPEITOS (${suspicious.length})`);
   if (!suspicious.length) log('(nenhum)');
@@ -567,21 +746,18 @@ async function runIntegrityReport(catalog, { checkImages = true } = {}) {
   }
   log();
 
-  // Sem image
   const noImage = catalog.filter((p) => !p.image || !String(p.image).trim());
   log(`## SEM CAMPO image (${noImage.length})`);
   if (!noImage.length) log('(nenhum)');
   else noImage.forEach((p) => log(`  - ${p.sku} | ${p.title}`));
   log();
 
-  // Sem <img> no catalogContent
   const noContentImg = catalog.filter((p) => !getFirstImageSrcFromHtml(p.catalogContent || ''));
   log(`## SEM <img> NO catalogContent (${noContentImg.length}) — sem imagem de galeria`);
   if (!noContentImg.length) log('(nenhum)');
   else noContentImg.forEach((p) => log(`  - ${p.sku} | ${p.title}`));
   log();
 
-  // Preço inválido
   const badPrice = catalog.filter((p) => {
     const n = Number(p.price);
     return p.price == null || p.price === '' || Number.isNaN(n) || n <= 0;
@@ -591,7 +767,6 @@ async function runIntegrityReport(catalog, { checkImages = true } = {}) {
   else badPrice.forEach((p) => log(`  - ${p.sku} | price=${JSON.stringify(p.price)} | ${p.title}`));
   log();
 
-  // Slug especial
   const weirdSlug = catalog.filter((p) => slugHasEncodedOrNonAscii(p.slug));
   log(`## SLUG COM ENCODING / NÃO-ASCII (${weirdSlug.length})`);
   if (!weirdSlug.length) log('(nenhum)');
@@ -602,7 +777,6 @@ async function runIntegrityReport(catalog, { checkImages = true } = {}) {
   }
   log();
 
-  // Imagens HTTP
   if (checkImages) {
     log('## CHECAGEM HTTP HEAD DAS IMAGENS (capa + página)');
     const urlToProducts = new Map();
@@ -622,7 +796,7 @@ async function runIntegrityReport(catalog, { checkImages = true } = {}) {
         bad.push({ url, status, skus: urlToProducts.get(url) });
       }
     });
-    log(`URLs com status != 200: ${bad.length}`);
+    log(`URLs com status != 200: ${bad.length} (serão removidas do CSV na exportação)`);
     if (!bad.length) log('(todas OK)');
     else {
       for (const b of bad) {
@@ -635,15 +809,12 @@ async function runIntegrityReport(catalog, { checkImages = true } = {}) {
     log();
   }
 
-  const excluded = getExcludedDuplicateSkuSet(catalog);
-  const importable = catalog.filter((p) => {
-    const sku = String(p.sku ?? '').trim();
-    return sku && !excluded.has(sku);
-  });
+  const { emptied } = applyDuplicateSkuRule(catalog);
   log('## RESUMO PARA IMPORTAÇÃO');
-  log(`Total no JSON:           ${catalog.length}`);
-  log(`Excluídos (SKU duplo):   ${catalog.length - importable.length}`);
-  log(`Elegíveis p/ CSV:        ${importable.length}`);
+  log(`Total no JSON:                    ${catalog.length}`);
+  log(`SKUs duplicados (grupos):         ${dups.length}`);
+  log(`Produtos com SKU vazio (2ª+):     ${emptied.length}`);
+  log(`Elegíveis p/ CSV (todos):         ${catalog.length}`);
   log();
   log('FIM DO RELATÓRIO');
 
@@ -651,12 +822,10 @@ async function runIntegrityReport(catalog, { checkImages = true } = {}) {
   fs.mkdirSync(DEFAULT_OUT_DIR, { recursive: true });
   fs.writeFileSync(reportPath, lines.join('\n'), 'utf8');
   console.log(`\nRelatório salvo em: ${reportPath}`);
-  return { reportPath, excluded, importable, dups };
+  return { reportPath, emptied, dups };
 }
 
 function filterProductsForExport(catalog, args) {
-  const excluded = getExcludedDuplicateSkuSet(catalog);
-
   let selected;
   if (args.loteTeste) {
     const wanted = resolveLoteTesteSkus(catalog);
@@ -678,55 +847,36 @@ function filterProductsForExport(catalog, args) {
     selected = catalog.filter((p) => String(p.slug ?? '').trim() === args.slug);
     if (!selected.length) throw new Error(`Nenhum produto com slug "${args.slug}"`);
   } else if (args.all || args.limit) {
-    selected = catalog.filter((p) => {
-      const sku = String(p.sku ?? '').trim();
-      return sku && !excluded.has(sku);
-    });
+    selected = catalog.slice();
     if (args.limit) {
       selected = selected.slice(0, args.limit);
     }
   } else {
-    throw new Error('Informe --report, --lote-teste, --sku, --skus, --slug, --limit ou --all');
-  }
-
-  // Nunca exportar SKU duplicado
-  const blocked = selected.filter((p) => excluded.has(String(p.sku ?? '').trim()));
-  if (blocked.length) {
-    console.warn(
-      'AVISO: excluindo produtos com SKU duplicado do CSV:\n' +
-        blocked.map((p) => `  - ${p.sku} | ${p.title}`).join('\n')
+    throw new Error(
+      'Informe --report, --lote-teste, --completo, --sku, --skus, --slug, --limit ou --all'
     );
-    selected = selected.filter((p) => !excluded.has(String(p.sku ?? '').trim()));
   }
 
-  // Garantir unicidade dentro do lote
-  const seen = new Set();
-  const unique = [];
-  for (const p of selected) {
-    const sku = String(p.sku ?? '').trim();
-    if (!sku) continue;
-    if (seen.has(sku)) {
-      throw new Error(`SKU repetido no lote selecionado: ${sku}`);
-    }
-    seen.add(sku);
-    unique.push(p);
-  }
-
-  if (!unique.length) {
+  if (!selected.length) {
     throw new Error('Nenhum produto restante para exportar após filtros');
   }
 
-  return unique;
+  return selected;
 }
 
 function resolveLoteTesteSkus(catalog) {
-  const dups = getExcludedDuplicateSkuSet(catalog);
+  const dups = new Set(
+    findDuplicateSkus(catalog)
+      .flatMap(({ items }) => items.slice(1))
+      .map((p) => String(p.sku).trim())
+  );
+
   const yt = catalog.filter(
     (p) =>
       /youtube\.com|youtu\.be/i.test(p.catalogContent || '') &&
       !dups.has(String(p.sku).trim())
   );
-  const youtubeSku = (yt[0] && String(yt[0].sku).trim()) || '9786561190473';
+  const youtubeSku = (yt[0] && String(yt[0].sku).trim()) || LOTE_TESTE_SKUS[0];
 
   const nas = catalog.find((p) => isNasBrechasProduct(p));
   const h2o = catalog.find((p) => String(p.sku).trim() === '9786561190558');
@@ -752,9 +902,9 @@ function resolveLoteTesteSkus(catalog) {
 
   const skus = [
     youtubeSku,
-    nas ? String(nas.sku).trim() : '9786561190763',
-    h2o ? String(h2o.sku).trim() : '9786561190558',
-    withDesc ? String(withDesc.sku).trim() : '9786561190626',
+    nas ? String(nas.sku).trim() : LOTE_TESTE_SKUS[1],
+    h2o ? String(h2o.sku).trim() : LOTE_TESTE_SKUS[2],
+    withDesc ? String(withDesc.sku).trim() : LOTE_TESTE_SKUS[3],
     common ? String(common.sku).trim() : '9786561190572',
   ];
 
@@ -768,28 +918,35 @@ function resolveLoteTesteSkus(catalog) {
   return skus;
 }
 
-function validateProductRow(headers, row, sourceProduct) {
+function validateProductRow(headers, row, sourceProduct, { expectedImages = null } = {}) {
   const idx = Object.fromEntries(headers.map((h, i) => [h, i]));
   const get = (name) => row[idx[name]];
   const errors = [];
+  const warnings = [];
 
-  if (String(get('SKU')) !== String(sourceProduct.sku)) {
-    errors.push(`SKU esperado "${sourceProduct.sku}", obtido "${get('SKU')}"`);
+  const expectedSku = sourceProduct.sku == null ? '' : String(sourceProduct.sku);
+  if (String(get('SKU')) !== expectedSku) {
+    errors.push(`SKU esperado "${expectedSku}", obtido "${get('SKU')}"`);
   }
 
   const price = Number(get('Regular price'));
   if (Number.isNaN(price) || price <= 0) {
-    errors.push(`Regular price inválido: "${get('Regular price')}"`);
+    warnings.push(`Regular price inválido/zero: "${get('Regular price')}"`);
   }
 
-  const expectedImages = collectImages(sourceProduct);
+  const imagesExpected =
+    expectedImages != null
+      ? expectedImages
+      : Array.isArray(sourceProduct._images)
+        ? sourceProduct._images
+        : collectImages(sourceProduct);
   const imageUrls = splitImageUrls(get('Images') || '');
-  if (imageUrls.length !== expectedImages.length) {
-    errors.push(`Images: esperado ${expectedImages.length}, obtido ${imageUrls.length}`);
+  if (imageUrls.length !== imagesExpected.length) {
+    errors.push(`Images: esperado ${imagesExpected.length}, obtido ${imageUrls.length}`);
   }
-  for (let i = 0; i < expectedImages.length; i++) {
-    if (imageUrls[i] !== expectedImages[i]) {
-      errors.push(`Images[${i}] esperado "${expectedImages[i]}", obtido "${imageUrls[i] || ''}"`);
+  for (let i = 0; i < imagesExpected.length; i++) {
+    if (imageUrls[i] !== imagesExpected[i]) {
+      errors.push(`Images[${i}] esperado "${imagesExpected[i]}", obtido "${imageUrls[i] || ''}"`);
     }
   }
 
@@ -807,10 +964,6 @@ function validateProductRow(headers, row, sourceProduct) {
 
   const catalogContent = get('meta:n1_catalog_content') || '';
   const sourceContent = sourceProduct.catalogContent == null ? '' : String(sourceProduct.catalogContent);
-  const countP = (s) => (String(s).match(/<p\b/gi) || []).length;
-  if (countP(sourceContent) !== countP(catalogContent)) {
-    errors.push(`contagem <p divergiu (JSON=${countP(sourceContent)}, CSV=${countP(catalogContent)})`);
-  }
   if (catalogContent !== sourceContent) {
     let diffAt = -1;
     for (let i = 0; i < Math.max(catalogContent.length, sourceContent.length); i++) {
@@ -822,7 +975,7 @@ function validateProductRow(headers, row, sourceProduct) {
     errors.push(`meta:n1_catalog_content !== JSON (diff@${diffAt})`);
   }
 
-  return errors;
+  return { errors, warnings };
 }
 
 function printProductSummary(product, row, headers) {
@@ -831,65 +984,257 @@ function printProductSummary(product, row, headers) {
   const cc = row[idx['meta:n1_catalog_content']] || '';
   const hasYt = /youtube\.com|youtu\.be/i.test(cc);
   const hasIssuu = /e\.issuu\.com\/embed/i.test(cc);
+  const skuDisplay = row[idx.SKU] || '(vazio)';
   console.log(
     `  • ${product.title}\n` +
-      `    sku=${product.sku} | price=${row[idx['Regular price']]} | imgs=${images.length} | ` +
+      `    sku=${skuDisplay} | price=${row[idx['Regular price']]} | imgs=${images.length} | ` +
       `youtube=${hasYt} | issuu=${hasIssuu} | catalogContent=${cc.length} chars | slug=${row[idx.Slug]}`
   );
 }
 
-async function generateCsv(catalog, selected, outPath, { skipHead = false } = {}) {
-  // Unicidade de SKU
-  const skus = selected.map((p) => String(p.sku).trim());
-  const uniq = new Set(skus);
-  if (uniq.size !== skus.length) {
-    throw new Error('SKU repetido detectado no lote — abortando');
+function splitOutPath(baseOutPath, partIndex, totalParts) {
+  const dir = path.dirname(baseOutPath);
+  const ext = path.extname(baseOutPath) || '.csv';
+  const base = path.basename(baseOutPath, ext);
+  const pad = String(totalParts).length;
+  const suffix = String(partIndex).padStart(Math.max(2, pad), '0');
+  return path.join(dir, `${base}-${suffix}${ext}`);
+}
+
+async function prepareProductsWithImages(products, { skipHead = false } = {}) {
+  const allRemoved = [];
+  const prepared = [];
+
+  for (const product of products) {
+    const rawImages = collectImages(product);
+    const { kept, removed } = await filterReachableImageUrls(rawImages, { skipHead });
+    for (const r of removed) {
+      allRemoved.push({
+        url: r.url,
+        status: r.status,
+        sku: product.sku || product._originalSku || '',
+        title: product.title || '',
+        slug: product.slug || '',
+      });
+    }
+    prepared.push({ ...product, _images: kept });
   }
 
-  const csv = buildCsv(selected);
+  return { prepared, imagesRemoved: allRemoved };
+}
+
+function writeCsvFile(products, outPath) {
+  const csv = buildCsv(products);
   fs.mkdirSync(path.dirname(outPath), { recursive: true });
   fs.writeFileSync(outPath, csv, 'utf8');
+  return outPath;
+}
 
+function validateCsvFile(outPath, sourceProducts) {
   const raw = fs.readFileSync(outPath, 'utf8');
   if (raw.charCodeAt(0) !== 0xfeff) {
-    throw new Error('UTF-8 BOM ausente');
+    throw new Error(`UTF-8 BOM ausente em ${outPath}`);
   }
 
   const rows = parseCsv(raw);
-  if (rows.length !== selected.length + 1) {
-    throw new Error(`Linhas CSV: esperado ${selected.length + 1}, obtido ${rows.length}`);
+  if (rows.length !== sourceProducts.length + 1) {
+    throw new Error(`Linhas CSV: esperado ${sourceProducts.length + 1}, obtido ${rows.length} (${outPath})`);
   }
   if (rows[0].length !== CSV_HEADERS.length) {
     throw new Error(`Colunas header: esperado ${CSV_HEADERS.length}, obtido ${rows[0].length}`);
   }
+  for (let i = 0; i < CSV_HEADERS.length; i++) {
+    if (rows[0][i] !== CSV_HEADERS[i]) {
+      throw new Error(`Header desalinhado col ${i}: esperado "${CSV_HEADERS[i]}", obtido "${rows[0][i]}"`);
+    }
+  }
 
   const idx = Object.fromEntries(rows[0].map((h, i) => [h, i]));
-  const allImageUrls = [];
+  const seenSkus = new Set();
+  const seenSlugs = new Set();
+  const zeroPrices = [];
+  const slugDivergences = [];
+  const allWarnings = [];
 
   for (let i = 1; i < rows.length; i++) {
     if (rows[i].length !== CSV_HEADERS.length) {
-      throw new Error(`Linha ${i + 1}: colunas ${rows[i].length} != ${CSV_HEADERS.length}`);
+      throw new Error(`Linha ${i + 1}: colunas ${rows[i].length} != ${CSV_HEADERS.length} — abortando`);
     }
-    const errs = validateProductRow(rows[0], rows[i], selected[i - 1]);
-    if (errs.length) {
-      throw new Error(`Validação falhou linha ${i + 1} (${selected[i - 1].sku}):\n- ${errs.join('\n- ')}`);
+
+    const source = sourceProducts[i - 1];
+    const { errors, warnings } = validateProductRow(rows[0], rows[i], source);
+    if (errors.length) {
+      const fatal = errors.some((e) => e.includes('catalog_content') || e.includes('Colunas'));
+      if (fatal || errors.some((e) => e.includes('catalog_content'))) {
+        throw new Error(
+          `Validação fatal linha ${i + 1} (${source.sku || source._originalSku}):\n- ${errors.join('\n- ')}`
+        );
+      }
+      throw new Error(
+        `Validação falhou linha ${i + 1} (${source.sku || source._originalSku}):\n- ${errors.join('\n- ')}`
+      );
     }
-    allImageUrls.push(...splitImageUrls(rows[i][idx.Images]));
+    allWarnings.push(...warnings.map((w) => `linha ${i + 1}: ${w}`));
+
+    const sku = String(rows[i][idx.SKU] || '').trim();
+    if (sku) {
+      if (seenSkus.has(sku)) {
+        throw new Error(`SKU não-vazio duplicado no CSV: "${sku}"`);
+      }
+      seenSkus.add(sku);
+    }
+
+    const slug = String(rows[i][idx.Slug] || '');
+    const expectedSlug = normalizeProductSlug(source.slug || '');
+    if (slug !== expectedSlug) {
+      slugDivergences.push({ slug, expectedSlug, title: source.title });
+    }
+    if (slug) {
+      if (seenSlugs.has(slug)) {
+        throw new Error(`Slug duplicado no CSV: "${slug}"`);
+      }
+      seenSlugs.add(slug);
+    }
+
+    const price = Number(rows[i][idx['Regular price']]);
+    if (Number.isNaN(price) || price <= 0) {
+      zeroPrices.push({
+        sku: sku || source._originalSku || '',
+        title: source.title,
+        price: rows[i][idx['Regular price']],
+      });
+    }
   }
 
-  if (!skipHead) {
-    console.log(`Verificando ${new Set(allImageUrls).size} URL(s) de imagem (HTTP HEAD)...`);
-    await assertImageUrlsReachable(allImageUrls);
+  return { rows, zeroPrices, slugDivergences, warnings: allWarnings };
+}
+
+function countEmbeds(products) {
+  let youtube = 0;
+  let issuu = 0;
+  for (const p of products) {
+    const cc = p.catalogContent == null ? '' : String(p.catalogContent);
+    if (/youtube\.com|youtu\.be/i.test(cc)) youtube += 1;
+    if (/e\.issuu\.com\/embed/i.test(cc)) issuu += 1;
+  }
+  return { youtube, issuu };
+}
+
+async function generateCsv(selected, outPath, { skipHead = false, split = null } = {}) {
+  const { prepared: withSkuRule, emptied } = applyDuplicateSkuRule(selected);
+  writePendenciasIsbn(emptied);
+
+  console.log(
+    skipHead
+      ? 'Checagem HEAD das imagens: pulada (--skip-head)'
+      : 'Verificando imagens (HTTP HEAD, concorrência 8)...'
+  );
+  const { prepared, imagesRemoved } = await prepareProductsWithImages(withSkuRule, { skipHead });
+
+  if (imagesRemoved.length) {
+    console.log(`Imagens removidas (HEAD != 200): ${imagesRemoved.length}`);
+    for (const r of imagesRemoved.slice(0, 20)) {
+      console.log(`  - HTTP ${r.status || 'ERR'} | ${r.url} | ${r.title}`);
+    }
+    if (imagesRemoved.length > 20) {
+      console.log(`  ... e mais ${imagesRemoved.length - 20}`);
+    }
   }
 
-  console.log(`\nCSV gerado: ${outPath}`);
-  console.log(`Produtos: ${selected.length}`);
-  console.log('Resumo:');
-  for (let i = 0; i < selected.length; i++) {
-    printProductSummary(selected[i], rows[i + 1], rows[0]);
+  const outPaths = [];
+  let chunks;
+  if (split && split > 0) {
+    chunks = [];
+    for (let i = 0; i < prepared.length; i += split) {
+      chunks.push(prepared.slice(i, i + split));
+    }
+  } else {
+    chunks = [prepared];
   }
+
+  const totalParts = chunks.length;
+  for (let i = 0; i < chunks.length; i++) {
+    const chunkPath = totalParts === 1 ? outPath : splitOutPath(outPath, i + 1, totalParts);
+    writeCsvFile(chunks[i], chunkPath);
+    const validation = validateCsvFile(chunkPath, chunks[i]);
+    outPaths.push(chunkPath);
+
+    console.log(`\nCSV gerado: ${chunkPath}`);
+    console.log(`Produtos neste arquivo: ${chunks[i].length}`);
+    if (chunks[i].length <= 20) {
+      console.log('Resumo:');
+      for (let j = 0; j < chunks[i].length; j++) {
+        printProductSummary(chunks[i][j], validation.rows[j + 1], validation.rows[0]);
+      }
+    }
+    if (validation.zeroPrices.length) {
+      console.warn(`AVISO: ${validation.zeroPrices.length} produto(s) com preço <= 0:`);
+      for (const z of validation.zeroPrices) {
+        console.warn(`  - sku=${z.sku} price=${z.price} | ${z.title}`);
+      }
+    }
+    if (validation.slugDivergences.length) {
+      throw new Error(
+        `Divergência de slug detectada (${validation.slugDivergences.length}). Abortando.`
+      );
+    }
+  }
+
   console.log('Validação CSV: OK');
-  return outPath;
+  return {
+    outPaths,
+    emptied,
+    imagesRemoved,
+    prepared,
+    embeds: countEmbeds(prepared),
+  };
+}
+
+async function runCompleto(catalog, args) {
+  const wooProducts = await fetchAllWooProducts(args.apiBase);
+  const { skus: wooSkus, slugs: wooSlugs } = buildWooSets(wooProducts);
+  console.log(`Woo: ${wooProducts.length} produtos | ${wooSkus.size} SKUs | ${wooSlugs.size} slugs`);
+
+  const { remaining, excluded } = excludeAlreadyInWoo(catalog, wooSkus, wooSlugs);
+  console.log(
+    `Catálogo: ${catalog.length} | já no Woo (excluídos): ${excluded.length} | a exportar: ${remaining.length}`
+  );
+
+  if (!remaining.length) {
+    console.log('Nenhum produto pendente para exportar (todos já estão no WooCommerce).');
+    writePendenciasIsbn([]);
+    return;
+  }
+
+  const outPath = args.out || DEFAULT_COMPLETO_OUT;
+  const result = await generateCsv(remaining, outPath, {
+    skipHead: args.skipHead,
+    split: args.split,
+  });
+
+  console.log('\n=========================================================');
+  console.log('RELATÓRIO FINAL — --completo');
+  console.log('=========================================================');
+  console.log(`Total no catálogo:              ${catalog.length}`);
+  console.log(`Já no Woo (excluídos):          ${excluded.length}`);
+  console.log(`Exportados no CSV:              ${result.prepared.length}`);
+  console.log(`SKU vazio (duplicatas 2ª+):     ${result.emptied.length}`);
+  console.log(`YouTube no catalogContent:      ${result.embeds.youtube}`);
+  console.log(`Issuu no catalogContent:        ${result.embeds.issuu}`);
+  console.log(`Imagens removidas (HEAD):       ${result.imagesRemoved.length}`);
+  console.log(`Arquivos gerados:               ${result.outPaths.length}`);
+  for (const p of result.outPaths) {
+    console.log(`  - ${p}`);
+  }
+  if (excluded.length && excluded.length <= 30) {
+    console.log('\nExcluídos (já no Woo):');
+    for (const e of excluded) {
+      console.log(`  - [${e.reason}] ${e.product.sku} | ${e.product.slug} | ${e.product.title}`);
+    }
+  } else if (excluded.length > 30) {
+    console.log(`\nExcluídos (já no Woo): ${excluded.length} (omitindo lista completa)`);
+  }
+  console.log('=========================================================');
 }
 
 async function main() {
@@ -914,14 +1259,12 @@ async function main() {
     return;
   }
 
-  if (
-    !args.loteTeste &&
-    !args.sku &&
-    !args.slug &&
-    !args.skus &&
-    !args.all &&
-    !args.limit
-  ) {
+  if (args.completo) {
+    await runCompleto(catalog, args);
+    return;
+  }
+
+  if (!args.loteTeste && !args.sku && !args.slug && !args.skus && !args.all && !args.limit) {
     printHelp();
     process.exit(1);
   }
@@ -943,7 +1286,15 @@ async function main() {
     }
   }
 
-  await generateCsv(catalog, selected, outPath, { skipHead: args.skipHead });
+  const result = await generateCsv(selected, outPath, {
+    skipHead: args.skipHead,
+    split: args.split,
+  });
+
+  console.log(`\nProdutos: ${result.prepared.length}`);
+  console.log(`SKU vazio (duplicatas): ${result.emptied.length}`);
+  console.log(`YouTube: ${result.embeds.youtube} | Issuu: ${result.embeds.issuu}`);
+  console.log(`Imagens removidas: ${result.imagesRemoved.length}`);
 }
 
 main().catch((err) => {
