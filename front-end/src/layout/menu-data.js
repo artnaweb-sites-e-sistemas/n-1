@@ -23,13 +23,20 @@ const menu_data = [
   },
   {
     id: 3,
+    title: 'Catálogo',
+    link: 'https://n-1edicoes.org/catalogo/',
+    isExternal: true,
+    openInNewTab: false,
+  },
+  {
+    id: 4,
     title: 'Leituras',
     link: 'https://n-1edicoes.org/leituras/',
     isExternal: true,
     openInNewTab: false,
   },
   {
-    id: 4,
+    id: 5,
     title: 'Contato',
     link: 'https://n-1edicoes.org/contato/',
     isExternal: true,
