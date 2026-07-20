@@ -46,6 +46,9 @@ class N1_WooCommerce_API
         // Preservar <iframe> (Issuu etc.) e HTML íntegro em n1_catalog_content
         add_filter('wp_kses_allowed_html', array($this, 'allow_n1_iframe_in_kses'), 10, 2);
         add_filter('sanitize_post_meta_n1_catalog_content', array($this, 'preserve_raw_catalog_content_meta'), 10, 1);
+        // CRÍTICO: o importador Woo aplica wp_kses_post em todo meta:* — isso normaliza
+        // style e, em vários ambientes, remove <p>/<br>. Bypass para n1_catalog_content.
+        add_filter('woocommerce_product_importer_formatting_callbacks', array($this, 'bypass_kses_for_catalog_content_import'), 10, 2);
         add_action('woocommerce_product_import_inserted_product_object', array($this, 'preserve_catalog_content_on_import'), 20, 2);
         add_action('init', array($this, 'register_n1_catalog_content_meta'), 20);
 
@@ -68,6 +71,41 @@ class N1_WooCommerce_API
             },
             'sanitize_callback' => array($this, 'preserve_raw_catalog_content_meta'),
         ));
+    }
+
+    /**
+     * Substitui wp_kses_post por identidade na coluna meta:n1_catalog_content.
+     */
+    public function bypass_kses_for_catalog_content_import($callbacks, $importer)
+    {
+        if (!is_array($callbacks)) {
+            return $callbacks;
+        }
+
+        $keys = array();
+        if (is_object($importer) && method_exists($importer, 'get_mapped_keys')) {
+            $keys = $importer->get_mapped_keys();
+        }
+
+        foreach ($callbacks as $index => $callback) {
+            $heading = isset($keys[$index]) ? (string) $keys[$index] : '';
+            if (
+                $heading === 'meta:n1_catalog_content' ||
+                $heading === 'n1_catalog_content'
+            ) {
+                $callbacks[$index] = array($this, 'import_catalog_content_raw');
+            }
+        }
+
+        return $callbacks;
+    }
+
+    /**
+     * Valor cru do CSV — sem wp_kses / sem serialização de DOM.
+     */
+    public function import_catalog_content_raw($value)
+    {
+        return is_string($value) ? $value : '';
     }
 
     /**
@@ -241,14 +279,13 @@ class N1_WooCommerce_API
             return;
         }
 
-        // Gravação direta — não passa por wp_kses / content filters
-        update_post_meta($product_id, 'n1_catalog_content', $raw);
+        // Gravação via $wpdb (bypass total de filters/kses) + update_post_meta de reforço
+        $this->write_catalog_content_raw($product_id, $raw);
 
         // Limpar pdf auto-preenchido se o conteúdo já tem Issuu (evita bloco duplicado)
         if ($this->catalog_content_has_issuu_iframe($raw)) {
             $existing_pdf = get_post_meta($product_id, 'n1_catalog_pdf', true);
             if (!empty($existing_pdf) && stripos((string) $existing_pdf, 'issuu') !== false) {
-                // Só limpa se parece extração automática (issuu); não mexe em PDF real
                 delete_post_meta($product_id, 'n1_catalog_pdf');
             }
         }
@@ -256,15 +293,52 @@ class N1_WooCommerce_API
         $saved = get_post_meta($product_id, 'n1_catalog_content', true);
         $orig_p = preg_match_all('/<p\b/i', (string) $raw);
         $saved_p = preg_match_all('/<p\b/i', (string) $saved);
-        if ($orig_p > 0 && $saved_p === 0) {
-            error_log('[N1] ALERTA: tags <p> perdidas ao salvar n1_catalog_content product_id=' . $product_id);
-            // Regravar forçando valor cru
-            update_post_meta($product_id, 'n1_catalog_content', $raw);
+        if ($saved !== $raw || ($orig_p > 0 && $saved_p !== $orig_p)) {
+            error_log(sprintf(
+                '[N1] ALERTA: n1_catalog_content divergiu após import product_id=%d orig_p=%d saved_p=%d identical=%s',
+                $product_id,
+                $orig_p,
+                $saved_p,
+                ($saved === $raw) ? 'yes' : 'no'
+            ));
+            $this->write_catalog_content_raw($product_id, $raw);
         }
 
         if (strpos($raw, 'e.issuu.com/embed') === false && strpos($raw, '<iframe') === false) {
             error_log('[N1] n1_catalog_content importado sem iframe/Issuu para product_id=' . $product_id);
         }
+    }
+
+    /**
+     * Grava n1_catalog_content sem passar por wp_kses / sanitize_meta.
+     */
+    private function write_catalog_content_raw($product_id, $raw)
+    {
+        global $wpdb;
+
+        $product_id = absint($product_id);
+        if (!$product_id) {
+            return;
+        }
+
+        // delete + insert direto no postmeta
+        $wpdb->query($wpdb->prepare(
+            "DELETE FROM {$wpdb->postmeta} WHERE post_id = %d AND meta_key = %s",
+            $product_id,
+            'n1_catalog_content'
+        ));
+        $wpdb->insert(
+            $wpdb->postmeta,
+            array(
+                'post_id' => $product_id,
+                'meta_key' => 'n1_catalog_content',
+                'meta_value' => $raw,
+            ),
+            array('%d', '%s', '%s')
+        );
+
+        clean_post_cache($product_id);
+        wp_cache_delete($product_id, 'post_meta');
     }
 
     /**
@@ -322,6 +396,8 @@ class N1_WooCommerce_API
         }
 
         update_post_meta($product_id, 'n1_catalog_content', $content);
+        // Preferir gravação raw (mesmo caminho do import CSV)
+        $this->write_catalog_content_raw($product_id, $content);
         $saved = get_post_meta($product_id, 'n1_catalog_content', true);
         $ok = ($saved === $content);
         $has_issuu = (strpos((string) $saved, 'e.issuu.com/embed') !== false);

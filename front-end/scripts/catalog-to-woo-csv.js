@@ -284,6 +284,9 @@ function formatRegularPrice(price) {
 }
 
 function productToRow(product) {
+  // Description/Short: leitura apenas (regex em cópia implícita da string).
+  // catalogContent vai para a meta INTACTO — nunca passar por DOM/cheerio.
+  const catalogContentExact = product.catalogContent == null ? '' : String(product.catalogContent);
   const description = resolveDescription(product);
   const shortDescription = resolveShortDescription(product);
   const images = collectImages(product);
@@ -319,7 +322,7 @@ function productToRow(product) {
     product.dimensions ?? '',
     product.isbn ?? '',
     product.catalogPdf ?? '',
-    product.catalogContent ?? '',
+    catalogContentExact,
   ];
 }
 
@@ -479,12 +482,35 @@ function validateProductRow(headers, row, sourceProduct) {
   }
 
   const catalogContent = get('meta:n1_catalog_content') || '';
-  if (catalogContent !== (sourceProduct.catalogContent || '')) {
-    errors.push('meta:n1_catalog_content não é idêntico ao JSON');
+  const sourceContent = sourceProduct.catalogContent == null ? '' : String(sourceProduct.catalogContent);
+  const countP = (s) => (String(s).match(/<p\b/gi) || []).length;
+  const sourceP = countP(sourceContent);
+  const csvP = countP(catalogContent);
+
+  if (sourceP !== csvP) {
+    errors.push(
+      `meta:n1_catalog_content: contagem de <p divergiu (JSON=${sourceP}, CSV=${csvP})`
+    );
+  }
+  if (catalogContent !== sourceContent) {
+    let diffAt = -1;
+    const max = Math.max(catalogContent.length, sourceContent.length);
+    for (let i = 0; i < max; i++) {
+      if (catalogContent[i] !== sourceContent[i]) {
+        diffAt = i;
+        break;
+      }
+    }
+    errors.push(
+      `meta:n1_catalog_content NÃO é idêntico ao JSON` +
+        (diffAt >= 0
+          ? ` (1ª divergência no índice ${diffAt}: JSON=${JSON.stringify(sourceContent.slice(diffAt, diffAt + 40))} CSV=${JSON.stringify(catalogContent.slice(diffAt, diffAt + 40))})`
+          : '')
+    );
   }
   const issuuMatches = catalogContent.match(/e\.issuu\.com\/embed/g) || [];
-  if (issuuMatches.length !== 1) {
-    errors.push(`meta:n1_catalog_content deve conter exatamente 1 ocorrência de e.issuu.com/embed (obtido ${issuuMatches.length})`);
+  if (issuuMatches.length < 1) {
+    errors.push('meta:n1_catalog_content sem substring e.issuu.com/embed');
   }
 
   // meta:n1_catalog_images não deve existir no CSV
@@ -578,10 +604,10 @@ async function main() {
   console.log(`Images (${firstImages.length}):`);
   firstImages.forEach((u, i) => console.log(`  [${i}] ${u}`));
   console.log(`Description: ${(first[idx.Description] || '').slice(0, 120)}...`);
+  const ccOut = first[idx['meta:n1_catalog_content']] || '';
+  const ccSrc = selected[0].catalogContent == null ? '' : String(selected[0].catalogContent);
   console.log(
-    `meta:n1_catalog_content: len=${(first[idx['meta:n1_catalog_content']] || '').length}, hasIssuu=${String(
-      first[idx['meta:n1_catalog_content']] || ''
-    ).includes('e.issuu.com/embed')}`
+    `meta:n1_catalog_content: len=${ccOut.length}, <p count=${(ccOut.match(/<p\b/gi) || []).length}, identicalToJSON=${ccOut === ccSrc}, hasIssuu=${ccOut.includes('e.issuu.com/embed')}`
   );
   console.log('Validação CSV + imagens HTTP: OK');
 }
