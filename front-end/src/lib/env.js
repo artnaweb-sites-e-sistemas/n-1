@@ -4,30 +4,30 @@
  */
 
 /**
- * Get API base URL from environment variable
- * Throws error only in runtime (not build time) if missing
+ * Get API base URL
+ * - Browser: relative proxy `/wp-api` (same-origin → Next rewrite → WordPress; sem CORS)
+ * - Server (SSR / route handlers): URL absoluta de NEXT_PUBLIC_API_BASE_URL
  * @returns {string} API base URL
  */
 export function getApiBaseUrl() {
+  // Navegador: proxy same-origin (next.config rewrites /wp-api → WordPress)
+  if (typeof window !== 'undefined') {
+    return '/wp-api';
+  }
+
   const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
-  
+
   if (!apiBaseUrl || apiBaseUrl.trim() === '') {
-    const errorMessage = 
+    const errorMessage =
       'NEXT_PUBLIC_API_BASE_URL is required but not set. ' +
       'Please set it in your environment variables. ' +
-      'Example: NEXT_PUBLIC_API_BASE_URL=https://n-1.artnaweb.com.br/wp-json/n1/v1';
-    
-    // Only throw error in runtime (client-side), not during build
-    if (typeof window !== 'undefined') {
-      console.error(`[ENV ERROR] ${errorMessage}`);
-      throw new Error(errorMessage);
-    }
-    
-    // During build, return a fallback to prevent build failure
-    // This will be caught at runtime
+      'Example: NEXT_PUBLIC_API_BASE_URL=https://adminloja.n-1edicoes.org/wp-json/n1/v1';
+
+    // Build-time / server sem env: fallback para não quebrar o build
+    console.error(`[ENV ERROR] ${errorMessage}`);
     return 'https://n-1.artnaweb.com.br/wp-json/n1/v1';
   }
-  
+
   return apiBaseUrl;
 }
 
@@ -61,4 +61,3 @@ export function WORDPRESS_URL() {
 export function STRIPE_KEY() {
   return getStripeKey();
 }
-

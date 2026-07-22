@@ -53,6 +53,15 @@ const nextConfig = {
       fullUrl: false,
     },
   },
+  // Proxy same-origin → WordPress (evita CORS/OPTIONS bloqueado no IIS)
+  async rewrites() {
+    return [
+      {
+        source: '/wp-api/:path*',
+        destination: 'https://adminloja.n-1edicoes.org/wp-json/n1/v1/:path*',
+      },
+    ];
+  },
 }
 
 module.exports = nextConfig
