@@ -3199,9 +3199,13 @@ class N1_WooCommerce_API
                 'metadata' => $metadata,
             );
 
-            $notif = get_option('n1_mercado_pago_notification_url', '');
-            if ($notif !== '') {
-                $payment_body['notification_url'] = esc_url_raw($notif);
+            if (defined('N1_MERCADO_PAGO_NOTIFICATION_URL') && N1_MERCADO_PAGO_NOTIFICATION_URL !== '') {
+                $payment_body['notification_url'] = N1_MERCADO_PAGO_NOTIFICATION_URL;
+            } else {
+                $notif = get_option('n1_mercado_pago_notification_url', '');
+                if (is_string($notif) && $notif !== '') {
+                    $payment_body['notification_url'] = $notif;
+                }
             }
 
             $idempotency = function_exists('wp_generate_uuid4') ? wp_generate_uuid4() : uniqid('n1-pix-', true);
