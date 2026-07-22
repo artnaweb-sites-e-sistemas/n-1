@@ -27,6 +27,11 @@ const nextConfig = {
       },
       {
         protocol: "https",
+        hostname: 'adminloja.n-1edicoes.org',
+        pathname: "**",
+      },
+      {
+        protocol: "https",
         hostname: 'n-1.artnaweb.com.br',
         pathname: "**",
       },
