@@ -1107,7 +1107,7 @@ class N1_WooCommerce_API
     /**
      * Format product data for API response
      */
-    private function format_product($product)
+    private function format_product($product, $lite = false)
     {
         if (!$product || !is_a($product, 'WC_Product')) {
             return null;
@@ -1135,18 +1135,6 @@ class N1_WooCommerce_API
         // Get product categories
         $categories = wp_get_post_terms($product_id, 'product_cat', array('fields' => 'names'));
 
-        // Determine itemInfo (top-rated, best-selling, latest-product)
-        $item_info = 'latest-product';
-        if ($product->is_featured()) {
-            $item_info = 'top-rated';
-        }
-
-        // Check if best selling (you can customize this logic)
-        $total_sales = $product->get_total_sales();
-        if ($total_sales > 10) {
-            $item_info = 'best-selling';
-        }
-
         // Generate new permalink format: /livros/slug
         // Sempre o slug REAL do produto (post_name / coluna Slug do CSV).
         // NÃO regenerar a partir do título (isso muda URLs do catálogo).
@@ -1161,19 +1149,58 @@ class N1_WooCommerce_API
         }
         $new_permalink = home_url('/livros/' . $slug);
 
-        // Get catalog content (editorial content from related post/page or meta fields)
-        $catalog_data = $this->get_catalog_content($product_id, $product_title);
-
         // Get product creation date
         $date_created = $product->get_date_created();
         $date_created_timestamp = $date_created ? $date_created->getTimestamp() : time();
         $date_created_iso = $date_created ? $date_created->date('Y-m-d\TH:i:s') : date('Y-m-d\TH:i:s');
 
+        $author = get_post_meta($product_id, 'n1_author', true);
+        $authors = get_post_meta($product_id, 'n1_authors', true);
+
+        // Modo lite: campos da vitrine, sem catalogContent/oEmbed
+        if ($lite) {
+            return array(
+                '_id' => (string) $product_id,
+                'id' => $product_id,
+                'title' => $product_title,
+                'image' => $image_url,
+                'imageThumb' => $image_thumb_url,
+                'images' => $this->get_product_images($product),
+                'price' => $sale_price,
+                'originalPrice' => $regular_price,
+                'discount' => $discount,
+                'sku' => $product->get_sku(),
+                'inStock' => $product->is_in_stock(),
+                'tags' => $tags,
+                'categories' => $categories,
+                'permalink' => $new_permalink,
+                'slug' => $slug,
+                'author' => $author,
+                'authors' => $authors,
+                'date_created' => $date_created_iso,
+                'date_created_timestamp' => $date_created_timestamp,
+                'source' => 'woocommerce',
+            );
+        }
+
+        // Determine itemInfo (top-rated, best-selling, latest-product)
+        $item_info = 'latest-product';
+        if ($product->is_featured()) {
+            $item_info = 'top-rated';
+        }
+
+        // Check if best selling (you can customize this logic)
+        $total_sales = $product->get_total_sales();
+        if ($total_sales > 10) {
+            $item_info = 'best-selling';
+        }
+
+        // Get catalog content (editorial content from related post/page or meta fields)
+        $catalog_data = $this->get_catalog_content($product_id, $product_title);
+
         // Custom editorial metadata
         $book_title = get_post_meta($product_id, 'n1_book_title', true);
         $original_title = get_post_meta($product_id, 'n1_original_title', true);
-        $author = get_post_meta($product_id, 'n1_author', true);
-        $authors = get_post_meta($product_id, 'n1_authors', true);
         $organization = get_post_meta($product_id, 'n1_organization', true);
         $translation = get_post_meta($product_id, 'n1_translation', true);
         $preparation = get_post_meta($product_id, 'n1_preparation', true);
@@ -1390,6 +1417,7 @@ class N1_WooCommerce_API
         $category = isset($params['category']) ? sanitize_text_field($params['category']) : '';
         $orderby = isset($params['orderby']) ? sanitize_text_field($params['orderby']) : 'date';
         $order = isset($params['order']) ? sanitize_text_field($params['order']) : 'DESC';
+        $lite = !empty($params['lite']) && (string) $params['lite'] !== '0';
 
         $args = array(
             'post_type' => 'product',
@@ -1417,7 +1445,7 @@ class N1_WooCommerce_API
             while ($query->have_posts()) {
                 $query->the_post();
                 $product = wc_get_product(get_the_ID());
-                $formatted = $this->format_product($product);
+                $formatted = $this->format_product($product, $lite);
                 if ($formatted) {
                     $products[] = $formatted;
                 }

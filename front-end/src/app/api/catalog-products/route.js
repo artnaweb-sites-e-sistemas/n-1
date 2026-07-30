@@ -6,6 +6,8 @@ import {
   getWooApiBaseUrl,
 } from '@utils/catalog-sku-dedup';
 
+export const revalidate = 60;
+
 /**
  * API Route para servir produtos do catálogo local + WooCommerce
  * GET /api/catalog-products

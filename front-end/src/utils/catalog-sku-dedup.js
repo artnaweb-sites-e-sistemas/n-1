@@ -124,11 +124,11 @@ export async function fetchWooCommerceProducts({
     try {
       const controller = new AbortController();
       timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-      const url = `${apiBaseUrl}/products?per_page=${perPage}&page=${page}&orderby=date&order=DESC&_t=${Date.now()}`;
+      const url = `${apiBaseUrl}/products?per_page=${perPage}&page=${page}&orderby=date&order=DESC&lite=1`;
       const response = await fetch(url, {
         headers: { 'Content-Type': 'application/json' },
         signal: controller.signal,
-        cache: 'no-store',
+        next: { revalidate: 60 },
       });
       if (!response.ok) {
         lastError = `HTTP ${response.status}`;
