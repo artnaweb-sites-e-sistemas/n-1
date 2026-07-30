@@ -5,10 +5,26 @@
   line-height: 1.8;
   color: #333;
   max-width: 800px; // Largura máxima para melhor leitura
-  overflow: visible; // Permitir que iframes sejam exibidos
+  overflow-x: hidden; // Impedir vazamento horizontal de conteúdo WP
+  overflow-wrap: break-word;
+  word-wrap: break-word;
 
-  // Resetar todos os estilos problemáticos do tema antigo
+  // Conter elementos vindos do WordPress (larguras fixas, iframes, tabelas)
+  * {
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
   :global {
+    img,
+    iframe,
+    video,
+    table {
+      max-width: 100% !important;
+      height: auto;
+    }
+
+    // Resetar todos os estilos problemáticos do tema antigo
     // Resetar containers do tema antigo
     .eltdf-content,
     .eltdf-content-inner,
@@ -439,7 +455,7 @@
   max-width: 800px; // Largura máxima para melhor leitura
   margin-left: auto;
   margin-right: auto;
-  overflow: visible; // Permitir que iframes sejam exibidos
+  overflow-x: hidden;
   
   @media (max-width: 768px) {
     padding: 1.5rem 1rem;

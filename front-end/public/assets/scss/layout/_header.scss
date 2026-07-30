@@ -4,16 +4,24 @@
 /*  03. HEADER CSS START
 /*----------------------------------------*/
 
+// Sticky no <header> (irmão do conteúdo) — evita o pulo do position:fixed
+header {
+  position: sticky;
+  top: 0;
+  z-index: 999;
+}
+
 .header{
     $self : &;
+    &__area {
+        // Garantir que o wrapper não quebre o sticky do <header>
+        overflow: visible;
+    }
     &__transparent{
-        position: absolute !important;
-        left: 0;
-        margin: auto;
-        top: 0;
-        width: 100%;
-        z-index: 99;
+        // absolute quebra sticky e tira o header do fluxo — manter só o visual
         background: transparent;
+        width: 100%;
+        z-index: 999;
     }
     &__top{
         &-5{
@@ -929,19 +937,14 @@
         }
     }
     &__sticky{
+        width: 100%;
+        transition: box-shadow 0.25s ease, background-color 0.25s ease;
+
         &.header-sticky{
-            position: fixed !important;
-            left: 0;
-            margin: auto;
-            top: 0;
-            width: 100%;
-            box-shadow: 0 0 60px 0 rgba(0, 0, 0, 0.07);
-            z-index: 99;
-            -webkit-animation: 500ms ease-in-out 0s normal none 1 running fadeInDown;
-            animation: 500ms ease-in-out 0s normal none 1 running fadeInDown;
-            -webkit-box-shadow: 0px 4px 10px rgba(3, 4, 28, 0.1);
+            // Cosmético ao rolar — NÃO muda position (sticky fica no <header>)
             box-shadow: 0px 4px 10px rgba(3, 4, 28, 0.1);
             background: var(--tp-common-white);
+            z-index: 999;
 
             &.header-sticky-blur{
                 background-color: rgba(255,255,255,.8);

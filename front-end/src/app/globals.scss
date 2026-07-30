@@ -6,6 +6,14 @@
 @import '@assets/css/nice-select.css';
 @import '@assets/scss/main.scss';
 
+// Impedir scroll horizontal da página (off-canvas/cartmini fora da tela, conteúdo WP)
+// clip (não hidden): corta vazamento horizontal sem quebrar position: sticky
+html,
+body {
+  overflow-x: clip;
+  max-width: 100%;
+}
+
 @keyframes heartbeat {
   0%, 100% {
     transform: scale(1);
