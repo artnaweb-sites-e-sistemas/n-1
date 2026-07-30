@@ -1116,6 +1116,10 @@ class N1_WooCommerce_API
         $product_id = $product->get_id();
         $image_id = $product->get_image_id();
         $image_url = $image_id ? wp_get_attachment_image_url($image_id, 'large') : wc_placeholder_img_src();
+        $image_thumb_url = $image_id ? wp_get_attachment_image_url($image_id, 'medium_large') : false;
+        if (!$image_thumb_url) {
+            $image_thumb_url = $image_url;
+        }
 
         $regular_price = floatval($product->get_regular_price());
         $sale_price = $product->get_sale_price() ? floatval($product->get_sale_price()) : $regular_price;
@@ -1186,6 +1190,7 @@ class N1_WooCommerce_API
             'description' => $product->get_description(),
             'shortDescription' => $product->get_short_description(),
             'image' => $image_url,
+            'imageThumb' => $image_thumb_url,
             'images' => $this->get_product_images($product),
             'price' => $sale_price,
             'originalPrice' => $regular_price,

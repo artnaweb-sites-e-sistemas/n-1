@@ -1,13 +1,16 @@
 /**
  * Imagem para listagens (home, grid, modal).
- * Usa product.image (capa / destacada). NÃO usar na página interna do produto.
+ * Prefere product.imageThumb (tamanho menor); senão product.image.
+ * NÃO usar na página interna do produto.
  * @param {object} product
  * @returns {string}
  */
 export function getListingImageUrl(product) {
   if (!product) return "";
+  const imageThumb = product.imageThumb;
   const image = product.image;
   const images = product.images || [];
+  if (imageThumb && String(imageThumb).trim() !== "") return String(imageThumb).trim();
   if (image && String(image).trim() !== "") return String(image).trim();
   if (images.length > 0 && images[0]) return String(images[0]).trim();
   return "";
