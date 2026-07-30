@@ -2,10 +2,8 @@ import React from "react";
 import Image from "next/image";
 import Link from "next/link";
 // internal
-import shape from "@assets/img/shape/offcanvas-shape-1.png";
-import logo from "@assets/img/logo/logo-black.svg";
+import logo from "@assets/img/logo/logo-n-1-black.png";
 import MobileMenus from "./mobile-menus";
-import SocialLinks from "@components/social";
 
 const OffCanvas = ({ isOffCanvasOpen, setIsOffCanvasOpen }) => {
   return (
@@ -16,9 +14,6 @@ const OffCanvas = ({ isOffCanvasOpen, setIsOffCanvasOpen }) => {
         }`}
       >
         <div className="offcanvas__wrapper">
-          <div className="offcanvas__shape">
-            <Image className="offcanvas__shape-1" src={shape} alt="shape" />
-          </div>
           <div className="offcanvas__close">
             <button
               onClick={() => setIsOffCanvasOpen(false)}
@@ -31,7 +26,13 @@ const OffCanvas = ({ isOffCanvasOpen, setIsOffCanvasOpen }) => {
             <div className="offcanvas__top mb-40 d-flex justify-content-between align-items-center">
               <div className="offcanvas__logo logo">
                 <Link href="/">
-                  <Image src={logo} alt="logo" />
+                  <Image
+                    src={logo}
+                    alt="logo"
+                    width={80}
+                    height={28}
+                    style={{ maxWidth: "80px", height: "auto" }}
+                  />
                 </Link>
               </div>
             </div>
@@ -42,21 +43,9 @@ const OffCanvas = ({ isOffCanvasOpen, setIsOffCanvasOpen }) => {
                 {/* MobileMenus end*/}
               </div>
             </div>
-            <div className="offcanvas__btn">
-              <a href="#" className="tp-btn-offcanvas">
-                Getting Started <i className="fa-regular fa-chevron-right"></i>
-              </a>
-            </div>
-            <div className="offcanvas__social">
-              <h3 className="offcanvas__social-title">Follow :</h3>
-              <SocialLinks />
-            </div>
             <div className="offcanvas__contact">
-              <p className="offcanvas__contact-call">
-                <a href="tel:+964-742-44-763">+964 742 44 763</a>
-              </p>
               <p className="offcanvas__contact-mail">
-                <a href="mailto:info@harry.com">info@harry.com</a>
+                <a href="mailto:comercial@n-1edicoes.org">comercial@n-1edicoes.org</a>
               </p>
             </div>
           </div>
