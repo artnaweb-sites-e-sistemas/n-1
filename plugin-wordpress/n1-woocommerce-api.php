@@ -42,6 +42,7 @@ class N1_WooCommerce_API
         add_action('admin_init', array($this, 'apply_default_shipping_meta_to_existing_products'));
         add_action('woocommerce_admin_process_product_object', array($this, 'apply_default_shipping_meta_to_product_object'));
         add_action('woocommerce_admin_process_variation_object', array($this, 'apply_default_shipping_meta_to_product_object'));
+        add_action('woocommerce_admin_order_data_after_billing_address', array($this, 'display_brazilian_billing_fields_admin'), 10, 1);
 
         // Preservar <iframe> (Issuu etc.) e HTML íntegro em n1_catalog_content
         add_filter('wp_kses_allowed_html', array($this, 'allow_n1_iframe_in_kses'), 10, 2);
@@ -3957,10 +3958,12 @@ class N1_WooCommerce_API
                     'email' => isset($params['email']) ? $params['email'] : '',
                     'phone' => isset($params['contact']) ? $params['contact'] : '',
                     'address' => isset($params['address']) ? $params['address'] : '',
+                    'number' => isset($params['number']) ? $params['number'] : '',
                     'neighborhood' => isset($params['neighborhood']) ? $params['neighborhood'] : '',
                     'city' => isset($params['city']) ? $params['city'] : '',
                     'country' => isset($params['country']) ? $params['country'] : 'BR',
                     'postcode' => isset($params['zipCode']) ? $params['zipCode'] : '',
+                    'cpf' => isset($params['cpf']) ? $params['cpf'] : (isset($params['taxDocument']) ? $params['taxDocument'] : ''),
                 );
             }
 
@@ -4107,8 +4110,10 @@ class N1_WooCommerce_API
             // verificação server-side do pagamento (verify_payment_confirmed), mais abaixo.
 
             // Calcular total (produtos Woo + itens só da loja Next / catálogo externo)
+            // Validar estoque ANTES de criar o pedido (apenas produtos reais do WooCommerce).
             $subtotal = 0;
             $line_items = array();
+            $unavailable_products = array();
 
             foreach ($cart_products as $item) {
                 if (!is_array($item)) {
@@ -4133,6 +4138,27 @@ class N1_WooCommerce_API
                 if ($product_id > 0) {
                     $product = wc_get_product($product_id);
                     if ($product) {
+                        $product_name = $product->get_name() ? $product->get_name() : $title;
+
+                        if (!$product->is_in_stock()) {
+                            $unavailable_products[] = array(
+                                'name' => $product_name,
+                                'product_id' => $product_id,
+                                'reason' => 'fora de estoque',
+                            );
+                            continue;
+                        }
+
+                        if ($product->managing_stock() && !$product->has_enough_stock($quantity)) {
+                            $available_qty = $product->get_stock_quantity();
+                            $unavailable_products[] = array(
+                                'name' => $product_name,
+                                'product_id' => $product_id,
+                                'reason' => 'quantidade insuficiente (solicitado: ' . $quantity . ', disponível: ' . (null !== $available_qty ? $available_qty : 0) . ')',
+                            );
+                            continue;
+                        }
+
                         // SEGURANÇA (FALHA 1): IGNORAR o preço enviado pelo cliente.
                         // Usar sempre o preço do servidor (evita fraude de preço).
                         $server_price = floatval($product->get_price());
@@ -4150,11 +4176,12 @@ class N1_WooCommerce_API
                 }
 
                 // Sem produto no WooCommerce (catálogo Next, ID inválido, etc.) — linha manual no pedido.
+                // Sem validação de estoque; registrar aviso no log.
                 // TODO(segurança): idealmente estes itens deveriam existir como produtos no
                 // WooCommerce para permitir validar o preço no servidor. Sem produto, não há
                 // preço-fonte para conferir, então mantemos o valor do cliente com aviso.
                 if ($price > 0) {
-                    error_log('N1 API - add_order: item sem produto no WooCommerce ("' . $title . '"); usando price do cliente (' . $price . ') — sem validação server-side.');
+                    error_log('N1 API - add_order: item sem produto no WooCommerce ("' . $title . '"); usando price do cliente (' . $price . ') — sem validação de estoque/preço server-side.');
                     $line_total = $price * $quantity;
                     $line_items[] = array(
                         'type' => 'custom',
@@ -4165,6 +4192,23 @@ class N1_WooCommerce_API
                     );
                     $subtotal += $line_total;
                 }
+            }
+
+            if (!empty($unavailable_products)) {
+                $parts = array();
+                foreach ($unavailable_products as $up) {
+                    $parts[] = $up['name'] . ' — ' . $up['reason'];
+                }
+                $message = 'Não foi possível finalizar o pedido. Produtos indisponíveis: ' . implode('; ', $parts) . '.';
+                error_log('N1 API - add_order: estoque insuficiente — ' . $message);
+                return new WP_Error(
+                    'products_unavailable',
+                    $message,
+                    array(
+                        'status' => 409,
+                        'unavailable_products' => $unavailable_products,
+                    )
+                );
             }
 
             // Aplicar desconto do cupom se houver
@@ -4238,14 +4282,34 @@ class N1_WooCommerce_API
             }
 
             // Adicionar informações de entrega
+            $street = isset($shipping_info['address'])
+                ? sanitize_text_field($shipping_info['address'])
+                : (isset($params['address']) ? sanitize_text_field($params['address']) : '');
+
+            $street_number = '';
+            if (!empty($params['number'])) {
+                $street_number = sanitize_text_field($params['number']);
+            } elseif (!empty($shipping_info['number'])) {
+                $street_number = sanitize_text_field($shipping_info['number']);
+            }
+
+            $address_1 = $street;
+            if ($street_number !== '') {
+                $address_1 = ($street !== '') ? ($street . ', ' . $street_number) : $street_number;
+            }
+
+            $neighborhood = isset($shipping_info['neighborhood'])
+                ? sanitize_text_field($shipping_info['neighborhood'])
+                : (isset($params['neighborhood']) ? sanitize_text_field($params['neighborhood']) : '');
+
             $billing_address = array(
                 'first_name' => isset($shipping_info['firstName']) ? sanitize_text_field($shipping_info['firstName']) : '',
                 'last_name' => isset($shipping_info['lastName']) ? sanitize_text_field($shipping_info['lastName']) : '',
                 'email' => isset($shipping_info['email']) ? sanitize_email($shipping_info['email']) : '',
                 'phone' => isset($shipping_info['phone']) ? sanitize_text_field($shipping_info['phone']) : (isset($shipping_info['contact']) ? sanitize_text_field($shipping_info['contact']) : ''),
-                'address_1' => isset($shipping_info['address']) ? sanitize_text_field($shipping_info['address']) : '',
+                'address_1' => $address_1,
                 // Bairro vai em address_2 (convenção WooCommerce Brasil).
-                'address_2' => isset($shipping_info['neighborhood']) ? sanitize_text_field($shipping_info['neighborhood']) : '',
+                'address_2' => $neighborhood,
                 'city' => isset($shipping_info['city']) ? sanitize_text_field($shipping_info['city']) : '',
                 'state' => isset($shipping_info['state']) ? sanitize_text_field($shipping_info['state']) : '',
                 'postcode' => isset($shipping_info['postcode']) ? sanitize_text_field($shipping_info['postcode']) : (isset($shipping_info['zipCode']) ? sanitize_text_field($shipping_info['zipCode']) : ''),
@@ -4256,6 +4320,41 @@ class N1_WooCommerce_API
 
             $order->set_address($billing_address, 'billing');
             $order->set_address($shipping_address, 'shipping');
+
+            // Metas brasileiras: número e bairro isolados (ERP / Olist / plugins BR).
+            if ($street_number !== '') {
+                $order->update_meta_data('_billing_number', $street_number);
+            }
+            if ($neighborhood !== '') {
+                $order->update_meta_data('_billing_neighborhood', $neighborhood);
+            }
+
+            // CPF/CNPJ (checkout envia cpf e/ou taxDocument — só dígitos).
+            $tax_doc_raw = '';
+            foreach (array('cpf', 'taxDocument', 'tax_document', 'document') as $tax_key) {
+                if (!empty($params[$tax_key])) {
+                    $tax_doc_raw = $params[$tax_key];
+                    break;
+                }
+            }
+            if ($tax_doc_raw === '' && is_array($shipping_info)) {
+                foreach (array('cpf', 'taxDocument', 'tax_document', 'document') as $tax_key) {
+                    if (!empty($shipping_info[$tax_key])) {
+                        $tax_doc_raw = $shipping_info[$tax_key];
+                        break;
+                    }
+                }
+            }
+            $tax_digits = preg_replace('/\D+/', '', (string) $tax_doc_raw);
+            if (strlen($tax_digits) === 11) {
+                $order->update_meta_data('_billing_cpf', $tax_digits);
+                $order->update_meta_data('_billing_persontype', '1');
+            } elseif (strlen($tax_digits) === 14) {
+                $order->update_meta_data('_billing_cnpj', $tax_digits);
+                $order->update_meta_data('_billing_persontype', '2');
+            } elseif ($tax_digits !== '') {
+                error_log('N1 API - add_order: documento fiscal com tamanho inesperado (' . strlen($tax_digits) . ' dígitos); não salvo como CPF/CNPJ.');
+            }
 
             $order->set_payment_method($wc_payment_gateway);
             $order->set_payment_method_title($wc_payment_title);
@@ -4304,6 +4403,21 @@ class N1_WooCommerce_API
                 error_log('N1 API - Pedido criado com sucesso. ID: ' . $order_id . ', Customer ID: ' . $saved_order->get_customer_id());
             } else {
                 error_log('N1 API - Pedido criado mas não foi possível recarregar. ID: ' . $order_id);
+            }
+
+            // Baixar estoque uma única vez (wc_reduce_stock_levels marca o pedido para não repetir).
+            if (function_exists('wc_reduce_stock_levels')) {
+                $stock_order = $saved_order ? $saved_order : wc_get_order($order_id);
+                $already_reduced = false;
+                if ($stock_order && $stock_order->get_data_store() && method_exists($stock_order->get_data_store(), 'get_stock_reduced')) {
+                    $already_reduced = (bool) $stock_order->get_data_store()->get_stock_reduced($order_id);
+                }
+                if (!$already_reduced) {
+                    wc_reduce_stock_levels($order_id);
+                    error_log('N1 API - add_order: estoque reduzido para pedido ' . $order_id);
+                } else {
+                    error_log('N1 API - add_order: estoque já estava reduzido para pedido ' . $order_id . ' — pulando.');
+                }
             }
 
             // SEGURANÇA (FALHA 2): confirmar o pagamento consultando o provedor (server-side)
@@ -5433,6 +5547,36 @@ class N1_WooCommerce_API
             'message' => $email_sent ? 'Email de teste enviado' : 'Email de teste NÃO foi enviado',
             'test_info' => $test_info,
         ));
+    }
+
+    /**
+     * Exibe CPF/CNPJ, número e bairro no painel do pedido (admin WooCommerce).
+     *
+     * @param WC_Order $order Pedido.
+     */
+    public function display_brazilian_billing_fields_admin($order)
+    {
+        if (!$order || !is_a($order, 'WC_Order')) {
+            return;
+        }
+
+        $cpf = $order->get_meta('_billing_cpf');
+        $cnpj = $order->get_meta('_billing_cnpj');
+        $number = $order->get_meta('_billing_number');
+        $neighborhood = $order->get_meta('_billing_neighborhood');
+
+        if ($cpf) {
+            echo '<p><strong>' . esc_html__('CPF', 'n1') . ':</strong> ' . esc_html($cpf) . '</p>';
+        }
+        if ($cnpj) {
+            echo '<p><strong>' . esc_html__('CNPJ', 'n1') . ':</strong> ' . esc_html($cnpj) . '</p>';
+        }
+        if ($number !== '' && $number !== null) {
+            echo '<p><strong>' . esc_html__('Número', 'n1') . ':</strong> ' . esc_html($number) . '</p>';
+        }
+        if ($neighborhood !== '' && $neighborhood !== null) {
+            echo '<p><strong>' . esc_html__('Bairro', 'n1') . ':</strong> ' . esc_html($neighborhood) . '</p>';
+        }
     }
 }
 

@@ -341,6 +341,23 @@ const useCheckoutSubmit = (directProduct = null) => {
     setSelectedShippingId(shippingId);
   };
 
+  /** Mensagem amigável para falha ao salvar pedido (ex.: 409 estoque). */
+  const getAddOrderErrorMessage = (error, fallback) => {
+    const status = error?.status ?? error?.data?.status ?? error?.data?.data?.status;
+    const message =
+      error?.data?.message ||
+      error?.data?.data?.message ||
+      error?.error ||
+      "";
+    if (status === 409 || error?.data?.code === "products_unavailable") {
+      return (
+        message ||
+        "Alguns produtos do carrinho estão indisponíveis. Atualize o carrinho e tente novamente."
+      );
+    }
+    return message || fallback;
+  };
+
   // calculateShippingByPostcode
   const calculateShippingByPostcode = async (postcode) => {
     if (!postcode) {
@@ -655,6 +672,8 @@ const useCheckoutSubmit = (directProduct = null) => {
           city: order.city,
           country: order.country,
           zipCode: order.zipCode,
+          cpf: order.cpf || order.taxDocument || "",
+          taxDocument: order.taxDocument || order.cpf || "",
           subTotal: order.subTotal,
           shippingCost: order.shippingCost,
           discount: order.discount,
@@ -674,8 +693,10 @@ const useCheckoutSubmit = (directProduct = null) => {
 
         if (result?.error) {
           notifyError(
-            result.error?.data?.message ||
+            getAddOrderErrorMessage(
+              result.error,
               "Pedido não salvo após gerar PIX. Entre em contato com o suporte."
+            )
           );
           setIsCheckoutSubmit(false);
           return;
@@ -853,6 +874,8 @@ const useCheckoutSubmit = (directProduct = null) => {
         city: order.city,
         country: order.country,
         zipCode: order.zipCode,
+        cpf: order.cpf || order.taxDocument || "",
+        taxDocument: order.taxDocument || order.cpf || "",
         subTotal: order.subTotal,
         shippingCost: order.shippingCost,
         discount: order.discount,
@@ -871,7 +894,10 @@ const useCheckoutSubmit = (directProduct = null) => {
 
       if (result?.error) {
         notifyError(
-          result.error?.data?.message || "Pedido não salvo após pagamento. Entre em contato com o suporte."
+          getAddOrderErrorMessage(
+            result.error,
+            "Pedido não salvo após pagamento. Entre em contato com o suporte."
+          )
         );
         setIsCheckoutSubmit(false);
         return;
