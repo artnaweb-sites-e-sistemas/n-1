@@ -182,7 +182,7 @@ const BillingDetails = ({
           setValue("city", addr.city, { shouldValidate: true, shouldDirty: true });
         }
         if (addr.state) {
-          setValue("country", addr.state, { shouldValidate: true, shouldDirty: true });
+          setValue("state", addr.state, { shouldValidate: true, shouldDirty: true });
         }
         if (addr.neighborhood) {
           setValue("neighborhood", addr.neighborhood, { shouldValidate: true, shouldDirty: true });
@@ -369,10 +369,10 @@ const BillingDetails = ({
           col="6"
           label="Estado"
           placeholder="UF"
-          name="country"
+          name="state"
           register={register}
-          error={errors?.country?.message}
-          defaultValue={user?.country || user?.state}
+          error={errors?.state?.message}
+          defaultValue={user?.state || user?.country}
           readOnly
         />
 

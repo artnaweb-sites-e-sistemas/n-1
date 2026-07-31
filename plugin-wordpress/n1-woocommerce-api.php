@@ -3962,6 +3962,7 @@ class N1_WooCommerce_API
                     'neighborhood' => isset($params['neighborhood']) ? $params['neighborhood'] : '',
                     'city' => isset($params['city']) ? $params['city'] : '',
                     'country' => isset($params['country']) ? $params['country'] : 'BR',
+                    'state' => isset($params['state']) ? $params['state'] : '',
                     'postcode' => isset($params['zipCode']) ? $params['zipCode'] : '',
                     'cpf' => isset($params['cpf']) ? $params['cpf'] : (isset($params['taxDocument']) ? $params['taxDocument'] : ''),
                 );
@@ -4302,6 +4303,39 @@ class N1_WooCommerce_API
                 ? sanitize_text_field($shipping_info['neighborhood'])
                 : (isset($params['neighborhood']) ? sanitize_text_field($params['neighborhood']) : '');
 
+            // Estado / país: o checkout já enviou UF em "country" por legado.
+            // Se state vier vazio e country for uma UF brasileira (2 letras), corrigir.
+            $br_ufs = array(
+                'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG',
+                'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO',
+            );
+
+            $state_raw = '';
+            if (!empty($shipping_info['state'])) {
+                $state_raw = sanitize_text_field($shipping_info['state']);
+            } elseif (!empty($params['state'])) {
+                $state_raw = sanitize_text_field($params['state']);
+            }
+
+            $country_raw = '';
+            if (!empty($shipping_info['country'])) {
+                $country_raw = sanitize_text_field($shipping_info['country']);
+            } elseif (!empty($params['country'])) {
+                $country_raw = sanitize_text_field($params['country']);
+            } else {
+                $country_raw = 'BR';
+            }
+
+            $state = strtoupper(trim($state_raw));
+            $country = strtoupper(trim($country_raw));
+
+            if ($state === '' && strlen($country) === 2 && in_array($country, $br_ufs, true)) {
+                $state = $country;
+                $country = 'BR';
+            } elseif ($country === '') {
+                $country = 'BR';
+            }
+
             $billing_address = array(
                 'first_name' => isset($shipping_info['firstName']) ? sanitize_text_field($shipping_info['firstName']) : '',
                 'last_name' => isset($shipping_info['lastName']) ? sanitize_text_field($shipping_info['lastName']) : '',
@@ -4311,9 +4345,9 @@ class N1_WooCommerce_API
                 // Bairro vai em address_2 (convenção WooCommerce Brasil).
                 'address_2' => $neighborhood,
                 'city' => isset($shipping_info['city']) ? sanitize_text_field($shipping_info['city']) : '',
-                'state' => isset($shipping_info['state']) ? sanitize_text_field($shipping_info['state']) : '',
+                'state' => $state,
                 'postcode' => isset($shipping_info['postcode']) ? sanitize_text_field($shipping_info['postcode']) : (isset($shipping_info['zipCode']) ? sanitize_text_field($shipping_info['zipCode']) : ''),
-                'country' => isset($shipping_info['country']) ? sanitize_text_field($shipping_info['country']) : 'BR',
+                'country' => $country,
             );
 
             $shipping_address = $billing_address;

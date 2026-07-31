@@ -440,7 +440,11 @@ const useCheckoutSubmit = (directProduct = null) => {
       setValue("number", shipping_info.number || user.number || user.numero || '');
       setValue("complement", shipping_info.complement || user.complement || '');
       setValue("city", shipping_info.city || user.city || '');
-      setValue("country", shipping_info.country || user.country || user.state || '');
+      // Campo do formulário é "state" (UF). Aceita legado shipping_info.country / user.country.
+      setValue(
+        "state",
+        shipping_info.state || shipping_info.country || user.state || user.country || ''
+      );
       setValue("zipCode", shipping_info.zipCode || user.zipCode || user.cep || '');
       setValue("email", shipping_info.email || user.email || '');
       setValue("contact", shipping_info.contact || user.phone || user.contactNumber || '');
@@ -452,7 +456,7 @@ const useCheckoutSubmit = (directProduct = null) => {
       setValue("number", shipping_info.number || '');
       setValue("complement", shipping_info.complement || '');
       setValue("city", shipping_info.city || '');
-      setValue("country", shipping_info.country || '');
+      setValue("state", shipping_info.state || shipping_info.country || '');
       setValue("zipCode", shipping_info.zipCode || '');
       setValue("email", shipping_info.email || '');
       setValue("contact", shipping_info.contact || '');
@@ -593,6 +597,9 @@ const useCheckoutSubmit = (directProduct = null) => {
       }
     }
 
+    // UF fica em data.state (antes o form usava o nome "country").
+    const uf = String(data.state || data.country || "").trim().toUpperCase();
+
     let orderInfo = {
       name: `${data.firstName} ${data.lastName}`,
       address: data.address,
@@ -602,7 +609,8 @@ const useCheckoutSubmit = (directProduct = null) => {
       contact: data.contact,
       email: data.email,
       city: data.city,
-      country: data.country,
+      state: uf,
+      country: "BR",
       zipCode: cleanZipCode,
       cpf: cleanTaxDoc,
       taxDocument: cleanTaxDoc,
@@ -670,7 +678,8 @@ const useCheckoutSubmit = (directProduct = null) => {
           contact: order.contact,
           email: order.email,
           city: order.city,
-          country: order.country,
+          state: order.state || "",
+          country: order.country || "BR",
           zipCode: order.zipCode,
           cpf: order.cpf || order.taxDocument || "",
           taxDocument: order.taxDocument || order.cpf || "",
@@ -744,7 +753,7 @@ const useCheckoutSubmit = (directProduct = null) => {
               zipCode:
                 cleanOrderZipCode || order.zipCode || profileUser.zipCode || profileUser.cep || "",
               city: order.city || profileUser.city || "",
-              country: order.country || profileUser.country || profileUser.state || "",
+              country: order.state || profileUser.country || profileUser.state || "",
             };
 
             const emailChanged =
@@ -872,7 +881,8 @@ const useCheckoutSubmit = (directProduct = null) => {
         contact: order.contact,
         email: order.email,
         city: order.city,
-        country: order.country,
+        state: order.state || "",
+        country: order.country || "BR",
         zipCode: order.zipCode,
         cpf: order.cpf || order.taxDocument || "",
         taxDocument: order.taxDocument || order.cpf || "",
@@ -942,7 +952,7 @@ const useCheckoutSubmit = (directProduct = null) => {
             complement: order.complement || profileUser.complement || "",
             zipCode: cleanOrderZipCode || order.zipCode || profileUser.zipCode || profileUser.cep || "",
             city: order.city || profileUser.city || "",
-            country: order.country || profileUser.country || profileUser.state || "",
+            country: order.state || profileUser.country || profileUser.state || "",
           };
 
           const emailChanged =
