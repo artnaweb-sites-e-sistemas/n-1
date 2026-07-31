@@ -4376,11 +4376,6 @@ class N1_WooCommerce_API
             $order->set_address($billing_address, 'billing');
             $order->set_address($shipping_address, 'shipping');
 
-            if ($order_note !== '') {
-                $order->set_customer_note($order_note);
-                $order->update_meta_data('order_note', $order_note);
-            }
-
             // CPF/CNPJ: ler de params (checkout envia cpf + taxDocument) e fallbacks.
             $tax_doc_raw = '';
             foreach (array('cpf', 'taxDocument', 'tax_document', 'document') as $tax_key) {
@@ -4398,6 +4393,28 @@ class N1_WooCommerce_API
                 }
             }
             $tax_digits = preg_replace('/\D+/', '', (string) $tax_doc_raw);
+
+            // TEMPORÁRIO: CPF/CNPJ na observação porque o Olist não importa o campo personalizado
+            // 'cpf'. Remover quando o suporte do Olist corrigir o mapeamento de Campos Personalizados.
+            $doc_line = '';
+            if (strlen($tax_digits) === 11) {
+                $doc_line = 'CPF: ' . substr($tax_digits, 0, 3) . '.' . substr($tax_digits, 3, 3) . '.' . substr($tax_digits, 6, 3) . '-' . substr($tax_digits, 9, 2);
+            } elseif (strlen($tax_digits) === 14) {
+                $doc_line = 'CNPJ: ' . substr($tax_digits, 0, 2) . '.' . substr($tax_digits, 2, 3) . '.' . substr($tax_digits, 5, 3) . '/' . substr($tax_digits, 8, 4) . '-' . substr($tax_digits, 12, 2);
+            }
+            $customer_note_final = '';
+            if ($doc_line !== '') {
+                $customer_note_final = ($order_note !== '') ? ($doc_line . "\n\n" . $order_note) : $doc_line;
+            } else {
+                $customer_note_final = $order_note;
+            }
+            if ($customer_note_final !== '') {
+                $order->set_customer_note($customer_note_final);
+            }
+            // Meta order_note: apenas a observação do cliente (sem o prefixo do documento).
+            if ($order_note !== '') {
+                $order->update_meta_data('order_note', $order_note);
+            }
 
             // Metas: prefixo BR (plugins) + nomes curtos SEM "_" (visíveis na API REST / Olist).
             // Sempre gravar as curtas quando houver valor — fora de condicionais extras.
