@@ -4356,11 +4356,14 @@ class N1_WooCommerce_API
             $order->set_address($shipping_address, 'shipping');
 
             // Metas brasileiras: número e bairro isolados (ERP / Olist / plugins BR).
+            // Também salvar nomes curtos (cpf, neighborhood, number) para campos personalizados do Olist.
             if ($street_number !== '') {
                 $order->update_meta_data('_billing_number', $street_number);
+                $order->update_meta_data('number', $street_number);
             }
             if ($neighborhood !== '') {
                 $order->update_meta_data('_billing_neighborhood', $neighborhood);
+                $order->update_meta_data('neighborhood', $neighborhood);
             }
 
             // CPF/CNPJ (checkout envia cpf e/ou taxDocument — só dígitos).
@@ -4382,9 +4385,11 @@ class N1_WooCommerce_API
             $tax_digits = preg_replace('/\D+/', '', (string) $tax_doc_raw);
             if (strlen($tax_digits) === 11) {
                 $order->update_meta_data('_billing_cpf', $tax_digits);
+                $order->update_meta_data('cpf', $tax_digits);
                 $order->update_meta_data('_billing_persontype', '1');
             } elseif (strlen($tax_digits) === 14) {
                 $order->update_meta_data('_billing_cnpj', $tax_digits);
+                $order->update_meta_data('cnpj', $tax_digits);
                 $order->update_meta_data('_billing_persontype', '2');
             } elseif ($tax_digits !== '') {
                 error_log('N1 API - add_order: documento fiscal com tamanho inesperado (' . strlen($tax_digits) . ' dígitos); não salvo como CPF/CNPJ.');
