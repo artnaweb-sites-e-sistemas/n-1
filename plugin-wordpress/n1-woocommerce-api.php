@@ -614,8 +614,13 @@ class N1_WooCommerce_API
         // Processa shortcodes do WP (ex.: [caption], [video], [embed]).
         $formatted = do_shortcode($content);
 
-        // Se vier texto simples, aplicar parágrafos.
-        if (strpos($formatted, '<') === false) {
+        // wpautop quando não há tags de BLOCO (texto puro ou só tags inline como <b>/<span>).
+        // Com HTML estruturado (livros migrados: <p>/<div>/iframe), não alterar.
+        $has_block_tags = (bool) preg_match(
+            '/<(p|div|h[1-6]|ul|ol|li|table|blockquote|figure|section|article|pre)\b/i',
+            $formatted
+        );
+        if (!$has_block_tags) {
             $formatted = wpautop($formatted);
         }
 
