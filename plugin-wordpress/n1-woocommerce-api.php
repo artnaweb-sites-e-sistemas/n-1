@@ -3959,6 +3959,7 @@ class N1_WooCommerce_API
                     'phone' => isset($params['contact']) ? $params['contact'] : '',
                     'address' => isset($params['address']) ? $params['address'] : '',
                     'number' => isset($params['number']) ? $params['number'] : '',
+                    'complement' => isset($params['complement']) ? $params['complement'] : '',
                     'neighborhood' => isset($params['neighborhood']) ? $params['neighborhood'] : '',
                     'city' => isset($params['city']) ? $params['city'] : '',
                     'country' => isset($params['country']) ? $params['country'] : 'BR',
@@ -4299,9 +4300,29 @@ class N1_WooCommerce_API
                 $address_1 = ($street !== '') ? ($street . ', ' . $street_number) : $street_number;
             }
 
-            $neighborhood = isset($shipping_info['neighborhood'])
-                ? sanitize_text_field($shipping_info['neighborhood'])
-                : (isset($params['neighborhood']) ? sanitize_text_field($params['neighborhood']) : '');
+            $neighborhood = '';
+            if (!empty($params['neighborhood'])) {
+                $neighborhood = sanitize_text_field($params['neighborhood']);
+            } elseif (!empty($shipping_info['neighborhood'])) {
+                $neighborhood = sanitize_text_field($shipping_info['neighborhood']);
+            }
+
+            // Complemento: Olist interpreta address_2 como complemento (não bairro).
+            $complement = '';
+            if (!empty($params['complement'])) {
+                $complement = sanitize_text_field($params['complement']);
+            } elseif (!empty($shipping_info['complement'])) {
+                $complement = sanitize_text_field($shipping_info['complement']);
+            }
+
+            // Observações do pedido (customer note).
+            $order_note = '';
+            foreach (array('orderNote', 'order_note', 'note', 'observacoes') as $note_key) {
+                if (!empty($params[$note_key]) && is_string($params[$note_key])) {
+                    $order_note = sanitize_textarea_field($params[$note_key]);
+                    break;
+                }
+            }
 
             // Estado / país: o checkout já enviou UF em "country" por legado.
             // Se state vier vazio e country for uma UF brasileira (2 letras), corrigir.
@@ -4342,8 +4363,8 @@ class N1_WooCommerce_API
                 'email' => isset($shipping_info['email']) ? sanitize_email($shipping_info['email']) : '',
                 'phone' => isset($shipping_info['phone']) ? sanitize_text_field($shipping_info['phone']) : (isset($shipping_info['contact']) ? sanitize_text_field($shipping_info['contact']) : ''),
                 'address_1' => $address_1,
-                // Bairro vai em address_2 (convenção WooCommerce Brasil).
-                'address_2' => $neighborhood,
+                // address_2 = complemento (Olist). Bairro vai na meta 'neighborhood'.
+                'address_2' => $complement,
                 'city' => isset($shipping_info['city']) ? sanitize_text_field($shipping_info['city']) : '',
                 'state' => $state,
                 'postcode' => isset($shipping_info['postcode']) ? sanitize_text_field($shipping_info['postcode']) : (isset($shipping_info['zipCode']) ? sanitize_text_field($shipping_info['zipCode']) : ''),
@@ -4355,18 +4376,12 @@ class N1_WooCommerce_API
             $order->set_address($billing_address, 'billing');
             $order->set_address($shipping_address, 'shipping');
 
-            // Metas brasileiras: número e bairro isolados (ERP / Olist / plugins BR).
-            // Também salvar nomes curtos (cpf, neighborhood, number) para campos personalizados do Olist.
-            if ($street_number !== '') {
-                $order->update_meta_data('_billing_number', $street_number);
-                $order->update_meta_data('number', $street_number);
-            }
-            if ($neighborhood !== '') {
-                $order->update_meta_data('_billing_neighborhood', $neighborhood);
-                $order->update_meta_data('neighborhood', $neighborhood);
+            if ($order_note !== '') {
+                $order->set_customer_note($order_note);
+                $order->update_meta_data('order_note', $order_note);
             }
 
-            // CPF/CNPJ (checkout envia cpf e/ou taxDocument — só dígitos).
+            // CPF/CNPJ: ler de params (checkout envia cpf + taxDocument) e fallbacks.
             $tax_doc_raw = '';
             foreach (array('cpf', 'taxDocument', 'tax_document', 'document') as $tax_key) {
                 if (!empty($params[$tax_key])) {
@@ -4383,17 +4398,58 @@ class N1_WooCommerce_API
                 }
             }
             $tax_digits = preg_replace('/\D+/', '', (string) $tax_doc_raw);
+
+            // Metas: prefixo BR (plugins) + nomes curtos SEM "_" (visíveis na API REST / Olist).
+            // Sempre gravar as curtas quando houver valor — fora de condicionais extras.
+            $meta_written = array(
+                'cpf' => false,
+                'cnpj' => false,
+                'neighborhood' => false,
+                'number' => false,
+                'complement' => false,
+                'order_note' => ($order_note !== ''),
+            );
+
+            if ($street_number !== '') {
+                $order->update_meta_data('_billing_number', $street_number);
+                $order->update_meta_data('number', $street_number);
+                $meta_written['number'] = true;
+            }
+            if ($neighborhood !== '') {
+                $order->update_meta_data('_billing_neighborhood', $neighborhood);
+                $order->update_meta_data('neighborhood', $neighborhood);
+                $meta_written['neighborhood'] = true;
+            }
+            if ($complement !== '') {
+                $order->update_meta_data('complement', $complement);
+                $meta_written['complement'] = true;
+            }
             if (strlen($tax_digits) === 11) {
                 $order->update_meta_data('_billing_cpf', $tax_digits);
                 $order->update_meta_data('cpf', $tax_digits);
                 $order->update_meta_data('_billing_persontype', '1');
+                $meta_written['cpf'] = true;
             } elseif (strlen($tax_digits) === 14) {
                 $order->update_meta_data('_billing_cnpj', $tax_digits);
                 $order->update_meta_data('cnpj', $tax_digits);
                 $order->update_meta_data('_billing_persontype', '2');
+                $meta_written['cnpj'] = true;
             } elseif ($tax_digits !== '') {
                 error_log('N1 API - add_order: documento fiscal com tamanho inesperado (' . strlen($tax_digits) . ' dígitos); não salvo como CPF/CNPJ.');
             }
+
+            // TEMP: auditar metas sem prefixo (não logar valores sensíveis).
+            error_log(
+                'N1 API - add_order metas audit: ' .
+                'params_has_cpf=' . (!empty($params['cpf']) ? 'yes' : 'no') .
+                ' params_has_taxDocument=' . (!empty($params['taxDocument']) ? 'yes' : 'no') .
+                ' params_has_neighborhood=' . (!empty($params['neighborhood']) ? 'yes' : 'no') .
+                ' params_has_number=' . (!empty($params['number']) ? 'yes' : 'no') .
+                ' params_has_complement=' . (!empty($params['complement']) ? 'yes' : 'no') .
+                ' params_has_orderNote=' . (!empty($params['orderNote']) ? 'yes' : 'no') .
+                ' tax_digits_len=' . strlen($tax_digits) .
+                ' written=' . wp_json_encode($meta_written)
+            );
 
             $order->set_payment_method($wc_payment_gateway);
             $order->set_payment_method_title($wc_payment_title);

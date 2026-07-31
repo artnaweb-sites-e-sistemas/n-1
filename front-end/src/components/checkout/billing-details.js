@@ -541,6 +541,7 @@ const BillingDetails = ({
               cols="30"
               rows="10"
               placeholder="Observações sobre seu pedido, ex: instruções especiais para entrega."
+              {...register("orderNote")}
             ></textarea>
           </div>
         </div>
