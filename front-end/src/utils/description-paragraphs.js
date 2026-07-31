@@ -55,27 +55,33 @@ export function textsAreEquivalent(a, b) {
 }
 
 /**
- * Parágrafo ao lado da capa / título.
- * Prefere product.description; só usa o 1º parágrafo do catalogContent se a descrição estiver vazia.
+ * Conteúdo ao lado da capa / título.
+ * Prefere product.description (sempre, sem heurística de poluição).
+ * Só usa o 1º parágrafo do catalogContent se a descrição estiver vazia
+ * (aí aplica isPollutedLeadParagraph, inclusive limite de 1500).
+ *
+ * @returns {{ source: 'description', html: string } | { source: 'catalog', text: string } | null}
  */
 export function getProductLeadParagraph(product) {
   const catalogContent = product?.catalogContent || "";
   const description = String(product?.description || "").trim();
-  const plainDescription = description.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
 
-  if (plainDescription && !isPollutedLeadParagraph(plainDescription)) {
-    return plainDescription;
+  // Descrição do admin WooCommerce: sempre respeitar (tamanho/HTML livres).
+  if (description) {
+    return { source: "description", html: description };
   }
 
-  // Sem descrição: comportamento legado (1º parágrafo do conteúdo longo).
+  // Sem descrição: fallback — 1º parágrafo do conteúdo longo (com filtro de lixo).
   const isHtml = Boolean(catalogContent && String(catalogContent).trim());
-  const rawContent = catalogContent || description || "";
-  const { firstParagraph } = getFirstParagraphAndRest(rawContent, isHtml);
-
-  if (firstParagraph && !isPollutedLeadParagraph(firstParagraph)) {
-    return firstParagraph;
+  if (!isHtml) {
+    return null;
   }
-  return firstParagraph || "";
+  const { firstParagraph } = getFirstParagraphAndRest(catalogContent, true);
+  if (firstParagraph && !isPollutedLeadParagraph(firstParagraph)) {
+    return { source: "catalog", text: firstParagraph };
+  }
+  // Se poluído, não exibe lixo ao lado da capa.
+  return null;
 }
 
 function isPollutedLeadParagraph(text) {

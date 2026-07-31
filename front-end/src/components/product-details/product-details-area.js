@@ -359,8 +359,17 @@ const ProductDetailsArea = ({ product }) => {
                 <h3 className="product__details-title">{title}</h3>
 
                 {(() => {
-                  const firstParagraph = getProductLeadParagraph(product);
-                  return firstParagraph ? <p className="mt-20">{firstParagraph}</p> : null;
+                  const lead = getProductLeadParagraph(product);
+                  if (!lead) return null;
+                  if (lead.source === "description") {
+                    return (
+                      <div
+                        className="mt-20"
+                        dangerouslySetInnerHTML={{ __html: lead.html }}
+                      />
+                    );
+                  }
+                  return lead.text ? <p className="mt-20">{lead.text}</p> : null;
                 })()}
 
 
