@@ -1,6 +1,9 @@
 import React from "react";
 import styles from './prd-details-description.module.scss';
-import { getFirstParagraphAndRest } from "src/utils/description-paragraphs";
+import {
+  getFirstParagraphAndRest,
+  textsAreEquivalent,
+} from "src/utils/description-paragraphs";
 import { removeMainImageFromCatalogHtml } from "src/utils/product-page-main-image";
 import { hasCatalogLayout } from "@utils/catalog-layout";
 
@@ -10,15 +13,40 @@ const PrdDetailsDescription = ({ product, mainImageUrl }) => {
   const description = product?.description;
   const useCatalogLayout = hasCatalogLayout(product);
 
-  // Conteúdo sem o primeiro parágrafo (já exibido abaixo do título)
-  const rawContent = catalogContent || description || '';
-  const isHtml = useCatalogLayout;
-  let { restContent } = getFirstParagraphAndRest(rawContent, isHtml);
-  // Se houver apenas um parágrafo no conteúdo HTML, renderizar o conteúdo completo aqui
-  // para não "sumir" a descrição longa na aba.
-  if (useCatalogLayout && (!restContent || !String(restContent).trim())) {
-    restContent = rawContent;
+  let restContent = "";
+
+  if (useCatalogLayout) {
+    const descTrimmed = String(description || "").trim();
+    if (descTrimmed) {
+      // Descrição preenchida: mostrar catalogContent completo abaixo.
+      // Exceção (livros migrados): se o 1º parágrafo ≡ descrição, omitir esse parágrafo
+      // para não duplicar o que já aparece ao lado da capa.
+      const { firstParagraph, restContent: afterFirst } = getFirstParagraphAndRest(
+        catalogContent,
+        true
+      );
+      if (firstParagraph && textsAreEquivalent(firstParagraph, descTrimmed)) {
+        restContent = afterFirst;
+      } else {
+        restContent = catalogContent;
+      }
+    } else {
+      // Sem descrição: comportamento atual (1º parágrafo ao lado da capa, restante abaixo).
+      let { restContent: afterFirst } = getFirstParagraphAndRest(catalogContent, true);
+      if (!afterFirst || !String(afterFirst).trim()) {
+        afterFirst = catalogContent;
+      }
+      restContent = afterFirst;
+    }
+  } else {
+    const rawContent = description || "";
+    let { restContent: afterFirst } = getFirstParagraphAndRest(rawContent, false);
+    if (!afterFirst || !String(afterFirst).trim()) {
+      afterFirst = rawContent;
+    }
+    restContent = afterFirst;
   }
+
   // Remover o mockup/capa principal duplicado no HTML editorial
   // (compara por basename: URL do WP vs /images/... no catalogContent)
   if (useCatalogLayout && mainImageUrl && restContent) {

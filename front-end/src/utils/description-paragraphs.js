@@ -31,22 +31,49 @@ export function getFirstParagraphAndRest(content, isHtml) {
   return { firstParagraph, restContent };
 }
 
+/** Normaliza texto para comparação (sem HTML, espaços colapsados, lower-case). */
+export function normalizeTextForCompare(text) {
+  return String(text || "")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+}
+
 /**
- * Parágrafo limpo para exibir ao lado do título.
- * Prefere o 1º <p> do catalogContent; se ausente/poluído, usa description.
+ * Comparação tolerante: iguais após normalize, ou um contém o outro
+ * nos primeiros ~120 caracteres.
+ */
+export function textsAreEquivalent(a, b) {
+  const na = normalizeTextForCompare(a);
+  const nb = normalizeTextForCompare(b);
+  if (!na || !nb) return false;
+  if (na === nb) return true;
+  const a120 = na.slice(0, 120);
+  const b120 = nb.slice(0, 120);
+  return a120.includes(b120) || b120.includes(a120);
+}
+
+/**
+ * Parágrafo ao lado da capa / título.
+ * Prefere product.description; só usa o 1º parágrafo do catalogContent se a descrição estiver vazia.
  */
 export function getProductLeadParagraph(product) {
   const catalogContent = product?.catalogContent || "";
   const description = String(product?.description || "").trim();
+  const plainDescription = description.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+
+  if (plainDescription && !isPollutedLeadParagraph(plainDescription)) {
+    return plainDescription;
+  }
+
+  // Sem descrição: comportamento legado (1º parágrafo do conteúdo longo).
   const isHtml = Boolean(catalogContent && String(catalogContent).trim());
   const rawContent = catalogContent || description || "";
   const { firstParagraph } = getFirstParagraphAndRest(rawContent, isHtml);
 
   if (firstParagraph && !isPollutedLeadParagraph(firstParagraph)) {
     return firstParagraph;
-  }
-  if (description && !isPollutedLeadParagraph(description)) {
-    return description;
   }
   return firstParagraph || "";
 }
