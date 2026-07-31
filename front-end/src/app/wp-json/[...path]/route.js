@@ -1,3 +1,15 @@
+/**
+ * Proxy /wp-json/* → adminloja.n-1edicoes.org
+ *
+ * PROTEÇÃO DE CONTEÚDO EDITORIAL:
+ * Em PUT/PATCH de /wc/v{2,3}/products/{id}, remove do body campos de conteúdo
+ * gerenciados no WooCommerce (descrição, imagens, meta_data n1_*, categorias,
+ * slug, status etc.). Dados comerciais/logísticos do ERP (Olist) — preço,
+ * estoque, peso, dimensões — passam normalmente (denylist, não allowlist).
+ *
+ * Também: X-HTTP-Method-Override para PUT/PATCH/DELETE (IIS), repasse de
+ * credenciais, e opcionalmente SKU_RECONCILE_ENABLED para vínculo em massa.
+ */
 import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -16,6 +28,30 @@ const HOP_BY_HOP = new Set([
   "trailers",
   "transfer-encoding",
   "upgrade",
+]);
+
+/**
+ * Campos de conteúdo editorial / estruturais bloqueados em updates do Olist.
+ * Demais chaves (preço, estoque, peso, dimensões…) seguem intactas.
+ */
+const PRODUCT_EDITORIAL_DENYLIST = new Set([
+  "description",
+  "short_description",
+  "images",
+  "slug",
+  "permalink",
+  "categories",
+  "tags",
+  "attributes",
+  "default_attributes",
+  "meta_data",
+  "status",
+  "catalog_visibility",
+  "menu_order",
+  "reviews_allowed",
+  "upsell_ids",
+  "cross_sell_ids",
+  "grouped_products",
 ]);
 
 /**
@@ -43,6 +79,36 @@ function isProductCreatePath(method, path) {
   if (method !== "POST") return false;
   const normalized = String(path || "").replace(/\/+$/, "");
   return normalized === "wc/v2/products" || normalized === "wc/v3/products";
+}
+
+/**
+ * PUT/PATCH em /wc/v{2,3}/products/{id} (id numérico).
+ * @returns {{ match: boolean, productId: string|null }}
+ */
+function matchProductUpdatePath(method, path) {
+  if (method !== "PUT" && method !== "PATCH") {
+    return { match: false, productId: null };
+  }
+  const normalized = String(path || "").replace(/\/+$/, "");
+  const m = normalized.match(/^wc\/v[23]\/products\/(\d+)$/);
+  if (!m) return { match: false, productId: null };
+  return { match: true, productId: m[1] };
+}
+
+/**
+ * Remove chaves da denylist de conteúdo editorial.
+ * @returns {{ body: object, removedKeys: string[] }}
+ */
+function stripEditorialProductFields(payload) {
+  const body = { ...payload };
+  const removedKeys = [];
+  for (const key of PRODUCT_EDITORIAL_DENYLIST) {
+    if (Object.prototype.hasOwnProperty.call(body, key)) {
+      delete body[key];
+      removedKeys.push(key);
+    }
+  }
+  return { body, removedKeys };
 }
 
 function buildOutboundHeaders(request, useOverride, originalMethod) {
@@ -134,7 +200,7 @@ async function proxyToWordPress(request, context) {
   const useOverride = overrideMethods.has(originalMethod);
   const outboundMethod = useOverride ? "POST" : originalMethod;
 
-  const { outboundHeaders, authorization: hasAuthorization } = buildOutboundHeaders(
+  const { outboundHeaders } = buildOutboundHeaders(
     request,
     useOverride,
     originalMethod
@@ -178,6 +244,29 @@ async function proxyToWordPress(request, context) {
         });
         // Segue para criação normal se a consulta falhar.
       }
+    }
+  }
+
+  // Proteção editorial: strip denylist em PUT/PATCH /products/{id}.
+  const productUpdate = matchProductUpdatePath(originalMethod, path);
+  if (productUpdate.match && bodyBuffer && bodyBuffer.byteLength > 0) {
+    try {
+      const text = new TextDecoder().decode(bodyBuffer);
+      const payload = text ? JSON.parse(text) : null;
+      if (payload && typeof payload === "object" && !Array.isArray(payload)) {
+        const { body: filtered, removedKeys } = stripEditorialProductFields(payload);
+        if (removedKeys.length > 0) {
+          console.log("[wp-json proxy] editorial fields stripped", {
+            productId: productUpdate.productId,
+            removedKeys,
+          });
+        }
+        const filteredJson = JSON.stringify(filtered);
+        bodyBuffer = new TextEncoder().encode(filteredJson).buffer;
+        outboundHeaders.set("Content-Type", "application/json");
+      }
+    } catch {
+      // Body não-JSON: encaminhar sem alterar (nunca falhar a integração).
     }
   }
 
