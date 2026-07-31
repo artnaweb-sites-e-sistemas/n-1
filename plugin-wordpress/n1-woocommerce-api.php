@@ -1279,6 +1279,66 @@ class N1_WooCommerce_API
     }
 
     /**
+     * Opção nativa WooCommerce: Configurações → Produtos → Inventário
+     * "Ocultar itens fora de estoque do catálogo".
+     */
+    private function should_hide_out_of_stock()
+    {
+        return get_option('woocommerce_hide_out_of_stock_items') === 'yes';
+    }
+
+    /**
+     * Exclui produtos outofstock da WP_Query (taxonomia product_visibility).
+     * Combina com tax_query existente via relation AND.
+     *
+     * @param array $args Argumentos de WP_Query.
+     * @return array
+     */
+    private function apply_hide_out_of_stock_to_query_args($args)
+    {
+        if (!$this->should_hide_out_of_stock()) {
+            return $args;
+        }
+
+        $outofstock_clause = array(
+            'taxonomy' => 'product_visibility',
+            'field' => 'name',
+            'terms' => 'outofstock',
+            'operator' => 'NOT IN',
+        );
+
+        if (empty($args['tax_query']) || !is_array($args['tax_query'])) {
+            $args['tax_query'] = array($outofstock_clause);
+            return $args;
+        }
+
+        $existing = $args['tax_query'];
+
+        // Uma única cláusula associativa (tem chave taxonomy).
+        if (isset($existing['taxonomy'])) {
+            $args['tax_query'] = array(
+                'relation' => 'AND',
+                $existing,
+                $outofstock_clause,
+            );
+            return $args;
+        }
+
+        // Lista de cláusulas (pode já ter 'relation').
+        $merged = array('relation' => 'AND');
+        foreach ($existing as $key => $clause) {
+            if ($key === 'relation') {
+                continue;
+            }
+            $merged[] = $clause;
+        }
+        $merged[] = $outofstock_clause;
+        $args['tax_query'] = $merged;
+
+        return $args;
+    }
+
+    /**
      * Get catalog content (editorial content) for a product
      * Tries multiple strategies:
      * 1. Meta field 'n1_catalog_content', 'n1_catalog_images', 'n1_catalog_pdf'
@@ -1438,6 +1498,8 @@ class N1_WooCommerce_API
                 ),
             );
         }
+
+        $args = $this->apply_hide_out_of_stock_to_query_args($args);
 
         $query = new WP_Query($args);
         $products = array();
@@ -1693,6 +1755,7 @@ class N1_WooCommerce_API
                 ),
             ),
         );
+        $args = $this->apply_hide_out_of_stock_to_query_args($args);
 
         $query = new WP_Query($args);
         $products = array();
@@ -1704,6 +1767,7 @@ class N1_WooCommerce_API
                 'posts_per_page' => -1,
                 'post_status' => 'publish',
             );
+            $args = $this->apply_hide_out_of_stock_to_query_args($args);
             $query = new WP_Query($args);
         }
 
@@ -1720,6 +1784,7 @@ class N1_WooCommerce_API
                     ),
                 ),
             );
+            $args = $this->apply_hide_out_of_stock_to_query_args($args);
             $query = new WP_Query($args);
         }
 
@@ -1732,6 +1797,7 @@ class N1_WooCommerce_API
                 'orderby' => 'date',
                 'order' => 'DESC',
             );
+            $args = $this->apply_hide_out_of_stock_to_query_args($args);
             $query = new WP_Query($args);
         }
 
@@ -1771,6 +1837,8 @@ class N1_WooCommerce_API
                 ),
             ),
         );
+
+        $args = $this->apply_hide_out_of_stock_to_query_args($args);
 
         $query = new WP_Query($args);
         $products = array();
@@ -1813,6 +1881,7 @@ class N1_WooCommerce_API
                 'post__not_in' => array($product_id), // Excluir o produto atual
                 'orderby' => 'rand', // Produtos aleatórios
             );
+            $args = $this->apply_hide_out_of_stock_to_query_args($args);
 
             $query = new WP_Query($args);
             $products = array();
@@ -1853,6 +1922,7 @@ class N1_WooCommerce_API
                     ),
                 ),
             );
+            $args = $this->apply_hide_out_of_stock_to_query_args($args);
 
             $query = new WP_Query($args);
             $products = array();
@@ -1923,6 +1993,8 @@ class N1_WooCommerce_API
             'post_status' => 'publish',
             's' => $search_term,
         );
+
+        $args = $this->apply_hide_out_of_stock_to_query_args($args);
 
         $query = new WP_Query($args);
         $products = array();
