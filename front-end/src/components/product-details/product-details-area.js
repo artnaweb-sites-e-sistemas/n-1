@@ -187,6 +187,12 @@ const ProductDetailsArea = ({ product }) => {
           height: 20px;
           flex-shrink: 0;
         }
+        .product__details-lead.mt-20 p {
+          margin: 0 0 1em;
+        }
+        .product__details-lead.mt-20 p:last-child {
+          margin-bottom: 0;
+        }
       `}} />
       <section className="product__details-area pt-40 pb-50">
         <div className="container">
@@ -364,7 +370,7 @@ const ProductDetailsArea = ({ product }) => {
                   if (lead.source === "description") {
                     return (
                       <div
-                        className="mt-20"
+                        className="product__details-lead mt-20"
                         dangerouslySetInnerHTML={{ __html: lead.html }}
                       />
                     );
