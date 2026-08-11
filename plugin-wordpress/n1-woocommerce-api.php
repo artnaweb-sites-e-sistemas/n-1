@@ -53,6 +53,9 @@ class N1_WooCommerce_API
         add_action('woocommerce_product_import_inserted_product_object', array($this, 'preserve_catalog_content_on_import'), 20, 2);
         add_action('init', array($this, 'register_n1_catalog_content_meta'), 20);
 
+        // Pré-visualização headless: "Visualizar produto" no admin abre a loja Next.js
+        add_filter('preview_post_link', array($this, 'filter_product_preview_link'), 10, 2);
+
         if (defined('WP_CLI') && WP_CLI) {
             WP_CLI::add_command('n1 sync-catalog-content', array($this, 'cli_sync_catalog_content'));
         }
@@ -669,6 +672,23 @@ class N1_WooCommerce_API
             'methods' => 'GET',
             'callback' => array($this, 'get_product'),
             'permission_callback' => '__return_true',
+        ));
+
+        // Preview de produto não publicado (protegido por token HMAC)
+        register_rest_route($this->namespace, '/api/products/preview/(?P<id>\d+)', array(
+            'methods' => 'GET',
+            'callback' => array($this, 'get_product_preview'),
+            'permission_callback' => '__return_true',
+            'args' => array(
+                'token' => array(
+                    'required' => true,
+                    'type' => 'string',
+                ),
+                'exp' => array(
+                    'required' => true,
+                    'type' => 'integer',
+                ),
+            ),
         ));
 
         // Get product by slug (for new URL format /livros/slug)
@@ -1552,6 +1572,79 @@ class N1_WooCommerce_API
         }
 
         return rest_ensure_response($formatted);
+    }
+
+    /**
+     * Pré-visualização de produto (qualquer status) protegida por token HMAC.
+     * Usado pela loja headless em /livros/preview/{id}?token=&exp=
+     */
+    public function get_product_preview($request)
+    {
+        if (!class_exists('WooCommerce')) {
+            return new WP_Error('woocommerce_not_active', 'WooCommerce não está ativo', array('status' => 500));
+        }
+
+        $product_id = intval($request['id']);
+        $token = sanitize_text_field($request->get_param('token'));
+        $exp = intval($request->get_param('exp'));
+
+        if (!$this->validate_product_preview_token($product_id, $exp, $token)) {
+            return new WP_Error(
+                'preview_forbidden',
+                'Token de pré-visualização inválido ou expirado',
+                array('status' => 403)
+            );
+        }
+
+        // wc_get_product busca por ID independente do post_status (draft/pending/private/publish)
+        $product = wc_get_product($product_id);
+
+        if (!$product) {
+            return new WP_Error('product_not_found', 'Produto não encontrado', array('status' => 404));
+        }
+
+        $status = $product->get_status();
+        $allowed_statuses = array('draft', 'pending', 'private', 'publish');
+        if (!in_array($status, $allowed_statuses, true)) {
+            return new WP_Error('product_not_found', 'Produto não encontrado', array('status' => 404));
+        }
+
+        $formatted = $this->format_product($product);
+
+        if (!$formatted) {
+            return new WP_Error('product_error', 'Erro ao formatar produto', array('status' => 500));
+        }
+
+        $formatted['isPreview'] = true;
+
+        return rest_ensure_response($formatted);
+    }
+
+    /**
+     * Redireciona "Visualizar produto" do admin WooCommerce para a loja Next.js.
+     *
+     * @param string  $preview_link URL padrão do WordPress.
+     * @param WP_Post $post         Post sendo pré-visualizado.
+     * @return string
+     */
+    public function filter_product_preview_link($preview_link, $post)
+    {
+        if (!$post || !isset($post->post_type) || $post->post_type !== 'product') {
+            return $preview_link;
+        }
+
+        $product_id = (int) $post->ID;
+        if ($product_id <= 0) {
+            return $preview_link;
+        }
+
+        $exp = time() + DAY_IN_SECONDS; // 24 horas
+        $token = $this->generate_product_preview_token($product_id, $exp);
+        $store_url = $this->get_n1_store_url();
+
+        return $store_url . '/livros/preview/' . $product_id
+            . '?token=' . rawurlencode($token)
+            . '&exp=' . $exp;
     }
 
     /**
@@ -3124,6 +3217,63 @@ class N1_WooCommerce_API
             return rtrim($opt, '/');
         }
         return rtrim(home_url(), '/');
+    }
+
+    /**
+     * Segredo HMAC para tokens de pré-visualização de produto na loja headless.
+     * Preferir no wp-config.php: define('N1_PREVIEW_SECRET', 'string-aleatoria-longa');
+     * Se N1_PREVIEW_SECRET não existir, usa AUTH_KEY (já presente no WordPress) como fallback.
+     *
+     * @return string
+     */
+    private function get_preview_secret()
+    {
+        if (defined('N1_PREVIEW_SECRET') && is_string(N1_PREVIEW_SECRET) && N1_PREVIEW_SECRET !== '') {
+            return N1_PREVIEW_SECRET;
+        }
+        if (defined('AUTH_KEY') && is_string(AUTH_KEY) && AUTH_KEY !== '') {
+            return AUTH_KEY;
+        }
+        return 'n1-preview-fallback-insecure';
+    }
+
+    /**
+     * Gera token assinado para pré-visualização: HMAC-SHA256 de "{id}|{exp}".
+     *
+     * @param int $product_id ID do produto.
+     * @param int $exp        Timestamp Unix de expiração.
+     * @return string
+     */
+    private function generate_product_preview_token($product_id, $exp)
+    {
+        $payload = intval($product_id) . '|' . intval($exp);
+        return hash_hmac('sha256', $payload, $this->get_preview_secret());
+    }
+
+    /**
+     * Valida token de pré-visualização (comparação timing-safe) e recusa expirados.
+     *
+     * @param int    $product_id ID do produto.
+     * @param int    $exp        Timestamp Unix de expiração.
+     * @param string $token      Token recebido na query.
+     * @return bool
+     */
+    private function validate_product_preview_token($product_id, $exp, $token)
+    {
+        $product_id = intval($product_id);
+        $exp = intval($exp);
+        $token = is_string($token) ? trim($token) : '';
+
+        if ($product_id <= 0 || $exp <= 0 || $token === '') {
+            return false;
+        }
+
+        if ($exp < time()) {
+            return false;
+        }
+
+        $expected = $this->generate_product_preview_token($product_id, $exp);
+        return hash_equals($expected, $token);
     }
 
     /**
