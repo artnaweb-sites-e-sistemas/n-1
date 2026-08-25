@@ -39,7 +39,7 @@ export const authApi = apiSlice.injectEndpoints({
         { type: "Product", id: arg.id },
       ],
     }),
-    // get products paginated (for infinite scroll) - mescla WooCommerce + catálogo local
+    // get products paginated (WooCommerce direto)
     getProductsPaginated: builder.query({
       query: ({ page = 1, per_page = 20 }) => {
         return `products?page=${page}&per_page=${per_page}`;
@@ -47,12 +47,13 @@ export const authApi = apiSlice.injectEndpoints({
       providesTags: ["Products"],
       keepUnusedDataFor: 600,
     }),
-    // get catalog products (produtos do catálogo local + WooCommerce)
+    // Listagem da loja via /api/catalog-products (só Woo no fluxo normal).
+    // O catálogo estático é contingência para queda da API do WooCommerce;
+    // nunca deve ser mesclado à listagem normal.
     getCatalogProducts: builder.query({
       queryFn: async ({ page = 1, per_page = 20 }) => {
         try {
           const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
-          // Adicionar timestamp para evitar cache e garantir produtos atualizados
           const timestamp = Date.now();
           const response = await fetch(`${baseUrl}/api/catalog-products?page=${page}&per_page=${per_page}&_t=${timestamp}`, {
             cache: 'no-store',
@@ -60,11 +61,11 @@ export const authApi = apiSlice.injectEndpoints({
               'Cache-Control': 'no-cache',
             },
           });
-          
+
           if (!response.ok) {
-            throw new Error('Erro ao buscar produtos do catálogo');
+            throw new Error('Erro ao buscar produtos');
           }
-          
+
           const data = await response.json();
           return { data };
         } catch (error) {
@@ -72,9 +73,9 @@ export const authApi = apiSlice.injectEndpoints({
         }
       },
       providesTags: ["CatalogProducts"],
-      keepUnusedDataFor: 60, // Reduzir cache para 1 minuto para produtos aparecerem mais rápido
+      keepUnusedDataFor: 60,
     }),
-    // get merged products — delega à /api/catalog-products (já faz dedup por SKU)
+    // Alias da listagem Woo (mesmo endpoint; sem mescla com JSON estático)
     getMergedProducts: builder.query({
       queryFn: async ({ page = 1, per_page = 20 }) => {
         try {
@@ -84,7 +85,7 @@ export const authApi = apiSlice.injectEndpoints({
             { cache: 'no-store' }
           );
           if (!catalogResponse.ok) {
-            throw new Error('Erro ao buscar produtos mesclados');
+            throw new Error('Erro ao buscar produtos');
           }
           const catalogData = await catalogResponse.json();
           return {

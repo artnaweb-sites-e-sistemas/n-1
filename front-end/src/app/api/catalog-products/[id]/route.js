@@ -1,17 +1,65 @@
 import { NextResponse } from 'next/server';
 import catalogProducts from '@data/catalog-products.json';
-import { isCatalogProductReplacedByWoo } from '@utils/catalog-sku-dedup';
+import {
+  getWooApiBaseUrl,
+  isCatalogFallbackEnabled,
+  normalizeSlug,
+} from '@utils/catalog-sku-dedup';
 
 /**
- * API Route para buscar um produto específico do catálogo local
  * GET /api/catalog-products/[id]
  *
- * Se o SKU já existir no WooCommerce, retorna 404 para a página /livros/[slug]
- * cair no produto real do WooCommerce (mesmo slug).
+ * O catálogo estático é contingência para queda da API do WooCommerce;
+ * nunca deve ser mesclado à listagem normal nem servir produto quando a API
+ * está respondendo (mesmo que o slug não exista no Woo — nesse caso 404).
+ *
+ * Serve item do JSON somente se a API Woo falhar de fato e
+ * CATALOG_FALLBACK_ENABLED estiver ativo (padrão).
  */
+async function probeWooCommerceAvailability(slug) {
+  const apiBaseUrl = getWooApiBaseUrl();
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 8000);
+
+  try {
+    // Probe leve: slug específico se tivermos slug; senão listagem page=1
+    const url = slug
+      ? `${apiBaseUrl}/api/products/slug/${encodeURIComponent(slug)}?_t=${Date.now()}`
+      : `${apiBaseUrl}/products?per_page=1&page=1&lite=1&_t=${Date.now()}`;
+
+    const res = await fetch(url, {
+      headers: { 'Content-Type': 'application/json' },
+      signal: controller.signal,
+      cache: 'no-store',
+    });
+
+    if (res.ok) {
+      return { available: true, status: res.status };
+    }
+    // 404 no slug = API no ar, produto inexistente no Woo — NÃO usar catálogo
+    if (res.status === 404) {
+      return { available: true, status: 404 };
+    }
+    // 4xx (exceto 404) ou 5xx: tratar 5xx como falha; 4xx como API no ar
+    if (res.status >= 500) {
+      return { available: false, status: res.status, error: `HTTP ${res.status}` };
+    }
+    return { available: true, status: res.status };
+  } catch (error) {
+    return {
+      available: false,
+      status: 0,
+      error: error?.message || String(error),
+    };
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 export async function GET(request, { params }) {
   try {
-    let { id } = params;
+    const resolvedParams = await params;
+    let { id } = resolvedParams;
 
     try {
       id = decodeURIComponent(id);
@@ -28,6 +76,34 @@ export async function GET(request, { params }) {
       .replace(/⁴/g, '4');
 
     const normalizedId = id.toLowerCase().trim();
+    const fallbackEnabled = isCatalogFallbackEnabled();
+
+    const probe = await probeWooCommerceAvailability(normalizeSlug(id) || normalizedId);
+
+    // API Woo respondendo → nunca servir catálogo estático
+    if (probe.available) {
+      return NextResponse.json(
+        {
+          error: 'Produto não encontrado no WooCommerce',
+          code: 'woocommerce_only',
+          // o catálogo estático é contingência para queda da API do WooCommerce;
+          // nunca deve ser mesclado à listagem normal
+        },
+        { status: 404 }
+      );
+    }
+
+    // API Woo fora do ar
+    if (!fallbackEnabled) {
+      return NextResponse.json(
+        {
+          error: 'API WooCommerce indisponível e contingência do catálogo desligada',
+          code: 'catalog_fallback_disabled',
+          debug: { wooCommerce_error: probe.error || null },
+        },
+        { status: 503 }
+      );
+    }
 
     const product = catalogProducts.find((p) => {
       const productId = (p._id || '').toString().toLowerCase();
@@ -65,26 +141,15 @@ export async function GET(request, { params }) {
       );
     }
 
-    const replaced = await isCatalogProductReplacedByWoo(product);
-    if (replaced) {
-      console.log('[Catalog API id] Produto do catálogo ocultado por SKU no WooCommerce:', {
-        sku: product.sku,
-        slug: product.slug,
-        title: product.title,
-      });
-      return NextResponse.json(
-        {
-          error: 'Produto migrado para WooCommerce',
-          code: 'replaced_by_woocommerce',
-          sku: product.sku,
-        },
-        { status: 404 }
-      );
-    }
+    console.warn(
+      '[Catalog API id] Contingência: servindo produto do catálogo estático (API Woo falhou)',
+      { slug: product.slug, title: product.title, wooError: probe.error }
+    );
 
     return NextResponse.json({
       ...product,
       source: product.source || 'catalog',
+      isCatalogFallback: true,
     });
   } catch (error) {
     console.error('Error fetching catalog product:', error);

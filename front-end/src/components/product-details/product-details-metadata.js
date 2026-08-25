@@ -38,8 +38,7 @@ const ProductDetailsMetadata = ({ product }) => {
   const authorValue = (showAuthor ? author : null) || (showAuthors ? authors : null);
 
   return (
-    <>
-
+    <div className="product__details-metadata-list">
       {bookTitle && (
         <div className="product__details-metadata product__details-more">
           <p>Título:</p>
@@ -106,7 +105,7 @@ const ProductDetailsMetadata = ({ product }) => {
           <span>{isbn}</span>
         </div>
       )}
-    </>
+    </div>
   );
 };
 

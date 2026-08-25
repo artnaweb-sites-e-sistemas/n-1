@@ -15,7 +15,9 @@ const RelatedProducts = ({ product }) => {
       }
 
       try {
-        // Buscar todos os produtos do catálogo
+        // Relacionados a partir da listagem Woo (mesma rota da loja).
+        // O catálogo estático é contingência para queda da API do WooCommerce;
+        // nunca deve ser mesclado à listagem normal.
         const response = await fetch('/api/catalog-products?per_page=999');
         const data = await response.json();
         const allProducts = data.products || [];

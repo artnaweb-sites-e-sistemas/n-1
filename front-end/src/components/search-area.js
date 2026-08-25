@@ -69,14 +69,15 @@ export default function SearchAreaMain({ searchText }) {
   const perView = 8;
   const [next, setNext] = useState(perView);
 
-  // Buscar todos os produtos do catálogo
+  // Listagem via /api/catalog-products: só WooCommerce no fluxo normal.
+  // O catálogo estático é contingência para queda da API do WooCommerce;
+  // nunca deve ser mesclado à listagem normal.
   useEffect(() => {
     const fetchProducts = async () => {
       try {
         setIsLoading(true);
         setIsError(false);
-        
-        // Buscar todos os produtos do catálogo (usar per_page grande para pegar todos)
+
         const response = await fetch('/api/catalog-products?per_page=999');
         
         if (!response.ok) {

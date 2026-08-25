@@ -389,6 +389,31 @@ body {
   }
 }
 
+// Bloco de metadados editoriais (Título, Autor, Ano…): respiro após a sinopse
+// e linhas mais compactas. Não altera .product__details-more fora deste container
+// (ex.: autor acima do título, categorias, SKU no modal).
+.product__details-metadata-list {
+  margin-top: 30px;
+
+  @media (max-width: 575px) {
+    margin-top: 28px;
+  }
+
+  .product__details-more {
+    margin-bottom: 5px !important;
+    line-height: 1.35;
+
+    p,
+    span {
+      line-height: 1.35 !important;
+    }
+
+    &:last-child {
+      margin-bottom: 0 !important;
+    }
+  }
+}
+
 // Produtos Relacionados - padronizar altura e largura
 .product__related-slider {
   .row {

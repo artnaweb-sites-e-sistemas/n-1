@@ -1,7 +1,23 @@
 /**
- * Deduplicação de produtos do catálogo estático vs WooCommerce.
- * Regra: ocultar item do catálogo se existir WooCommerce com o mesmo SKU OU o mesmo SLUG.
+ * Deduplicação / contingência do catálogo estático vs WooCommerce.
+ *
+ * Regra da loja: o catálogo estático é contingência para queda da API do WooCommerce;
+ * nunca deve ser mesclado à listagem normal.
  */
+
+/**
+ * Contingência do catálogo estático.
+ * Padrão: ativa (env ausente ou vazia).
+ * Com valor definido: só permanece ativa se for exatamente "true";
+ * qualquer outro valor (ex.: "false") desliga.
+ */
+export function isCatalogFallbackEnabled() {
+  const env = process.env.CATALOG_FALLBACK_ENABLED;
+  if (env === undefined || env === null || env === '') {
+    return true;
+  }
+  return env === 'true';
+}
 
 export function normalizeSku(sku) {
   if (sku == null) return '';

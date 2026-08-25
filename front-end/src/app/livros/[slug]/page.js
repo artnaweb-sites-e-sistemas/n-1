@@ -6,6 +6,13 @@ import ShopDetailsMainArea from "@components/product-details/product-details-are
 import PrdDetailsLoader from "@components/loader/details-loader";
 import { API_BASE_URL } from "@lib/env";
 
+/**
+ * Página de produto por slug.
+ * Fonte principal: WooCommerce.
+ * O catálogo estático é contingência para queda da API do WooCommerce;
+ * nunca deve ser mesclado à listagem normal — só entra se a API falhar de fato
+ * (rede/timeout/5xx), nunca quando o produto simplesmente não existe (404).
+ */
 export default function LivroPage() {
   const params = useParams();
   const router = useRouter();
@@ -17,7 +24,7 @@ export default function LivroPage() {
     const fetchProductBySlug = async () => {
       try {
         let slug = params?.slug;
-        
+
         if (!slug) {
           router.replace('/shop');
           return;
@@ -33,7 +40,7 @@ export default function LivroPage() {
             break;
           }
         }
-        
+
         decodedSlug = decodedSlug
           .replace(/₂/g, '2')
           .replace(/₃/g, '3')
@@ -41,13 +48,14 @@ export default function LivroPage() {
           .replace(/²/g, '2')
           .replace(/³/g, '3')
           .replace(/⁴/g, '4');
-        
+
         slug = decodedSlug;
 
         console.log('[LivroPage] Slug recebido:', params?.slug);
         console.log('[LivroPage] Slug decodificado:', slug);
 
-        // 1) WooCommerce primeiro: produto migrado assume o slug do catálogo
+        let wooApiFailed = false;
+
         try {
           const apiUrl = `${API_BASE_URL()}/api/products/slug/${encodeURIComponent(slug)}`;
           console.log('[LivroPage] Buscando no WooCommerce:', apiUrl);
@@ -67,43 +75,50 @@ export default function LivroPage() {
               }
               return;
             }
+          } else if (response.status >= 500) {
+            console.log(`[LivroPage] WooCommerce indisponível (${response.status})`);
+            wooApiFailed = true;
           } else {
-            console.log(`[LivroPage] WooCommerce retornou ${response.status}`);
+            // 404 / 4xx: produto inexistente ou inacessível no Woo — NÃO usar catálogo
+            console.log(`[LivroPage] WooCommerce retornou ${response.status} — produto não encontrado`);
           }
         } catch (wooErr) {
-          console.error('[LivroPage] Erro ao buscar no WooCommerce:', wooErr);
+          console.error('[LivroPage] Erro de rede ao buscar no WooCommerce:', wooErr);
+          wooApiFailed = true;
         }
 
-        // 2) Fallback: catálogo estático (já oculta SKUs migrados na API)
-        try {
-          const catalogUrl = `/api/catalog-products/${slug}`;
-          console.log('[LivroPage] Buscando no catálogo local:', catalogUrl);
-          
-          const catalogResponse = await fetch(catalogUrl, {
-            cache: 'no-store',
-          });
-          
-          console.log('[LivroPage] Resposta do catálogo:', catalogResponse.status);
-          
-          if (catalogResponse.ok) {
-            const catalogProduct = await catalogResponse.json();
-            console.log('[LivroPage] Produto encontrado no catálogo:', catalogProduct?.title);
-            
-            if (catalogProduct && catalogProduct.source === 'catalog') {
-              setProductId(catalogProduct);
-              setIsLoading(false);
-              
-              if (catalogProduct.title) {
-                document.title = `N-1 - ${catalogProduct.title}`;
+        // Contingência: catálogo estático só se a API Woo caiu de fato.
+        // A rota /api/catalog-products/[id] também bloqueia se a API estiver no ar.
+        if (wooApiFailed) {
+          try {
+            const catalogUrl = `/api/catalog-products/${encodeURIComponent(slug)}`;
+            console.log('[LivroPage] Contingência — buscando catálogo estático:', catalogUrl);
+
+            const catalogResponse = await fetch(catalogUrl, {
+              cache: 'no-store',
+            });
+
+            if (catalogResponse.ok) {
+              const catalogProduct = await catalogResponse.json();
+              if (catalogProduct && catalogProduct.source === 'catalog') {
+                console.log('[LivroPage] Produto via contingência do catálogo:', catalogProduct?.title);
+                setProductId(catalogProduct);
+                setIsLoading(false);
+                if (catalogProduct.title) {
+                  document.title = `N-1 - ${catalogProduct.title}`;
+                }
+                return;
               }
-              return;
+            } else {
+              const errorData = await catalogResponse.json().catch(() => ({}));
+              console.log(
+                `[LivroPage] Catálogo contingência retornou ${catalogResponse.status}:`,
+                errorData
+              );
             }
-          } else {
-            const errorData = await catalogResponse.json().catch(() => ({}));
-            console.log(`[LivroPage] Catálogo local retornou ${catalogResponse.status}:`, errorData);
+          } catch (catalogErr) {
+            console.error('[LivroPage] Erro na contingência do catálogo:', catalogErr);
           }
-        } catch (catalogErr) {
-          console.error('[LivroPage] Erro ao buscar no catálogo local:', catalogErr);
         }
 
         setError('Produto não encontrado');
@@ -124,16 +139,16 @@ export default function LivroPage() {
 
   if (error || !productId) {
     return (
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
         height: '100vh',
         flexDirection: 'column',
         gap: '20px'
       }}>
         <p>{error || 'Produto não encontrado'}</p>
-        <button 
+        <button
           onClick={() => router.push('/shop')}
           style={{
             padding: '10px 20px',
