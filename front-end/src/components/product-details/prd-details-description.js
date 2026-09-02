@@ -39,12 +39,9 @@ const PrdDetailsDescription = ({ product, mainImageUrl }) => {
       restContent = afterFirst;
     }
   } else {
-    const rawContent = description || "";
-    let { restContent: afterFirst } = getFirstParagraphAndRest(rawContent, false);
-    if (!afterFirst || !String(afterFirst).trim()) {
-      afterFirst = rawContent;
-    }
-    restContent = afterFirst;
+    // Sem catalogContent: a descrição completa já aparece ao lado da capa
+    // (product-details-area). Não repetir no bloco inferior.
+    restContent = "";
   }
 
   // Remover o mockup/capa principal duplicado no HTML editorial
@@ -59,24 +56,20 @@ const PrdDetailsDescription = ({ product, mainImageUrl }) => {
     /<iframe\b[^>]*src=["'][^"']*issuu[^"']*["']/i.test(String(catalogContent));
   const showSeparatePdfBlock = Boolean(catalogPdf) && !contentHasIssuuIframe;
 
+  const hasRestContent = Boolean(restContent && String(restContent).trim());
+
+  if (!hasRestContent && !showSeparatePdfBlock) {
+    return null;
+  }
+
   return (
     <div className={`product__details-description pt-95 ${styles.descriptionWrapper}`}>
       <div className={`product__details-description-content ${styles.descriptionContent}`}>
-              {!useCatalogLayout && (
-                <h3 className="product-desc-title">{product?.title}</h3>
-              )}
-              
-              {restContent ? (
-                useCatalogLayout ? (
-                  <div 
-                    className={styles.catalogContent}
-                    dangerouslySetInnerHTML={{ __html: restContent }}
-                  />
-                ) : (
-                  <div className={styles.defaultDescription}>
-                    <p>{restContent}</p>
-                  </div>
-                )
+              {hasRestContent ? (
+                <div
+                  className={useCatalogLayout ? styles.catalogContent : styles.defaultDescription}
+                  dangerouslySetInnerHTML={{ __html: restContent }}
+                />
               ) : null}
 
               {showSeparatePdfBlock && (

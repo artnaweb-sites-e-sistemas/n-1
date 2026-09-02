@@ -4152,6 +4152,35 @@ class N1_WooCommerce_API
     }
 
     /**
+     * Replica metas de cobrança no cadastro do usuário (ERP/Olist lê /wc/v3/customers).
+     * Grava apenas valores não vazios; nunca chama update_user_meta com string vazia.
+     *
+     * @param int   $user_id ID do usuário WordPress/WooCommerce.
+     * @param array $fields  Mapa meta_key => valor.
+     */
+    private function sync_billing_meta_to_user($user_id, $fields)
+    {
+        $user_id = (int) $user_id;
+        if ($user_id <= 0 || !is_array($fields)) {
+            return;
+        }
+
+        foreach ($fields as $meta_key => $meta_value) {
+            if (!is_string($meta_key) || $meta_key === '') {
+                continue;
+            }
+            if ($meta_value === null || $meta_value === false) {
+                continue;
+            }
+            $meta_value = is_scalar($meta_value) ? trim((string) $meta_value) : '';
+            if ($meta_value === '') {
+                continue;
+            }
+            update_user_meta($user_id, $meta_key, $meta_value);
+        }
+    }
+
+    /**
      * Add Order (WooCommerce)
      */
     public function add_order($request)
@@ -4716,6 +4745,29 @@ class N1_WooCommerce_API
 
             // Associar pedido ao usuário
             $order->set_customer_id($user_id);
+
+            // ERP (Olist) lê CPF/endereço do cadastro do cliente — replicar metas no user meta.
+            if ($user_id > 0) {
+                $user_billing_meta = array();
+                if ($street_number !== '') {
+                    $user_billing_meta['number'] = $street_number;
+                    $user_billing_meta['billing_number'] = $street_number;
+                }
+                if ($neighborhood !== '') {
+                    $user_billing_meta['neighborhood'] = $neighborhood;
+                    $user_billing_meta['billing_neighborhood'] = $neighborhood;
+                }
+                if (strlen($tax_digits) === 11) {
+                    $user_billing_meta['cpf'] = $tax_digits;
+                    $user_billing_meta['billing_cpf'] = $tax_digits;
+                    $user_billing_meta['billing_persontype'] = '1';
+                } elseif (strlen($tax_digits) === 14) {
+                    $user_billing_meta['cnpj'] = $tax_digits;
+                    $user_billing_meta['billing_cnpj'] = $tax_digits;
+                    $user_billing_meta['billing_persontype'] = '2';
+                }
+                $this->sync_billing_meta_to_user($user_id, $user_billing_meta);
+            }
 
             // Garantir que o usuário está definido como atual
             wp_set_current_user($user_id);
