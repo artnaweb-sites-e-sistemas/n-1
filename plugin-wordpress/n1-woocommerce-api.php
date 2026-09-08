@@ -44,6 +44,10 @@ class N1_WooCommerce_API
         add_action('woocommerce_admin_process_variation_object', array($this, 'apply_default_shipping_meta_to_product_object'));
         add_action('woocommerce_admin_order_data_after_billing_address', array($this, 'display_brazilian_billing_fields_admin'), 10, 1);
 
+        // ERP (Olist) lê CPF/CNPJ e campos BR dentro de billing/shipping na API nativa WC
+        // (não em meta_data). Ver inject_brazilian_fields_into_rest_order().
+        add_filter('woocommerce_rest_prepare_shop_order_object', array($this, 'inject_brazilian_fields_into_rest_order'), 10, 3);
+
         // Preservar <iframe> (Issuu etc.) e HTML íntegro em n1_catalog_content
         add_filter('wp_kses_allowed_html', array($this, 'allow_n1_iframe_in_kses'), 10, 2);
         add_filter('sanitize_post_meta_n1_catalog_content', array($this, 'preserve_raw_catalog_content_meta'), 10, 1);
@@ -5968,6 +5972,83 @@ class N1_WooCommerce_API
         if ($neighborhood !== '' && $neighborhood !== null) {
             echo '<p><strong>' . esc_html__('Bairro', 'n1') . ':</strong> ' . esc_html($neighborhood) . '</p>';
         }
+    }
+
+    /**
+     * Injeta campos brasileiros em billing/shipping na resposta REST nativa de pedidos.
+     *
+     * O ERP (Olist) NÃO lê meta_data: busca CPF/CNPJ, número, bairro e persontype
+     * DIRETAMENTE dentro do objeto `billing` (e number/neighborhood em `shipping`),
+     * como o plugin "WooCommerce Extra Checkout Fields for Brazil" faria. Como a loja
+     * é headless e não usa esse plugin, este filtro replica essa estrutura nas
+     * respostas wc/v2 e wc/v3 (hook woocommerce_rest_prepare_shop_order_object).
+     * Não altera as rotas do namespace n1/v1.
+     *
+     * @param WP_REST_Response $response Resposta REST do pedido.
+     * @param WC_Order         $order    Pedido.
+     * @param WP_REST_Request  $request  Request.
+     * @return WP_REST_Response
+     */
+    public function inject_brazilian_fields_into_rest_order($response, $order, $request)
+    {
+        if (!$response || !is_a($response, 'WP_REST_Response') || !$order || !is_a($order, 'WC_Order')) {
+            return $response;
+        }
+
+        $data = $response->get_data();
+        if (!is_array($data)) {
+            return $response;
+        }
+
+        $cpf = preg_replace('/\D+/', '', (string) $this->get_order_brazilian_meta($order, '_billing_cpf', 'cpf'));
+        $cnpj = preg_replace('/\D+/', '', (string) $this->get_order_brazilian_meta($order, '_billing_cnpj', 'cnpj'));
+        $number = (string) $this->get_order_brazilian_meta($order, '_billing_number', 'number');
+        $neighborhood = (string) $this->get_order_brazilian_meta($order, '_billing_neighborhood', 'neighborhood');
+        $persontype = (string) $this->get_order_brazilian_meta($order, '_billing_persontype', null);
+
+        if (isset($data['billing']) && is_array($data['billing'])) {
+            $data['billing']['cpf'] = $cpf;
+            $data['billing']['cnpj'] = $cnpj;
+            $data['billing']['number'] = $number;
+            $data['billing']['neighborhood'] = $neighborhood;
+            $data['billing']['persontype'] = $persontype;
+        }
+
+        if (isset($data['shipping']) && is_array($data['shipping'])) {
+            $shipping_number = (string) $this->get_order_brazilian_meta($order, '_shipping_number', null);
+            if ($shipping_number === '') {
+                $shipping_number = $number;
+            }
+            $shipping_neighborhood = (string) $this->get_order_brazilian_meta($order, '_shipping_neighborhood', null);
+            if ($shipping_neighborhood === '') {
+                $shipping_neighborhood = $neighborhood;
+            }
+            $data['shipping']['number'] = $shipping_number;
+            $data['shipping']['neighborhood'] = $shipping_neighborhood;
+        }
+
+        $response->set_data($data);
+        return $response;
+    }
+
+    /**
+     * Lê meta brasileira do pedido: chave com prefixo primeiro; se vazia, fallback sem prefixo.
+     *
+     * @param WC_Order    $order           Pedido.
+     * @param string      $prefixed_key    Ex.: _billing_cpf.
+     * @param string|null $unprefixed_key  Ex.: cpf (null = sem fallback).
+     * @return string
+     */
+    private function get_order_brazilian_meta($order, $prefixed_key, $unprefixed_key = null)
+    {
+        $value = $order->get_meta($prefixed_key);
+        if (($value === '' || $value === null) && $unprefixed_key !== null) {
+            $value = $order->get_meta($unprefixed_key);
+        }
+        if ($value === null) {
+            return '';
+        }
+        return is_scalar($value) ? (string) $value : '';
     }
 }
 
