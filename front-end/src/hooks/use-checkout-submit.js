@@ -1,13 +1,12 @@
 'use client';
-import { isCouponExpired, findAvailableCoupon } from "@utils/coupon-expiry.mjs";
+import { isCouponExpired } from "@utils/coupon-expiry.mjs";
 import React, { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector, useStore } from "react-redux";
 import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
 //internal import
 import { notifyError, notifySuccess } from "@utils/toast";
-import { useGetOfferCouponsQuery } from "src/redux/features/coupon/couponApi";
-import Loader from "@components/loader/loader";
+import { useValidateCouponMutation } from "src/redux/features/coupon/couponApi";
 import { set_coupon } from "src/redux/features/coupon/couponSlice";
 import useCartInfo from "./use-cart-info";
 import { set_shipping } from "src/redux/features/order/orderSlice";
@@ -23,7 +22,9 @@ import {
 } from "src/redux/features/auth/authApi";
 
 const useCheckoutSubmit = (directProduct = null) => {
-  const { data: offerCoupons, isError, isLoading, refetch: refetchCoupons } = useGetOfferCouponsQuery(undefined, { refetchOnMountOrArgChange: true });
+  const [validateCoupon, { isLoading: isValidatingCoupon }] = useValidateCouponMutation();
+  const paymentRunningRef = useRef(false);
+  const couponAttemptRef = useRef(null);
   const [addOrder, {}] = useAddOrderMutation();
   const [createMercadoPagoTransparentPayment, {}] =
     useCreateMercadoPagoTransparentPaymentMutation();
@@ -34,22 +35,6 @@ const useCheckoutSubmit = (directProduct = null) => {
   const [checkEmailExists] = useCheckEmailExistsMutation();
   const lastShippingPostcodeRef = useRef("");
   
-  // Log quando os dados dos cupons chegam
-  useEffect(() => {
-    console.log('[CUPOM] useEffect - offerCoupons atualizado:', offerCoupons);
-    console.log('[CUPOM] useEffect - isLoading:', isLoading, 'isError:', isError);
-    if (offerCoupons) {
-      const couponsArray = Array.isArray(offerCoupons) 
-        ? offerCoupons 
-        : (offerCoupons?.coupons || offerCoupons?.data?.coupons || []);
-      console.log('[CUPOM] useEffect - couponsArray extraído:', couponsArray);
-      console.log('[CUPOM] useEffect - Quantidade de cupons:', couponsArray?.length || 0);
-      if (Array.isArray(couponsArray) && couponsArray.length > 0) {
-        const codes = couponsArray.map(c => c.code || c.couponCode || 'SEM CÓDIGO');
-        console.log('[CUPOM] useEffect - Códigos dos cupons:', codes);
-      }
-    }
-  }, [offerCoupons, isLoading, isError]);
   const { cart_products } = useSelector((state) => state.cart);
   const { user } = useSelector((state) => state.auth);
   const { shipping_info } = useSelector((state) => state.order);
@@ -117,6 +102,7 @@ const useCheckoutSubmit = (directProduct = null) => {
   }, [paymentMethod, clearErrors]);
 
   const clearCoupon = () => {
+    couponAttemptRef.current = null;
     setCouponInfo({});
     setDiscountPercentage(0);
     setMinimumAmount(0);
@@ -125,29 +111,54 @@ const useCheckoutSubmit = (directProduct = null) => {
     dispatch(set_coupon(null));
   };
 
+  const checkoutEmail = watch("email") || user?.email || "";
+  const couponContext = JSON.stringify({
+    cart: productsToUse.map((item) => [item._id || item.id, item.orderQuantity || 1, item.originalPrice, item.discount]),
+    email: checkoutEmail.trim().toLowerCase(),
+    shippingCost,
+  });
+  const [verifiedCouponContext, setVerifiedCouponContext] = useState("");
+  const makeCouponRequest = (code, email = checkoutEmail) => {
+    let attempt;
+    try {
+      const saved = JSON.parse(sessionStorage.getItem("couponCheckoutAttempt") || "null");
+      const [context, savedCode] = JSON.parse(saved?.context || "[]");
+      if (context === couponContext && savedCode?.toLowerCase() === code.toLowerCase()) attempt = saved.id;
+    } catch {}
+    return { couponInfo: { couponCode: code }, cart: productsToUse, email, shippingCost, checkoutAttempt: attempt };
+  };
+  const saveCouponQuote = (quote) => {
+    setCouponInfo(quote);
+    setVerifiedCouponContext(couponContext);
+    dispatch(set_coupon(quote));
+  };
+  const couponError = (error) => error?.data?.message || "Não foi possível validar o cupom. Tente novamente.";
+
   useEffect(() => {
-    let active = true;
-    const restore = async () => {
-      try {
-        const saved = JSON.parse(localStorage.getItem("couponInfo") || "null");
-        if (!saved?.couponCode) return;
-        const fresh = await refetchCoupons().unwrap();
-        if (!active) return;
-        const coupon = findAvailableCoupon(fresh, saved.couponCode);
-        if (!coupon) { clearCoupon(); return; }
-        const restored = { ...saved, expiresAt: coupon.expiresAt, endTime: coupon.expiryDate || coupon.endTime || null };
-        setCouponInfo(restored);
-        setDiscountPercentage(restored.discountPercentage);
-        setMinimumAmount(restored.minimumAmount);
-        setDiscountProductType(restored.productType);
-        dispatch(set_coupon(restored));
-      } catch {
-        if (active) clearCoupon();
-      }
-    };
-    restore();
-    return () => { active = false; };
+    try {
+      const saved = JSON.parse(localStorage.getItem("couponInfo") || "null");
+      if (saved?.couponCode) setCouponInfo({ couponCode: saved.couponCode });
+    } catch { clearCoupon(); }
   }, []);
+
+  // Revalidar ao alterar produtos, quantidades, e-mail ou frete. Ignorar respostas antigas.
+  useEffect(() => {
+    if (!couponInfo?.couponCode || !checkoutEmail) return;
+    let active = true;
+    const timer = setTimeout(async () => {
+      try {
+        const quote = await validateCoupon(makeCouponRequest(couponInfo.couponCode)).unwrap();
+        if (active) saveCouponQuote(quote);
+      } catch (error) {
+        if (active) {
+          setVerifiedCouponContext("");
+          if (error?.status === 400) clearCoupon();
+          notifyError(couponError(error));
+        }
+      }
+    }, 350);
+    return () => { active = false; clearTimeout(timer); };
+  }, [couponContext, couponInfo?.couponCode]);
 
   useEffect(() => {
     if (!couponInfo?.couponCode) return;
@@ -159,178 +170,29 @@ const useCheckoutSubmit = (directProduct = null) => {
     };
     check();
     const timer = setInterval(check, 1000);
-    window.addEventListener("focus", check);
-    return () => { clearInterval(timer); window.removeEventListener("focus", check); };
+    return () => clearInterval(timer);
   }, [couponInfo]);
 
   useEffect(() => {
-    if (minimumAmount - discountAmount > finalTotal || productsToUse.length === 0) {
-      setDiscountPercentage(0);
-      localStorage.removeItem("couponInfo");
-    }
-  }, [minimumAmount, finalTotal, discountAmount, productsToUse]);
+    const verified = couponInfo?.couponCode && verifiedCouponContext === couponContext;
+    const discount = verified ? Number(couponInfo.discountValue || 0) : 0;
+    const subtotal = verified ? Number(couponInfo.subTotal) : finalTotal;
+    setDiscountAmount(discount);
+    setCartTotal(Number((Math.max(0, subtotal - discount) + shippingCost).toFixed(2)));
+  }, [couponInfo, verifiedCouponContext, couponContext, finalTotal, shippingCost]);
 
-  //calculate total and discount value
-  useEffect(() => {
-    // Se não houver cupom aplicado, não calcular desconto
-    if (!couponInfo || Object.keys(couponInfo).length === 0) {
-      let subTotal = Number((finalTotal + shippingCost).toFixed(2));
-      setDiscountAmount(0);
-      setCartTotal(subTotal);
-      return;
-    }
-
-    // Determinar quais produtos aplicar o desconto
-    let productsToDiscount = [];
-    if (discountProductType === 'all' || !discountProductType) {
-      // Se for 'all', aplicar em todos os produtos
-      productsToDiscount = productsToUse || [];
-    } else {
-      // Caso contrário, filtrar por tipo
-      productsToDiscount = productsToUse?.filter((p) => p.type === discountProductType) || [];
-    }
-
-    // Calcular total dos produtos que receberão desconto
-    // IMPORTANTE: Usar o preço JÁ COM DESCONTO do produto, não o originalPrice
-    const discountProductTotal = productsToDiscount.reduce(
-      (preValue, currentValue) => {
-        const { originalPrice, orderQuantity, discount } = currentValue;
-        let itemPrice = originalPrice;
-        
-        // Se o produto já tem desconto, usar o preço com desconto
-        if (discount && discount > 0) {
-          itemPrice = originalPrice - (originalPrice * discount / 100);
-        }
-        
-        return preValue + itemPrice * orderQuantity;
-      },
-      0
-    );
-
-    let subTotal = Number((finalTotal + shippingCost).toFixed(2));
-    let discountTotal = 0;
-
-    // Calcular desconto baseado no tipo
-    const discountType = couponInfo.discountType || 'fixed_cart';
-    
-    if (discountType === 'percent' || discountType === 'percent_product') {
-      // Desconto percentual
-      discountTotal = Number(discountProductTotal * (discountPercentage / 100));
-    } else if (discountType === 'fixed_cart') {
-      // Desconto fixo no carrinho todo
-      discountTotal = Number(couponInfo.discountValue || couponInfo.amount || 0);
-      // Não pode ser maior que o subtotal
-      if (discountTotal > subTotal) {
-        discountTotal = subTotal;
-      }
-    } else if (discountType === 'fixed_product') {
-      // Desconto fixo por produto (aplicar no total dos produtos)
-      discountTotal = Number(couponInfo.discountValue || couponInfo.amount || 0);
-      // Não pode ser maior que o total dos produtos
-      if (discountTotal > discountProductTotal) {
-        discountTotal = discountProductTotal;
-      }
-    }
-
-    let totalValue = Number(subTotal - discountTotal);
-    // Garantir que o total não seja negativo
-    if (totalValue < 0) {
-      totalValue = 0;
-    }
-
-    setDiscountAmount(discountTotal);
-    setCartTotal(totalValue);
-    
-    console.log('[CUPOM] Cálculo do desconto:', {
-      discountType,
-      discountPercentage,
-      discountValue: couponInfo.discountValue || couponInfo.amount,
-      discountProductTotal,
-      subTotal,
-      discountTotal,
-      totalValue
-    });
-  }, [
-    finalTotal,
-    shippingCost,
-    discountPercentage,
-    productsToUse,
-    discountProductType,
-    couponInfo,
-  ]);
-
-  // handleCouponCode
   const handleCouponCode = async (e) => {
     e.preventDefault();
-
-    const inputValue = couponRef.current?.value;
-    console.log('[CUPOM] handleCouponCode chamado com código:', inputValue);
-    console.log('[CUPOM] offerCoupons recebido:', offerCoupons);
-    console.log('[CUPOM] isLoading:', isLoading, 'isError:', isError);
-
-    if (!inputValue) {
-      console.log('[CUPOM] Erro: Código vazio');
-      notifyError("Por favor, insira um código de cupom!");
-      return;
-    }
-    if (isLoading) {
-      console.log('[CUPOM] Ainda carregando...');
-      return <Loader loading={isLoading} />;
-    }
-    if (isError) {
-      console.log('[CUPOM] Erro na requisição');
-      return notifyError("Algo deu errado");
-    }
-    
-    let coupon;
+    const code = couponRef.current?.value?.trim();
+    if (!code) return notifyError("Por favor, insira um código de cupom!");
     try {
-      coupon = findAvailableCoupon(await refetchCoupons().unwrap(), inputValue);
-    } catch {
-      notifyError("Não foi possível verificar o cupom. Tente novamente.");
-      return;
+      couponAttemptRef.current = null;
+      const quote = await validateCoupon(makeCouponRequest(code)).unwrap();
+      saveCouponQuote(quote);
+      notifySuccess(`Cupom ${quote.couponCode} aplicado com sucesso!`);
+    } catch (error) {
+      notifyError(couponError(error));
     }
-    if (!coupon) {
-      notifyError("Cupom inválido ou expirado!");
-      return;
-    }
-
-    // Converter amount para minimumAmount se necessário
-    const minimumAmountValue = coupon.minimumAmount || 0;
-    if (total < minimumAmountValue) {
-      notifyError(
-        `Valor mínimo de R$ ${minimumAmountValue.toFixed(2)} necessário para aplicar este cupom!`
-      );
-      return;
-    }
-    
-    // Preparar dados do cupom no formato esperado
-    const couponData = {
-      _id: coupon._id || coupon.id,
-      couponCode: coupon.code || coupon.couponCode,
-      title: coupon.code || coupon.couponCode,
-      discountValue: coupon.amount || 0,
-      discountType: coupon.discountType || 'fixed_cart',
-      minimumAmount: minimumAmountValue,
-      productType: 'all', // WooCommerce não tem productType específico por padrão
-      discountPercentage: coupon.discountType === 'percent' || coupon.discountType === 'percent_product' ? coupon.amount : 0,
-      endTime: coupon.expiryDate || coupon.endTime || null,
-      expiresAt: coupon.expiresAt,
-    };
-    
-    console.log('[CUPOM] Dados do cupom preparados:', couponData);
-    
-    notifySuccess(
-      `Cupom ${couponData.couponCode} aplicado com sucesso!`
-    );
-    
-    // Salvar no localStorage para persistir
-    localStorage.setItem("couponInfo", JSON.stringify(couponData));
-    
-    setCouponInfo(couponData);
-    setMinimumAmount(couponData.minimumAmount);
-    setDiscountProductType(couponData.productType);
-    setDiscountPercentage(couponData.discountPercentage);
-    dispatch(set_coupon(couponData));
   };
 
   // handleShippingCost
@@ -500,18 +362,7 @@ const useCheckoutSubmit = (directProduct = null) => {
   const submitHandler = async (data) => {
     console.log('[CHECKOUT] submitHandler iniciado com dados:', data);
     
-    if (couponInfo?.couponCode) {
-      try {
-        if (!findAvailableCoupon(await refetchCoupons().unwrap(), couponInfo.couponCode)) {
-          clearCoupon();
-          notifyError("Cupom inválido ou expirado. Confira o total e finalize novamente.");
-          return;
-        }
-      } catch {
-        notifyError("Não foi possível verificar o cupom. Tente novamente.");
-        return;
-      }
-    }
+    if (paymentRunningRef.current) return;
 
     // Garantir que o CEP está sem máscara
     const cleanZipCode = data.zipCode ? String(data.zipCode).replace(/\D/g, '') : '';
@@ -611,7 +462,33 @@ const useCheckoutSubmit = (directProduct = null) => {
     // UF fica em data.state (antes o form usava o nome "country").
     const uf = String(data.state || data.country || "").trim().toUpperCase();
 
+    let confirmedQuote = null;
+    if (couponInfo?.couponCode) {
+      try {
+        confirmedQuote = await validateCoupon(makeCouponRequest(couponInfo.couponCode, data.email)).unwrap();
+        saveCouponQuote(confirmedQuote);
+        if (Math.abs(confirmedQuote.totalAmount - cartTotal) > 0.01) {
+          notifyError("O desconto ou total mudou. Confira os valores e finalize novamente.");
+          setIsCheckoutSubmit(false);
+          return;
+        }
+      } catch (error) {
+        clearCoupon();
+        notifyError(couponError(error));
+        setIsCheckoutSubmit(false);
+        return;
+      }
+    }
+
+    if (confirmedQuote) {
+      const attemptContext = JSON.stringify([couponContext, confirmedQuote.couponCode, confirmedQuote.totalAmount, paymentMethod]);
+      let savedAttempt;
+      try { savedAttempt = JSON.parse(sessionStorage.getItem("couponCheckoutAttempt") || "null"); } catch {}
+      couponAttemptRef.current = savedAttempt?.context === attemptContext ? savedAttempt.id : crypto.randomUUID();
+      sessionStorage.setItem("couponCheckoutAttempt", JSON.stringify({ context: attemptContext, id: couponAttemptRef.current }));
+    }
     let orderInfo = {
+      checkoutAttempt: confirmedQuote ? couponAttemptRef.current : undefined,
       name: `${data.firstName} ${data.lastName}`,
       address: data.address,
       number: data.number || "",
@@ -632,15 +509,18 @@ const useCheckoutSubmit = (directProduct = null) => {
       cart: productsToUse,
       subTotal: finalTotal,
       shippingCost: shippingCost,
-      discount: discountAmount,
-      couponInfo: couponInfo?.couponCode ? { ...couponInfo, discountValue: discountAmount } : null,
-      totalAmount: cartTotal,
+      discount: confirmedQuote?.discountValue || 0,
+      couponInfo: confirmedQuote,
+      totalAmount: confirmedQuote?.totalAmount ?? cartTotal,
       user: user?._id ? `${user._id}` : null,
       paymentMethod: paymentMethod,
       _guestPassword: !user ? String(data.checkoutPassword || "").trim() : undefined,
     };
 
-    handleCheckoutPayment(orderInfo);
+    if (paymentRunningRef.current) return;
+    paymentRunningRef.current = true;
+    try { await handleCheckoutPayment(orderInfo); }
+    finally { paymentRunningRef.current = false; }
   };
 
   const handleCheckoutPayment = async (order) => {
@@ -655,7 +535,11 @@ const useCheckoutSubmit = (directProduct = null) => {
         const payResult = await createMercadoPagoTransparentPayment({
           payment_type: "pix",
           transaction_amount: Number(order.totalAmount || cartTotal || 0),
-        couponInfo: order.couponInfo,
+          couponInfo: order.couponInfo,
+        checkoutAttempt: order.checkoutAttempt,
+          cart: order.cart,
+          shippingCost: order.shippingCost,
+          checkout: { ...order, _guestPassword: undefined },
           payer_email: order.email,
           payer_first_name,
           payer_last_name,
@@ -684,6 +568,7 @@ const useCheckoutSubmit = (directProduct = null) => {
         }
 
         const orderPayload = {
+        checkoutOrder: pdata.checkoutOrder,
           name: order.name,
           address: order.address,
           number: order.number,
@@ -702,6 +587,7 @@ const useCheckoutSubmit = (directProduct = null) => {
           shippingCost: order.shippingCost,
           discount: order.discount,
         couponInfo: order.couponInfo,
+        checkoutAttempt: order.checkoutAttempt,
           totalAmount: order.totalAmount,
           shippingOption: order.shippingOption,
           cart: order.cart,
@@ -727,6 +613,7 @@ const useCheckoutSubmit = (directProduct = null) => {
           return;
         }
 
+        sessionStorage.removeItem("couponCheckoutAttempt");
         const orderId =
           result.data?.order?._id || result.data?.order?.id || result.data?._id || "";
         const orderKey =
@@ -854,7 +741,11 @@ const useCheckoutSubmit = (directProduct = null) => {
       const payResult = await createMercadoPagoTransparentPayment({
         token: tokenRes.token,
         transaction_amount: Number(order.totalAmount || cartTotal || 0),
-          couponInfo: order.couponInfo,
+        couponInfo: order.couponInfo,
+          checkoutAttempt: order.checkoutAttempt,
+        cart: order.cart,
+        shippingCost: order.shippingCost,
+        checkout: { ...order, _guestPassword: undefined },
         installments: 1,
         payer_email: order.email,
         payer_first_name,
@@ -882,6 +773,8 @@ const useCheckoutSubmit = (directProduct = null) => {
       }
 
       if (pdata.status === "rejected") {
+        sessionStorage.removeItem("couponCheckoutAttempt");
+        couponAttemptRef.current = null;
         notifyError(
           pdata.status_detail || pdata.payment?.status_detail || "Pagamento recusado."
         );
@@ -890,6 +783,7 @@ const useCheckoutSubmit = (directProduct = null) => {
       }
 
       const orderPayload = {
+        checkoutOrder: pdata.checkoutOrder,
         name: order.name,
         address: order.address,
         number: order.number,
@@ -908,6 +802,7 @@ const useCheckoutSubmit = (directProduct = null) => {
         shippingCost: order.shippingCost,
         discount: order.discount,
           couponInfo: order.couponInfo,
+          checkoutAttempt: order.checkoutAttempt,
         totalAmount: order.totalAmount,
         shippingOption: order.shippingOption,
         cart: order.cart,
@@ -932,6 +827,7 @@ const useCheckoutSubmit = (directProduct = null) => {
         return;
       }
 
+      sessionStorage.removeItem("couponCheckoutAttempt");
       const orderId = result.data?.order?._id || result.data?.order?.id || result.data?._id || "success";
       const orderKey = result.data?.order?.order_key || result.data?.order?.orderKey || "";
 
@@ -1012,6 +908,9 @@ const useCheckoutSubmit = (directProduct = null) => {
   };
 
   return {
+    clearCoupon,
+    isValidatingCoupon,
+    isCouponVerified: Boolean(couponInfo?.couponCode && verifiedCouponContext === couponContext),
     handleCouponCode,
     couponRef,
     handleShippingCost,

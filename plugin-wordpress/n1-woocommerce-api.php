@@ -3,7 +3,7 @@
  * Plugin Name: N-1 WooCommerce API
  * Plugin URI: https://loja.n-1edicoes.org
  * Description: API REST customizada para integração do template React/Next.js com WooCommerce
- * Version: 1.0.1
+ * Version: 1.1.0
  * Author: N-1 Edições
  * Author URI: https://loja.n-1edicoes.org
  * Requires at least: 6.0
@@ -809,6 +809,12 @@ class N1_WooCommerce_API
         register_rest_route($this->namespace, '/api/coupon', array(
             'methods' => 'GET',
             'callback' => array($this, 'get_coupons'),
+            'permission_callback' => '__return_true',
+        ));
+
+        register_rest_route($this->namespace, '/api/coupon/validate', array(
+            'methods' => 'POST',
+            'callback' => array($this, 'validate_coupon_checkout'),
             'permission_callback' => '__return_true',
         ));
 
@@ -3113,23 +3119,142 @@ class N1_WooCommerce_API
         return false;
     }
 
-    private function validate_checkout_coupon_expiry($params)
+    /** Read-only quote: never saves order/items or consumes coupon usage. */
+    public function validate_coupon_checkout($request)
     {
+        $params = (array) $request->get_json_params();
+        $quote = $this->recover_coupon_quote($params);
+        if (!$quote) $quote = $this->quote_checkout_coupon($params);
+        if (is_wp_error($quote)) {
+            return $quote;
+        }
+        $response = rest_ensure_response($quote);
+        $response->header('Cache-Control', 'no-store');
+        return $response;
+    }
+
+    private function recover_coupon_quote($params)
+    {
+        if (empty($params['checkoutAttempt']) || empty($params['couponInfo']['couponCode'])) return null;
+        $email = sanitize_email(isset($params['email']) ? $params['email'] : '');
+        $key = 'n1_coupon_attempt_' . hash('sha256', $params['checkoutAttempt'] . '|' . strtolower($email));
+        $id = get_transient($key);
+        $order = $id ? wc_get_order($id) : false;
+        if (!$order || $order->get_meta('_n1_coupon_prepared') !== 'yes') return null;
+        $quote = $order->get_meta('_n1_coupon_quote');
+        if (!is_array($quote) || empty($quote['couponCode']) ||
+            wc_format_coupon_code($quote['couponCode']) !== wc_format_coupon_code($params['couponInfo']['couponCode'])) return null;
+        // Este código já foi consumido pelo pedido da própria tentativa. Reusar a
+        // cotação permite recuperar seu resultado; nunca cria outro pagamento.
+        return $quote;
+    }
+
+    private function quote_checkout_coupon($params)
+    {
+        if (!class_exists('WC_Discounts') || !class_exists('WC_Order')) {
+            return new WP_Error('woocommerce_unavailable', 'Não foi possível validar o cupom.', array('status' => 503));
+        }
         $info = isset($params['couponInfo']) && is_array($params['couponInfo']) ? $params['couponInfo'] : array();
-        $code = isset($info['couponCode']) ? sanitize_text_field($info['couponCode']) : '';
-        // Compatibilidade com integrações antigas sem identificação do cupom.
-        if ($code === '') {
-            return true;
+        $code = wc_format_coupon_code(isset($info['couponCode']) ? $info['couponCode'] : '');
+        if (!$code || !empty($params['coupons']) || !empty($info['coupons'])) {
+            return new WP_Error('invalid_coupon', 'Informe apenas um cupom por pedido.', array('status' => 400));
         }
         $coupon = new WC_Coupon($code);
         if (!$coupon->get_id() || get_post_status($coupon->get_id()) !== 'publish') {
-            return new WP_Error('invalid_coupon', 'Este cupom não está mais disponível. Remova-o e tente novamente.', array('status' => 400));
+            return new WP_Error('invalid_coupon', 'Cupom inválido ou indisponível.', array('status' => 400));
         }
+        $email = sanitize_email(isset($params['email']) ? $params['email'] : (isset($params['payer_email']) ? $params['payer_email'] : ''));
+        $user_id = $this->n1_get_user_id_from_bearer_request();
+        if (!$email && $user_id) {
+            $email = get_userdata($user_id)->user_email;
+        }
+        if (!is_email($email)) {
+            return new WP_Error('coupon_email_required', 'Preencha seu e-mail antes de aplicar o cupom.', array('status' => 400));
+        }
+        // A identidade é resolvida no servidor, nunca pelo user ID enviado pelo cliente.
+        $email_user = get_user_by('email', $email);
+        $order = new WC_Order();
+        $order->set_billing_email($email);
+        $order->set_customer_id($user_id ? $user_id : ($email_user ? $email_user->ID : 0));
+        $cart = isset($params['cart']) ? $params['cart'] : (isset($params['cart_products']) ? $params['cart_products'] : array());
+        if (!is_array($cart) || !$cart) {
+            return new WP_Error('invalid_cart', 'Adicione produtos ao carrinho.', array('status' => 400));
+        }
+        $items = array();
+        foreach ($cart as $row) {
+            $id = isset($row['_id']) ? $row['_id'] : (isset($row['id']) ? $row['id'] : 0);
+            $product = is_numeric($id) ? wc_get_product((int) $id) : false;
+            $quantity = isset($row['orderQuantity']) ? (int) $row['orderQuantity'] : 1;
+            if (!$product || $quantity < 1) {
+                return new WP_Error('invalid_coupon_product', 'Este carrinho contém um produto que não pode ser validado para cupons.', array('status' => 400));
+            }
+            $item = new WC_Order_Item_Product();
+            $item->set_product($product);
+            $item->set_quantity($quantity);
+            $line_total = (float) $product->get_price() * $quantity;
+            $item->set_subtotal($line_total);
+            $item->set_total($line_total);
+            $order->add_item($item);
+            // WC_Discounts usa get_id() nos itens de pedidos; itens novos têm ID zero.
+            // Normalizar explicitamente para não sobrescrever linhas, sem salvar no banco.
+            $entry = new stdClass();
+            $entry->key = count($items);
+            $entry->object = $item;
+            $entry->product = $product;
+            $entry->quantity = $quantity;
+            $entry->price = wc_add_number_precision($line_total);
+            $items[$entry->key] = $entry;
+        }
+        $discounts = new WC_Discounts($order);
+        $discounts->set_items($items);
+        $result = $discounts->apply_coupon($coupon);
+        if (is_wp_error($result)) {
+            return $result;
+        }
+        // O validador nativo cobre ID; conferir também histórico de convidados por e-mail.
+        $limit = $coupon->get_usage_limit_per_user();
+        $usage = 0;
+        if ($limit > 0) {
+            $store = $coupon->get_data_store();
+            $usage = (int) $store->get_usage_by_email($coupon, $email);
+            if ($order->get_customer_id()) {
+                $usage += (int) $store->get_usage_by_user_id($coupon, $order->get_customer_id());
+                $account = get_userdata($order->get_customer_id());
+                if ($account && strtolower($account->user_email) !== strtolower($email)) {
+                    $usage += (int) $store->get_usage_by_email($coupon, $account->user_email);
+                }
+            }
+        }
+        if ($limit > 0 && $usage >= $limit) {
+            return new WP_Error('coupon_usage_limit', 'O limite de uso deste cupom por cliente foi atingido.', array('status' => 400));
+        }
+        $amounts = $discounts->get_discounts_by_coupon();
+        $discount = array_sum($amounts);
+        $subtotal = (float) $order->get_subtotal();
+        $shipping = max(0, (float) (isset($params['shippingCost']) ? $params['shippingCost'] : 0));
         $expires = $coupon->get_date_expires();
-        if ($expires && time() > $expires->getTimestamp()) {
-            return new WP_Error('expired_coupon', 'Este cupom está expirado. Remova-o e tente novamente.', array('status' => 400));
+        return array(
+            'couponCode' => $coupon->get_code(),
+            'discountValue' => round($discount, wc_get_price_decimals()),
+            'subTotal' => $subtotal,
+            'totalAmount' => round(max(0, $subtotal - $discount) + $shipping, wc_get_price_decimals()),
+            'expiresAt' => $expires ? $expires->getTimestamp() : null,
+            'endTime' => $expires ? $expires->date(DATE_ATOM) : null,
+        );
+    }
+
+    private function validate_checkout_coupon($params)
+    {
+        $info = isset($params['couponInfo']) && is_array($params['couponInfo']) ? $params['couponInfo'] : array();
+        $code = isset($info['couponCode']) ? sanitize_text_field($info['couponCode']) : '';
+        if ($code === '') {
+            if (!empty($info) || !empty($params['discount'])) {
+                return new WP_Error('coupon_code_required', 'Informe o código do cupom para validar o desconto.', array('status' => 400));
+            }
+            return true;
         }
-        return true;
+        $quote = $this->quote_checkout_coupon($params);
+        return is_wp_error($quote) ? $quote : true;
     }
 
     /**
@@ -3174,6 +3299,14 @@ class N1_WooCommerce_API
         $shipping = isset($params['shippingCost']) ? floatval($params['shippingCost']) : 0;
         if ($shipping < 0) {
             $shipping = 0;
+        }
+
+        if (!empty($params['couponInfo']['couponCode'])) {
+            $quote = $this->quote_checkout_coupon($params);
+            if (!is_wp_error($quote)) {
+                return $quote['totalAmount'];
+            }
+            return 0;
         }
 
         // O front envia o desconto ora em couponInfo.discountValue, ora no campo plano 'discount'.
@@ -3407,7 +3540,137 @@ class N1_WooCommerce_API
     /**
      * Checkout transparente Mercado Pago (cartão) — mesmo contrato do antigo backend Node.
      */
+    private function coupon_order_response($order)
+    {
+        return rest_ensure_response(array('success' => true, 'order' => array(
+            '_id' => (string) $order->get_id(), 'id' => $order->get_id(),
+            'order_key' => $order->get_order_key(), 'order_number' => $order->get_order_number(),
+            'status' => $order->get_status(), 'total' => $order->get_total(),
+        )));
+    }
+
+    private function get_prepared_coupon_order($reference)
+    {
+        $order = is_array($reference) && !empty($reference['id']) ? wc_get_order((int) $reference['id']) : false;
+        if (!$order || $order->get_meta('_n1_coupon_prepared') !== 'yes' ||
+            empty($reference['key']) || !hash_equals($order->get_order_key(), (string) $reference['key'])) {
+            return new WP_Error('invalid_checkout_order', 'Pedido de pagamento inválido.', array('status' => 403));
+        }
+        if (!$order->get_meta('_mercadopago_payment_id')) {
+            return new WP_Error('payment_unconfirmed', 'O pagamento ainda não foi confirmado. Entre em contato com a loja antes de repetir.', array('status' => 409));
+        }
+        return $order;
+    }
+
     public function create_mercado_pago_transparent_payment($request)
+    {
+        $params = (array) $request->get_json_params();
+        if (empty($params['couponInfo']['couponCode'])) {
+            unset($params['n1_payment_key']);
+            $request->set_body(wp_json_encode($params));
+            return $this->create_mercado_pago_transparent_payment_raw($request);
+        }
+        $attempt = isset($params['checkoutAttempt']) ? (string) $params['checkoutAttempt'] : '';
+        if (!preg_match('/^[a-zA-Z0-9-]{20,80}$/', $attempt)) {
+            return new WP_Error('invalid_checkout_attempt', 'Atualize a página antes de pagar com cupom.', array('status' => 400));
+        }
+        $attempt_key = 'n1_coupon_attempt_' . hash('sha256', $attempt . '|' . strtolower($params['payer_email']));
+        // Serializar validação + consumo do mesmo cupom no nosso checkout.
+        global $wpdb;
+        $lock = 'n1_coupon_' . md5(wc_format_coupon_code($params['couponInfo']['couponCode']));
+        if ((int) $wpdb->get_var($wpdb->prepare('SELECT GET_LOCK(%s, 10)', $lock)) !== 1) {
+            return new WP_Error('coupon_busy', 'Cupom em uso por outra compra. Tente novamente.', array('status' => 409));
+        }
+        try {
+            $previous_id = get_transient($attempt_key);
+            if ($previous_id) {
+                $previous = wc_get_order($previous_id);
+                if ($previous) {
+                    $cached = $previous->get_meta('_n1_coupon_payment_result');
+                    if (is_array($cached) && $cached) return rest_ensure_response($cached);
+                    return new WP_Error('payment_unconfirmed', 'Existe uma tentativa sem confirmação. Entre em contato com a loja antes de repetir o pagamento.', array('status' => 409));
+                }
+            }
+            $quote = $this->quote_checkout_coupon($params);
+            if (is_wp_error($quote)) return $quote;
+            if (abs((float) $params['transaction_amount'] - $quote['totalAmount']) > 0.01) {
+                return new WP_Error('coupon_total_changed', 'O total mudou. Confira o carrinho e aplique o cupom novamente.', array('status' => 409));
+            }
+            if ($quote['totalAmount'] <= 0) {
+                return new WP_Error('coupon_zero_total', 'Este desconto zera o pedido. Entre em contato com a loja para concluir.', array('status' => 400));
+            }
+            // Criar o pedido válido e consumir o uso ANTES de cobrar.
+            $prepare = new WP_REST_Request('POST');
+            $order_params = isset($params['checkout']) && is_array($params['checkout']) ? $params['checkout'] : array();
+            $order_params['cart'] = $params['cart'];
+            $order_params['email'] = $params['payer_email'];
+            $order_params['shippingCost'] = isset($params['shippingCost']) ? $params['shippingCost'] : 0;
+            $order_params['couponInfo'] = array('couponCode' => $quote['couponCode'], 'discountValue' => $quote['discountValue']);
+            $order_params['paymentIntent'] = array();
+            unset($order_params['shipping_info']);
+            $prepare->set_body(wp_json_encode($order_params));
+            $prepare->set_header('content-type', 'application/json');
+            $created = $this->add_order($prepare, true);
+            if (is_wp_error($created)) return $created;
+            $created_data = $created->get_data();
+            $order = wc_get_order($created_data['order']['id']);
+            $order->update_meta_data('_n1_coupon_quote', $quote);
+            $order->save();
+            set_transient($attempt_key, $order->get_id(), 7 * DAY_IN_SECONDS);
+            if (abs((float) $order->get_total() - $quote['totalAmount']) > 0.01) {
+                $order->update_status('cancelled', 'Total do cupom divergente antes da cobrança.');
+                return new WP_Error('coupon_total_changed', 'O total mudou. Atualize o carrinho antes de pagar.', array('status' => 409));
+            }
+        } finally {
+            $wpdb->get_var($wpdb->prepare('SELECT RELEASE_LOCK(%s)', $lock));
+        }
+        $params['transaction_amount'] = (float) $order->get_total();
+        // O pedido já reservou o cupom; não o validar novamente contra o próprio uso.
+        $params['couponInfo'] = null;
+        if (empty($params['metadata']) || !is_array($params['metadata'])) $params['metadata'] = array();
+        $params['metadata']['n1_order_id'] = $order->get_id();
+        $params['n1_payment_key'] = 'n1-coupon-order-' . $order->get_id();
+        $payment_request = new WP_REST_Request('POST');
+        $payment_request->set_body(wp_json_encode($params));
+        $payment_request->set_header('content-type', 'application/json');
+        $result = $this->create_mercado_pago_transparent_payment_raw($payment_request);
+        if (is_wp_error($result)) {
+            // Erros de transporte podem ter sido cobrados: preservar pending para conciliação.
+            $data = $result->get_error_data();
+            $status = is_array($data) && isset($data['status']) ? (int) $data['status'] : 0;
+            if (in_array($status, array(400, 401, 403, 404, 422), true)) {
+                $order->update_status('failed', 'Pagamento recusado; uso do cupom liberado.');
+            if (function_exists('wc_maybe_increase_stock_levels')) wc_maybe_increase_stock_levels($order->get_id());
+                delete_transient($attempt_key);
+            } else {
+                $order->add_order_note('Pagamento sem confirmação. Conciliar no Mercado Pago antes de repetir.');
+            }
+            return $result;
+        }
+        $data = $result->get_data();
+        $payment_id = !empty($data['payment']['id']) ? (string) $data['payment']['id'] : '';
+        $order->set_payment_method('mercadopago');
+        $order->set_payment_method_title(isset($params['payment_type']) && $params['payment_type'] === 'pix' ? 'Mercado Pago (PIX)' : 'Mercado Pago (cartão de crédito)');
+        if ($payment_id) {
+            $order->set_transaction_id($payment_id);
+            $order->update_meta_data('_mercadopago_payment_id', $payment_id);
+        }
+        if (!empty($data['pix']['qr_code'])) $order->update_meta_data('_n1_mp_pix_qr_code', $data['pix']['qr_code']);
+        $order->save();
+        if (isset($data['status']) && $data['status'] === 'rejected') {
+            $order->update_status('failed', 'Pagamento recusado; uso do cupom liberado.');
+                if (function_exists('wc_maybe_increase_stock_levels')) wc_maybe_increase_stock_levels($order->get_id());
+        } elseif ($payment_id && $this->verify_payment_confirmed('mercadopago', $payment_id, (float) $order->get_total())) {
+            $order->payment_complete($payment_id);
+        }
+        $data['checkoutOrder'] = array('id' => $order->get_id(), 'key' => $order->get_order_key());
+        $order->update_meta_data('_n1_coupon_payment_result', $data);
+        $order->save();
+        $result->set_data($data);
+        return $result;
+    }
+
+    private function create_mercado_pago_transparent_payment_raw($request)
     {
         $access_token = $this->get_mercadopago_access_token();
         if ($access_token === '') {
@@ -3419,7 +3682,7 @@ class N1_WooCommerce_API
         }
         $public_key = $this->get_mercadopago_public_key();
         $params = $request->get_json_params();
-        $coupon_validity = $this->validate_checkout_coupon_expiry(is_array($params) ? $params : array());
+        $coupon_validity = $this->validate_checkout_coupon(is_array($params) ? $params : array());
         if (is_wp_error($coupon_validity)) {
             return $coupon_validity;
         }
@@ -3486,7 +3749,7 @@ class N1_WooCommerce_API
                 }
             }
 
-            $idempotency = function_exists('wp_generate_uuid4') ? wp_generate_uuid4() : uniqid('n1-pix-', true);
+            $idempotency = !empty($params['n1_payment_key']) ? $params['n1_payment_key'] : (function_exists('wp_generate_uuid4') ? wp_generate_uuid4() : uniqid('n1-pix-', true));
 
             $mp_res = wp_remote_post(
                 'https://api.mercadopago.com/v1/payments',
@@ -3613,7 +3876,7 @@ class N1_WooCommerce_API
             $payment_body['issuer_id'] = $issuer_id;
         }
 
-        $idempotency = function_exists('wp_generate_uuid4') ? wp_generate_uuid4() : uniqid('n1-', true);
+        $idempotency = !empty($params['n1_payment_key']) ? $params['n1_payment_key'] : (function_exists('wp_generate_uuid4') ? wp_generate_uuid4() : uniqid('n1-', true));
 
         $mp_res = wp_remote_post(
             'https://api.mercadopago.com/v1/payments',
@@ -3687,7 +3950,7 @@ class N1_WooCommerce_API
         }
 
         $params = $request->get_json_params();
-        $coupon_validity = $this->validate_checkout_coupon_expiry(is_array($params) ? $params : array());
+        $coupon_validity = $this->validate_checkout_coupon(is_array($params) ? $params : array());
         if (is_wp_error($coupon_validity)) {
             return $coupon_validity;
         }
@@ -3702,6 +3965,13 @@ class N1_WooCommerce_API
         $discount = isset($params['discount']) ? floatval($params['discount']) : 0;
         $total_amount = isset($params['totalAmount']) ? floatval($params['totalAmount']) : 0;
         $payer = isset($params['payer']) && is_array($params['payer']) ? $params['payer'] : array();
+
+        if (!empty($params['couponInfo']['couponCode'])) {
+            $quote = $this->quote_checkout_coupon($params);
+            if (is_wp_error($quote)) return $quote;
+            $discount = $quote['discountValue'];
+            $total_amount = $quote['totalAmount'];
+        }
 
         $mapped_items = array();
         foreach ($items as $item) {
@@ -3967,6 +4237,18 @@ class N1_WooCommerce_API
             'orderby' => 'date',
             'order' => 'DESC',
         ));
+        if (empty($orders) && !empty($mp_data['metadata']['n1_order_id'])) {
+            $candidate = wc_get_order((int) $mp_data['metadata']['n1_order_id']);
+            if ($candidate && $candidate->get_meta('_n1_coupon_prepared') === 'yes' &&
+                abs((float) $candidate->get_total() - (float) $mp_data['transaction_amount']) < 0.01 &&
+                (!$candidate->get_meta('_mercadopago_payment_id') || (string) $candidate->get_meta('_mercadopago_payment_id') === (string) $payment_id)) {
+                $candidate->update_meta_data('_mercadopago_payment_id', (string) $payment_id);
+                $candidate->set_transaction_id((string) $payment_id);
+                $candidate->set_payment_method('mercadopago');
+                $candidate->save();
+                $orders = array($candidate);
+            }
+        }
         if (empty($orders)) {
             return rest_ensure_response(array('success' => true, 'ignored' => true, 'reason' => 'order_not_found'));
         }
@@ -3991,6 +4273,9 @@ class N1_WooCommerce_API
             } elseif ($mp_status === 'rejected' || $mp_status === 'cancelled' || $mp_status === 'refunded' || $mp_status === 'charged_back') {
                 if ($current_status !== 'failed' && $current_status !== 'cancelled') {
                     $order->update_status('failed', 'Mercado Pago webhook: pagamento com status ' . $mp_status . '.');
+                    if ($order->get_meta('_n1_coupon_prepared') === 'yes' && function_exists('wc_maybe_increase_stock_levels')) {
+                        wc_maybe_increase_stock_levels($order->get_id());
+                    }
                     $updated++;
                 }
             } else {
@@ -4016,7 +4301,7 @@ class N1_WooCommerce_API
         }
 
         $params = $request->get_json_params();
-        $coupon_validity = $this->validate_checkout_coupon_expiry(is_array($params) ? $params : array());
+        $coupon_validity = $this->validate_checkout_coupon(is_array($params) ? $params : array());
         if (is_wp_error($coupon_validity)) {
             return $coupon_validity;
         }
@@ -4041,6 +4326,12 @@ class N1_WooCommerce_API
             // fraude de preço nesta rota. Mitigado em add_order pela verificação server-side
             // do pagamento (verify_payment_confirmed) antes de marcar como pago.
             error_log('N1 API - create_payment_intent: AVISO — cobrando price do cliente sem carrinho para validar (risco de fraude de preço).');
+        }
+
+        if (!empty($params['couponInfo']['couponCode'])) {
+            $quote = $this->quote_checkout_coupon($params);
+            if (is_wp_error($quote)) return $quote;
+            $amount = $quote['totalAmount'];
         }
 
         if ($amount <= 0) {
@@ -4210,7 +4501,7 @@ class N1_WooCommerce_API
     /**
      * Add Order (WooCommerce)
      */
-    public function add_order($request)
+    public function add_order($request, $prepare_coupon = false)
     {
         try {
             if (!class_exists('WooCommerce')) {
@@ -4218,7 +4509,12 @@ class N1_WooCommerce_API
             }
 
             $params = $request->get_json_params();
-            $coupon_validity = $this->validate_checkout_coupon_expiry(is_array($params) ? $params : array());
+            if (!$prepare_coupon && !empty($params['checkoutOrder'])) {
+                $prepared = $this->get_prepared_coupon_order($params['checkoutOrder']);
+                return is_wp_error($prepared) ? $prepared : $this->coupon_order_response($prepared);
+            }
+
+            $coupon_validity = $this->validate_checkout_coupon(is_array($params) ? $params : array());
             if (is_wp_error($coupon_validity)) {
                 return $coupon_validity;
             }
@@ -4565,12 +4861,6 @@ class N1_WooCommerce_API
                 $order->add_item($ship);
             }
 
-            // Aplicar cupom se houver
-            if ($coupon_info && isset($coupon_info['couponCode'])) {
-                $coupon_code = sanitize_text_field($coupon_info['couponCode']);
-                $order->apply_coupon($coupon_code);
-            }
-
             // Adicionar informações de entrega
             $street = isset($shipping_info['address'])
                 ? sanitize_text_field($shipping_info['address'])
@@ -4778,6 +5068,14 @@ class N1_WooCommerce_API
             // Associar pedido ao usuário
             $order->set_customer_id($user_id);
 
+            if ($coupon_info && !empty($coupon_info['couponCode'])) {
+                $applied = $order->apply_coupon(sanitize_text_field($coupon_info['couponCode']));
+                if (is_wp_error($applied)) {
+                    $order->update_status('cancelled', 'Cupom recusado antes da cobrança.');
+                    return $applied;
+                }
+            }
+
             // ERP (Olist) lê CPF/endereço do cadastro do cliente — replicar metas no user meta.
             if ($user_id > 0) {
                 $user_billing_meta = array();
@@ -4804,6 +5102,10 @@ class N1_WooCommerce_API
             // Garantir que o usuário está definido como atual
             wp_set_current_user($user_id);
 
+            if ($prepare_coupon) {
+                $order->set_created_via('checkout');
+                $order->update_meta_data('_n1_coupon_prepared', 'yes');
+            }
             // Salvar pedido
             $order_id = $order->save();
 
@@ -4837,6 +5139,11 @@ class N1_WooCommerce_API
                 }
                 if (!$already_reduced) {
                     wc_reduce_stock_levels($order_id);
+                    if ($prepare_coupon && $stock_order) {
+                        // Permitir que os eventos nativos devolvam o estoque se
+                        // esta cobrança preparada for recusada ou cancelada.
+                        $stock_order->get_data_store()->set_stock_reduced($order_id, true);
+                    }
                     error_log('N1 API - add_order: estoque reduzido para pedido ' . $order_id);
                 } else {
                     error_log('N1 API - add_order: estoque já estava reduzido para pedido ' . $order_id . ' — pulando.');
@@ -4850,7 +5157,7 @@ class N1_WooCommerce_API
             // Total esperado = recálculo server-side (preço real dos produtos WooCommerce +
             // frete/desconto do payload). Espelha o valor efetivamente cobrado e não confia no
             // preço enviado pelo cliente para produtos que existem no WooCommerce.
-            $order_total_server = $this->calculate_cart_amount_server_side($cart_products, $params);
+            $order_total_server = $coupon_info && !empty($coupon_info['couponCode']) ? (float) $confirm_order->get_total() : $this->calculate_cart_amount_server_side($cart_products, $params);
             $already_paid = in_array($confirm_order->get_status(), array('processing', 'completed'), true);
 
             if (!$already_paid && $payment_intent_id && $order_total_server > 0 && $this->verify_payment_confirmed($wc_payment_gateway, $payment_intent_id, $order_total_server)) {
