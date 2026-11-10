@@ -56,6 +56,10 @@ const permanentMarker = Permanent_Marker({
 export const metadata = {
   title: "N-1 Edições",
   description: "N-1 Edições - Editora Independente",
+  icons: {
+    icon: [{ url: "/icon-192.png", type: "image/png", sizes: "192x192" }],
+    shortcut: "/icon-192.png",
+  },
 };
 
 export default function RootLayout({ children }) {
