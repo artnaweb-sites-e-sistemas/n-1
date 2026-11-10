@@ -1,5 +1,5 @@
 'use client';
-import * as dayjs from "dayjs";
+import { isCouponExpired, findAvailableCoupon } from "@utils/coupon-expiry.mjs";
 import React, { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector, useStore } from "react-redux";
 import { useForm } from "react-hook-form";
@@ -23,7 +23,7 @@ import {
 } from "src/redux/features/auth/authApi";
 
 const useCheckoutSubmit = (directProduct = null) => {
-  const { data: offerCoupons, isError, isLoading } = useGetOfferCouponsQuery();
+  const { data: offerCoupons, isError, isLoading, refetch: refetchCoupons } = useGetOfferCouponsQuery(undefined, { refetchOnMountOrArgChange: true });
   const [addOrder, {}] = useAddOrderMutation();
   const [createMercadoPagoTransparentPayment, {}] =
     useCreateMercadoPagoTransparentPaymentMutation();
@@ -116,16 +116,52 @@ const useCheckoutSubmit = (directProduct = null) => {
     }
   }, [paymentMethod, clearErrors]);
 
+  const clearCoupon = () => {
+    setCouponInfo({});
+    setDiscountPercentage(0);
+    setMinimumAmount(0);
+    setDiscountProductType("");
+    setDiscountAmount(0);
+    dispatch(set_coupon(null));
+  };
+
   useEffect(() => {
-    if (localStorage.getItem("couponInfo")) {
-      const data = localStorage.getItem("couponInfo");
-      const coupon = JSON.parse(data);
-      setCouponInfo(coupon);
-      setDiscountPercentage(coupon.discountPercentage);
-      setMinimumAmount(coupon.minimumAmount);
-      setDiscountProductType(coupon.productType);
-    }
+    let active = true;
+    const restore = async () => {
+      try {
+        const saved = JSON.parse(localStorage.getItem("couponInfo") || "null");
+        if (!saved?.couponCode) return;
+        const fresh = await refetchCoupons().unwrap();
+        if (!active) return;
+        const coupon = findAvailableCoupon(fresh, saved.couponCode);
+        if (!coupon) { clearCoupon(); return; }
+        const restored = { ...saved, expiresAt: coupon.expiresAt, endTime: coupon.expiryDate || coupon.endTime || null };
+        setCouponInfo(restored);
+        setDiscountPercentage(restored.discountPercentage);
+        setMinimumAmount(restored.minimumAmount);
+        setDiscountProductType(restored.productType);
+        dispatch(set_coupon(restored));
+      } catch {
+        if (active) clearCoupon();
+      }
+    };
+    restore();
+    return () => { active = false; };
   }, []);
+
+  useEffect(() => {
+    if (!couponInfo?.couponCode) return;
+    const check = () => {
+      if (isCouponExpired(couponInfo)) {
+        clearCoupon();
+        notifyError("Este cupom está expirado e foi removido.");
+      }
+    };
+    check();
+    const timer = setInterval(check, 1000);
+    window.addEventListener("focus", check);
+    return () => { clearInterval(timer); window.removeEventListener("focus", check); };
+  }, [couponInfo]);
 
   useEffect(() => {
     if (minimumAmount - discountAmount > finalTotal || productsToUse.length === 0) {
@@ -224,7 +260,7 @@ const useCheckoutSubmit = (directProduct = null) => {
   ]);
 
   // handleCouponCode
-  const handleCouponCode = (e) => {
+  const handleCouponCode = async (e) => {
     e.preventDefault();
 
     const inputValue = couponRef.current?.value;
@@ -246,55 +282,16 @@ const useCheckoutSubmit = (directProduct = null) => {
       return notifyError("Algo deu errado");
     }
     
-    // A API retorna { coupons: [...] }, então precisamos acessar offerCoupons?.coupons
-    const couponsArray = Array.isArray(offerCoupons) 
-      ? offerCoupons 
-      : (offerCoupons?.coupons || offerCoupons?.data?.coupons || []);
-    
-    console.log('[CUPOM] couponsArray processado:', couponsArray);
-    console.log('[CUPOM] Tipo de couponsArray:', Array.isArray(couponsArray) ? 'Array' : typeof couponsArray);
-    console.log('[CUPOM] Tamanho do array:', couponsArray?.length || 0);
-    
-    if (!Array.isArray(couponsArray) || couponsArray.length === 0) {
-      console.log('[CUPOM] Erro: Nenhum cupom disponível. Array:', couponsArray);
-      notifyError("Nenhum cupom disponível no momento!");
+    let coupon;
+    try {
+      coupon = findAvailableCoupon(await refetchCoupons().unwrap(), inputValue);
+    } catch {
+      notifyError("Não foi possível verificar o cupom. Tente novamente.");
       return;
     }
-    
-    // Log dos códigos disponíveis
-    const availableCodes = couponsArray.map(c => c.code || c.couponCode || 'SEM CÓDIGO');
-    console.log('[CUPOM] Códigos de cupons disponíveis:', availableCodes);
-    
-    // O backend retorna 'code' mas o código antigo esperava 'couponCode'
-    const inputUpper = inputValue.toUpperCase();
-    console.log('[CUPOM] Procurando código (uppercase):', inputUpper);
-    
-    const result = couponsArray.filter(
-      (coupon) => {
-        const couponCode = (coupon.code || coupon.couponCode || '').toUpperCase();
-        const matches = couponCode === inputUpper;
-        console.log('[CUPOM] Comparando:', couponCode, '===', inputUpper, '?', matches);
-        return matches;
-      }
-    );
-
-    console.log('[CUPOM] Resultado do filter:', result);
-    console.log('[CUPOM] Quantidade de matches:', result.length);
-
-    if (result.length < 1) {
-      console.log('[CUPOM] Erro: Cupom não encontrado. Código procurado:', inputUpper, 'Códigos disponíveis:', availableCodes);
-      notifyError("Por favor, insira um cupom válido!");
+    if (!coupon) {
+      notifyError("Cupom inválido ou expirado!");
       return;
-    }
-
-    const coupon = result[0];
-    
-    // Verificar se o cupom está expirado (usar expiryDate do backend)
-    if (coupon.expiryDate) {
-      if (dayjs().isAfter(dayjs(coupon.expiryDate))) {
-        notifyError("Este cupom está expirado!");
-        return;
-      }
     }
 
     // Converter amount para minimumAmount se necessário
@@ -316,7 +313,8 @@ const useCheckoutSubmit = (directProduct = null) => {
       minimumAmount: minimumAmountValue,
       productType: 'all', // WooCommerce não tem productType específico por padrão
       discountPercentage: coupon.discountType === 'percent' || coupon.discountType === 'percent_product' ? coupon.amount : 0,
-      endTime: coupon.expiryDate || null,
+      endTime: coupon.expiryDate || coupon.endTime || null,
+      expiresAt: coupon.expiresAt,
     };
     
     console.log('[CUPOM] Dados do cupom preparados:', couponData);
@@ -502,6 +500,19 @@ const useCheckoutSubmit = (directProduct = null) => {
   const submitHandler = async (data) => {
     console.log('[CHECKOUT] submitHandler iniciado com dados:', data);
     
+    if (couponInfo?.couponCode) {
+      try {
+        if (!findAvailableCoupon(await refetchCoupons().unwrap(), couponInfo.couponCode)) {
+          clearCoupon();
+          notifyError("Cupom inválido ou expirado. Confira o total e finalize novamente.");
+          return;
+        }
+      } catch {
+        notifyError("Não foi possível verificar o cupom. Tente novamente.");
+        return;
+      }
+    }
+
     // Garantir que o CEP está sem máscara
     const cleanZipCode = data.zipCode ? String(data.zipCode).replace(/\D/g, '') : '';
     console.log('[CHECKOUT] CEP limpo:', cleanZipCode);
@@ -622,6 +633,7 @@ const useCheckoutSubmit = (directProduct = null) => {
       subTotal: finalTotal,
       shippingCost: shippingCost,
       discount: discountAmount,
+      couponInfo: couponInfo?.couponCode ? { ...couponInfo, discountValue: discountAmount } : null,
       totalAmount: cartTotal,
       user: user?._id ? `${user._id}` : null,
       paymentMethod: paymentMethod,
@@ -643,6 +655,7 @@ const useCheckoutSubmit = (directProduct = null) => {
         const payResult = await createMercadoPagoTransparentPayment({
           payment_type: "pix",
           transaction_amount: Number(order.totalAmount || cartTotal || 0),
+        couponInfo: order.couponInfo,
           payer_email: order.email,
           payer_first_name,
           payer_last_name,
@@ -688,6 +701,7 @@ const useCheckoutSubmit = (directProduct = null) => {
           subTotal: order.subTotal,
           shippingCost: order.shippingCost,
           discount: order.discount,
+        couponInfo: order.couponInfo,
           totalAmount: order.totalAmount,
           shippingOption: order.shippingOption,
           cart: order.cart,
@@ -840,6 +854,7 @@ const useCheckoutSubmit = (directProduct = null) => {
       const payResult = await createMercadoPagoTransparentPayment({
         token: tokenRes.token,
         transaction_amount: Number(order.totalAmount || cartTotal || 0),
+          couponInfo: order.couponInfo,
         installments: 1,
         payer_email: order.email,
         payer_first_name,
@@ -892,6 +907,7 @@ const useCheckoutSubmit = (directProduct = null) => {
         subTotal: order.subTotal,
         shippingCost: order.shippingCost,
         discount: order.discount,
+          couponInfo: order.couponInfo,
         totalAmount: order.totalAmount,
         shippingOption: order.shippingOption,
         cart: order.cart,

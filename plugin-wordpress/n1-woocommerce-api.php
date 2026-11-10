@@ -3,7 +3,7 @@
  * Plugin Name: N-1 WooCommerce API
  * Plugin URI: https://loja.n-1edicoes.org
  * Description: API REST customizada para integração do template React/Next.js com WooCommerce
- * Version: 1.0.0
+ * Version: 1.0.1
  * Author: N-1 Edições
  * Author URI: https://loja.n-1edicoes.org
  * Requires at least: 6.0
@@ -2155,67 +2155,54 @@ class N1_WooCommerce_API
 
                 error_log('N1 API - get_coupons: Processando cupom ID: ' . $coupon_id . ', Código: ' . $coupon_code);
 
-                // Verificar se é válido (mas vamos incluir mesmo se não for válido para debug)
-                // is_valid() pode retornar false se não houver usuário logado ou outras restrições
-                $is_valid = $coupon->is_valid();
-                error_log('N1 API - get_coupons: Cupom ' . $coupon_code . ' é válido? ' . ($is_valid ? 'SIM' : 'NÃO'));
-
-                if (!$is_valid) {
+                // Sem carrinho, validar aqui somente a expiração absoluta.
+                $expiry_date = $coupon->get_date_expires();
+                if ($expiry_date && time() > $expiry_date->getTimestamp()) {
                     $total_invalid++;
-                    // Log o motivo da invalidade
-                    $errors = $coupon->get_errors();
-                    if (!empty($errors)) {
-                        error_log('N1 API - get_coupons: Erros do cupom ' . $coupon_code . ': ' . print_r($errors, true));
-                    }
-                    // Vamos incluir mesmo cupons inválidos para debug, mas marcar como inválido
-                    // Se quiser retornar apenas válidos, descomente o continue abaixo
-                    // continue;
+                    continue;
+                }
+                $total_valid++;
+                // Obter valor mínimo do pedido (minimum_amount)
+                $minimum_amount = $coupon->get_minimum_amount();
+                if (empty($minimum_amount)) {
+                    $minimum_amount = 0;
                 }
 
-                // Incluir o cupom mesmo se não for válido (para debug e para permitir validação no frontend)
-                if ($is_valid || true) { // Sempre incluir por enquanto para debug
-                    $total_valid++;
-                    // Obter valor mínimo do pedido (minimum_amount)
-                    $minimum_amount = $coupon->get_minimum_amount();
-                    if (empty($minimum_amount)) {
-                        $minimum_amount = 0;
-                    }
-
-                    // Obter data de expiração
-                    $expiry_date = $coupon->get_date_expires();
-                    $expiry_date_str = null;
-                    if ($expiry_date) {
-                        $expiry_date_str = $expiry_date->date('Y-m-d');
-                    }
-
-                    // Obter limite de uso
-                    $usage_limit = $coupon->get_usage_limit();
-                    $usage_count = $coupon->get_usage_count();
-
-                    // Calcular desconto percentual se for tipo percent
-                    $discount_percentage = 0;
-                    if ($coupon->get_discount_type() === 'percent') {
-                        $discount_percentage = floatval($coupon->get_amount());
-                    }
-
-                    $coupons[] = array(
-                        '_id' => (string) $coupon_id,
-                        'id' => $coupon_id,
-                        'code' => $coupon->get_code(),
-                        'couponCode' => $coupon->get_code(), // Compatibilidade
-                        'title' => $coupon->get_code(), // Para exibição
-                        'amount' => floatval($coupon->get_amount()),
-                        'discountType' => $coupon->get_discount_type(),
-                        'discountPercentage' => $discount_percentage,
-                        'description' => $coupon->get_description(),
-                        'expiryDate' => $expiry_date_str,
-                        'endTime' => $expiry_date_str, // Compatibilidade
-                        'minimumAmount' => floatval($minimum_amount),
-                        'productType' => 'all', // WooCommerce não tem tipo de produto específico por padrão
-                        'usageLimit' => $usage_limit ? intval($usage_limit) : null,
-                        'usageCount' => intval($usage_count),
-                    );
+                // Obter data de expiração
+                $expiry_date = $coupon->get_date_expires();
+                $expiry_date_str = null;
+                if ($expiry_date) {
+                    $expiry_date_str = $expiry_date->date(DATE_ATOM);
                 }
+
+                // Obter limite de uso
+                $usage_limit = $coupon->get_usage_limit();
+                $usage_count = $coupon->get_usage_count();
+
+                // Calcular desconto percentual se for tipo percent
+                $discount_percentage = 0;
+                if ($coupon->get_discount_type() === 'percent') {
+                    $discount_percentage = floatval($coupon->get_amount());
+                }
+
+                $coupons[] = array(
+                    '_id' => (string) $coupon_id,
+                    'id' => $coupon_id,
+                    'code' => $coupon->get_code(),
+                    'couponCode' => $coupon->get_code(), // Compatibilidade
+                    'title' => $coupon->get_code(), // Para exibição
+                    'amount' => floatval($coupon->get_amount()),
+                    'discountType' => $coupon->get_discount_type(),
+                    'discountPercentage' => $discount_percentage,
+                    'description' => $coupon->get_description(),
+                    'expiryDate' => $expiry_date_str,
+                    'expiresAt' => $expiry_date ? $expiry_date->getTimestamp() : null,
+                    'endTime' => $expiry_date_str, // Compatibilidade
+                    'minimumAmount' => floatval($minimum_amount),
+                    'productType' => 'all', // WooCommerce não tem tipo de produto específico por padrão
+                    'usageLimit' => $usage_limit ? intval($usage_limit) : null,
+                    'usageCount' => intval($usage_count),
+                );
             }
             wp_reset_postdata();
         }
@@ -2228,7 +2215,9 @@ class N1_WooCommerce_API
             error_log('N1 API - get_coupons: Códigos dos cupons retornados: ' . implode(', ', $codes));
         }
 
-        return rest_ensure_response(array('coupons' => $coupons));
+        $response = rest_ensure_response(array('coupons' => $coupons));
+        $response->header('Cache-Control', 'no-store, no-cache, must-revalidate');
+        return $response;
     }
 
     /**
@@ -3124,6 +3113,25 @@ class N1_WooCommerce_API
         return false;
     }
 
+    private function validate_checkout_coupon_expiry($params)
+    {
+        $info = isset($params['couponInfo']) && is_array($params['couponInfo']) ? $params['couponInfo'] : array();
+        $code = isset($info['couponCode']) ? sanitize_text_field($info['couponCode']) : '';
+        // Compatibilidade com integrações antigas sem identificação do cupom.
+        if ($code === '') {
+            return true;
+        }
+        $coupon = new WC_Coupon($code);
+        if (!$coupon->get_id() || get_post_status($coupon->get_id()) !== 'publish') {
+            return new WP_Error('invalid_coupon', 'Este cupom não está mais disponível. Remova-o e tente novamente.', array('status' => 400));
+        }
+        $expires = $coupon->get_date_expires();
+        if ($expires && time() > $expires->getTimestamp()) {
+            return new WP_Error('expired_coupon', 'Este cupom está expirado. Remova-o e tente novamente.', array('status' => 400));
+        }
+        return true;
+    }
+
     /**
      * SEGURANÇA (FALHA 1): recalcula o total do carrinho no servidor.
      * Para produtos reais do WooCommerce usa $product->get_price() (ignora o preço do cliente).
@@ -3411,6 +3419,11 @@ class N1_WooCommerce_API
         }
         $public_key = $this->get_mercadopago_public_key();
         $params = $request->get_json_params();
+        $coupon_validity = $this->validate_checkout_coupon_expiry(is_array($params) ? $params : array());
+        if (is_wp_error($coupon_validity)) {
+            return $coupon_validity;
+        }
+
         if (!is_array($params)) {
             $params = array();
         }
@@ -3674,6 +3687,11 @@ class N1_WooCommerce_API
         }
 
         $params = $request->get_json_params();
+        $coupon_validity = $this->validate_checkout_coupon_expiry(is_array($params) ? $params : array());
+        if (is_wp_error($coupon_validity)) {
+            return $coupon_validity;
+        }
+
         if (!is_array($params)) {
             $params = array();
         }
@@ -3998,6 +4016,11 @@ class N1_WooCommerce_API
         }
 
         $params = $request->get_json_params();
+        $coupon_validity = $this->validate_checkout_coupon_expiry(is_array($params) ? $params : array());
+        if (is_wp_error($coupon_validity)) {
+            return $coupon_validity;
+        }
+
         $amount = isset($params['price']) ? floatval($params['price']) : 0;
         $payment_method = isset($params['payment_method']) ? sanitize_text_field($params['payment_method']) : 'card';
 
@@ -4195,6 +4218,11 @@ class N1_WooCommerce_API
             }
 
             $params = $request->get_json_params();
+            $coupon_validity = $this->validate_checkout_coupon_expiry(is_array($params) ? $params : array());
+            if (is_wp_error($coupon_validity)) {
+                return $coupon_validity;
+            }
+
 
             // Log para debug (remover em produção)
             error_log('N1 API - add_order chamado com: ' . print_r($params, true));

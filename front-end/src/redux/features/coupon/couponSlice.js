@@ -10,6 +10,10 @@ export const couponSlice = createSlice({
   reducers: {
     set_coupon: (state, { payload }) => {
       state.coupon_info = payload;
+      if (!payload) {
+        localStorage.removeItem("couponInfo");
+        return;
+      }
       localStorage.setItem(
         "couponInfo",
         JSON.stringify(payload)
