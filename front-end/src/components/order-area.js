@@ -9,6 +9,7 @@ import Footer from "@layout/footer";
 import { useGetUserOrderByIdQuery } from "src/redux/features/orderApi";
 import ErrorMessage from "@components/error-message/error";
 import InvoiceArea from "./invoice-area";
+import MetaPurchase from "@components/order/meta-purchase";
 
 const SingleOrderArea = ({ orderId, orderKey = "" }) => {
   const contentRef = useRef(null);
@@ -53,6 +54,7 @@ const SingleOrderArea = ({ orderId, orderKey = "" }) => {
     
     content = (
       <section className="invoice__area pt-120 pb-120">
+        <MetaPurchase order={order} />
         <div className="container">
           {/* <!-- invoice msg --> */}
           <div className="invoice__msg-wrapper">
