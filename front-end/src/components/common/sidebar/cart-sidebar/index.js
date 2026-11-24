@@ -5,11 +5,13 @@ import Link from "next/link";
 import SingleCartItem from "./single-cart-item";
 import useCartInfo from "@hooks/use-cart-info";
 import EmptyCart from "./empty-cart";
+import { isProductSoldOut, SOLD_OUT_LABEL } from "src/utils/product-stock";
 
 
 const CartSidebar = ({ isCartOpen, setIsCartOpen }) => {
   const { cart_products } = useSelector((state) => state.cart);
   const {total} = useCartInfo();
+  const hasSoldOut = cart_products.some(isProductSoldOut);
 
   return (
     <React.Fragment>
@@ -51,9 +53,15 @@ const CartSidebar = ({ isCartOpen, setIsCartOpen }) => {
               <Link href="/cart" className="tp-btn mb-10 w-100">
                 <span></span> Ver Carrinho de livros
               </Link>
-              <Link href="/checkout" className="tp-btn-border w-100 cursor-pointer">
-                <span></span> Finalizar Compra
-              </Link>
+              {hasSoldOut ? (
+                <p role="status" style={{ color: "#721c24", fontSize: 13, margin: 0 }}>
+                  {SOLD_OUT_LABEL}. Remova o livro esgotado para finalizar.
+                </p>
+              ) : (
+                <Link href="/checkout" className="tp-btn-border w-100 cursor-pointer">
+                  <span></span> Finalizar Compra
+                </Link>
+              )}
             </div>
           </div>
         </div>

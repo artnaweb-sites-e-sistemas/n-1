@@ -6,9 +6,11 @@ import { useDispatch } from "react-redux";
 import {Minus,Plus} from "@svg/index";
 import { add_cart_product, quantityDecrement, remove_product } from "src/redux/features/cartSlice";
 import { getProductUrl } from "src/utils/product-url";
+import { isProductSoldOut, SOLD_OUT_LABEL } from "src/utils/product-stock";
 
 const SingleCartItem = ({item}) => {
   const {_id,image,title,originalPrice,orderQuantity=0,discount=0} = item || {};
+  const soldOut = isProductSoldOut(item);
   const productUrl = getProductUrl(item, _id);
   const dispatch = useDispatch()
   const unitPrice = discount > 0
@@ -42,6 +44,11 @@ const SingleCartItem = ({item}) => {
       </td>
       <td className="product-name">
         <Link href={productUrl}>{title}</Link>
+        {soldOut && (
+          <div className="product__details-stock" role="status">
+            <span className="out-of-stock">{SOLD_OUT_LABEL}</span>
+          </div>
+        )}
       </td>
       <td className="product-price">
         <span className="amount">R${Number(unitPrice).toFixed(2).replace('.', ',')}</span>
@@ -52,7 +59,15 @@ const SingleCartItem = ({item}) => {
             <Minus/>
           </span>
           <input className="tp-cart-input" type="text" value={orderQuantity} onChange={handleChange} />
-          <span className="tp-cart-plus" onClick={()=> handleAddProduct(item)}>
+          <span
+            className="tp-cart-plus"
+            onClick={() => !soldOut && handleAddProduct(item)}
+            style={{
+              opacity: soldOut ? 0.5 : 1,
+              cursor: soldOut ? "not-allowed" : "pointer",
+              pointerEvents: soldOut ? "none" : "auto",
+            }}
+          >
             <Plus/>
           </span>
         </div>

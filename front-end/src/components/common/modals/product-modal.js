@@ -15,11 +15,13 @@ import { add_to_wishlist } from "src/redux/features/wishlist-slice";
 import { Modal } from "react-bootstrap";
 import { handleModalShow } from "src/redux/features/productSlice";
 import { getListingImageUrl } from "src/utils/product-page-main-image";
+import { isProductSoldOut, SOLD_OUT_LABEL } from "src/utils/product-stock";
 
 const ProductModal = () => {
   const { product, isShow } = useSelector((state) => state.product);
   const { wishlist } = useSelector((state) => state.wishlist);
-  const { _id, relatedImages, images, title, tags, SKU, price, discount, originalPrice, sku, inStock } = product || {};
+  const { _id, relatedImages, images, title, tags, SKU, price, discount, originalPrice, sku } = product || {};
+  const soldOut = isProductSoldOut(product);
   
   // Listagem/modal: mockup (não capa reta)
   const mainImage = getListingImageUrl(product) || '/images/placeholder.webp';
@@ -42,6 +44,7 @@ const ProductModal = () => {
 
   // handle add product
   const handleAddProduct = (prd) => {
+    if (isProductSoldOut(prd)) return;
     dispatch(add_cart_product(prd));
   };
   // initial Order Quantity
@@ -132,22 +135,26 @@ const ProductModal = () => {
               />
               {/* Price */}
 
-              {/* quantity */}
-              <Quantity />
-              {/* quantity */}
+              {soldOut ? (
+                <div className="product__details-stock" role="status">
+                  <span className="out-of-stock">{SOLD_OUT_LABEL}</span>
+                </div>
+              ) : (
+                <Quantity />
+              )}
               <div className="product__details-action d-flex flex-wrap align-items-center">
                 <button
                   onClick={() => handleAddProduct(product)}
                   type="button"
                   className="product-add-cart-btn product-add-cart-btn-3"
-                  disabled={!inStock}
+                  disabled={soldOut}
                   style={{
-                    opacity: inStock ? 1 : 0.5,
-                    cursor: inStock ? 'pointer' : 'not-allowed'
+                    opacity: soldOut ? 0.7 : 1,
+                    cursor: soldOut ? 'not-allowed' : 'pointer'
                   }}
                 >
                   <CartTwo />
-                  {inStock ? 'Adicionar ao Carrinho' : 'Fora de Estoque'}
+                  {soldOut ? SOLD_OUT_LABEL : 'Adicionar ao Carrinho'}
                 </button>
                 <button
                   onClick={() => handleAddWishlist(product)}

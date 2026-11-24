@@ -15,6 +15,7 @@ import { add_to_wishlist } from "src/redux/features/wishlist-slice";
 import { getProductLeadParagraph } from "src/utils/description-paragraphs";
 import { getProductPageMainImageUrl } from "src/utils/product-page-main-image";
 import { hasCatalogLayout } from "@utils/catalog-layout";
+import { isProductSoldOut, SOLD_OUT_LABEL } from "src/utils/product-stock";
 
 const ProductDetailsArea = ({ product }) => {
   const {
@@ -23,8 +24,6 @@ const ProductDetailsArea = ({ product }) => {
     relatedImages,
     images,
     title,
-    quantity,
-    inStock,
     originalPrice,
     discount,
     tags,
@@ -94,9 +93,11 @@ const ProductDetailsArea = ({ product }) => {
   const { cart_products } = useSelector((state) => state.cart);
   const isWishlistAdded = wishlist.some((item) => item._id === _id);
   const isAddedToCart = cart_products.some((item) => item._id === _id);
+  const soldOut = isProductSoldOut(product);
 
   // handle add product
   const handleAddProduct = (prd) => {
+    if (isProductSoldOut(prd)) return;
     dispatch(add_cart_product(prd));
   };
 
@@ -107,6 +108,7 @@ const ProductDetailsArea = ({ product }) => {
 
   // handle go to checkout with single product (direct checkout)
   const handleAddToCartAndCheckout = (prd) => {
+    if (isProductSoldOut(prd)) return;
     // Salvar produto no sessionStorage para checkout direto
     // Garantir que tem orderQuantity
     const productForCheckout = {
@@ -238,6 +240,28 @@ const ProductDetailsArea = ({ product }) => {
                   </div>
                   {/* Product Details Price */}
 
+                  {soldOut ? (
+                    <div
+                      className="d-flex align-items-center justify-content-center gap-2"
+                      style={{ width: '100%', maxWidth: 420 }}
+                    >
+                      <div className="product__details-stock" role="status" style={{ textAlign: 'center' }}>
+                        <span className="out-of-stock">{SOLD_OUT_LABEL}</span>
+                      </div>
+                      <button
+                        onClick={() => handleAddWishlist(product)}
+                        type="button"
+                        className={`product-action-btn ${isWishlistAdded ? "active" : ""}`}
+                        style={{ flexShrink: 0 }}
+                      >
+                        <HeartTwo />
+                        <span className="product-action-tooltip">
+                          Adicionar à Lista de Desejos
+                        </span>
+                      </button>
+                    </div>
+                  ) : (
+                    <>
                   {/* quantity */}
                   <div style={{ width: '100%', maxWidth: 420, display: 'flex', justifyContent: 'center' }}>
                     <ProductQuantity />
@@ -294,10 +318,9 @@ const ProductDetailsArea = ({ product }) => {
                             onClick={() => handleAddProduct(product)}
                             type="button"
                             className="product-add-cart-btn product-add-cart-btn-3 product-cart-icon-shake"
-                            disabled={!inStock}
                             style={{
-                              opacity: inStock ? 1 : 0.5,
-                              cursor: inStock ? 'pointer' : 'not-allowed',
+                              opacity: 1,
+                              cursor: 'pointer',
                               display: 'inline-flex',
                               alignItems: 'center',
                               justifyContent: 'center',
@@ -307,7 +330,7 @@ const ProductDetailsArea = ({ product }) => {
                             }}
                           >
                             <CartTwo />
-                            {inStock ? 'Adicionar ao Carrinho' : 'Fora de Estoque'}
+                            Adicionar ao Carrinho
                           </button>
                           <button
                             onClick={() => handleAddWishlist(product)}
@@ -326,10 +349,9 @@ const ProductDetailsArea = ({ product }) => {
                           onClick={() => handleAddToCartAndCheckout(product)}
                           type="button"
                           className="product-add-cart-btn product-add-cart-btn-3 product-checkout-btn-hover"
-                          disabled={!inStock}
                           style={{
-                            opacity: inStock ? 1 : 0.5,
-                            cursor: inStock ? 'pointer' : 'not-allowed',
+                            opacity: 1,
+                            cursor: 'pointer',
                             backgroundColor: '#ffffff',
                             border: '1px solid #000000',
                             color: '#000000',
@@ -346,14 +368,16 @@ const ProductDetailsArea = ({ product }) => {
                       </>
                     )}
                   </div>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
             <div className="col-xl-5 col-lg-6">
               <div className="product__details-wrapper">
-                {!inStock && (
-                  <div className="product__details-stock">
-                    <span className="out-of-stock">Sem Estoque</span>
+                {soldOut && (
+                  <div className="product__details-stock" role="status">
+                    <span className="out-of-stock">{SOLD_OUT_LABEL}</span>
                   </div>
                 )}
                 {/* Author name above the title */}

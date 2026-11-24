@@ -4,6 +4,7 @@ import { useSelector } from "react-redux";
 import OrderDetails from "./order-details";
 import PaymentCardElement from "@components/order/pay-card-element";
 import OrderSingleCartItem from "./order-single-cart-item";
+import { isProductSoldOut, SOLD_OUT_LABEL } from "src/utils/product-stock";
 
 const OrderArea = ({
   mercadoPagoCardRef,
@@ -30,6 +31,7 @@ const OrderArea = ({
   // Usar produtos passados como prop ou do Redux como fallback
   const { cart_products: fallbackProducts } = useSelector((state) => state.cart);
   const cart_products = productsToUse || fallbackProducts;
+  const hasSoldOut = (cart_products || []).some(isProductSoldOut);
   
   // Calcular subtotal baseado nos produtos que estão sendo usados
   // Se for checkout direto, calcular apenas do produto direto (ignorar carrinho)
@@ -90,6 +92,11 @@ const OrderArea = ({
 
       <div className="payment-method faq__wrapper tp-accordion">
         <h3 style={{ marginBottom: '20px' }}>Método de Pagamento</h3>
+        {hasSoldOut && (
+          <p role="status" style={{ color: "#721c24", marginBottom: 16 }}>
+            {SOLD_OUT_LABEL}. Remova o livro esgotado para continuar.
+          </p>
+        )}
         <div className="accordion" id="checkoutAccordion">
           {/* Cartão de Crédito */}
           <div className="accordion-item" style={{ 
@@ -139,6 +146,7 @@ const OrderArea = ({
                   cardError={error}
                   cart_products={cart_products}
                   isCheckoutSubmit={isCheckoutSubmit}
+                  purchaseBlocked={hasSoldOut}
                   paymentMethod={paymentMethod}
                 />
               </div>
@@ -207,7 +215,7 @@ const OrderArea = ({
                     <button
                       type="submit"
                       className="tp-btn"
-                      disabled={cart_products.length === 0 || isCheckoutSubmit}
+                      disabled={cart_products.length === 0 || isCheckoutSubmit || hasSoldOut}
                       style={{ backgroundColor: '#00D4AA', minWidth: '250px' }}
                     >
                       {isCheckoutSubmit ? (

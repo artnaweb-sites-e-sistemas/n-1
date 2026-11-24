@@ -1314,12 +1314,13 @@ class N1_WooCommerce_API
     }
 
     /**
-     * Opção nativa WooCommerce: Configurações → Produtos → Inventário
-     * "Ocultar itens fora de estoque do catálogo".
+     * A loja headless sempre lista livros esgotados.
+     * A compra fica bloqueada no front (inStock) e na criação do pedido.
+     * A opção nativa "Ocultar itens fora de estoque do catálogo" não se aplica a esta API.
      */
     private function should_hide_out_of_stock()
     {
-        return get_option('woocommerce_hide_out_of_stock_items') === 'yes';
+        return false;
     }
 
     /**
@@ -4730,7 +4731,7 @@ class N1_WooCommerce_API
                             $unavailable_products[] = array(
                                 'name' => $product_name,
                                 'product_id' => $product_id,
-                                'reason' => 'fora de estoque',
+                                'reason' => 'produto esgotado',
                             );
                             continue;
                         }

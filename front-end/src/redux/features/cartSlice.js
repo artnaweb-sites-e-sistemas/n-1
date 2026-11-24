@@ -1,6 +1,7 @@
 import { createSlice } from "@reduxjs/toolkit";
 import { getLocalStorage, setLocalStorage } from "@utils/localstorage";
 import { notifyError, notifySuccess } from "@utils/toast";
+import { isProductSoldOut, SOLD_OUT_LABEL } from "src/utils/product-stock";
 
 const initialState = {
   cart_products: [],
@@ -12,6 +13,10 @@ export const cartSlice = createSlice({
   initialState,
   reducers: {
     add_cart_product: (state, { payload }) => {
+      if (isProductSoldOut(payload)) {
+        notifyError(SOLD_OUT_LABEL);
+        return;
+      }
       const isExist = state.cart_products.some((i) => i._id === payload._id);
       if (!isExist) {
         const newItem = {

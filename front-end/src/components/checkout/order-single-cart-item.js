@@ -3,12 +3,14 @@ import { useDispatch } from "react-redux";
 import { useRouter } from "next/navigation";
 import { remove_product } from "src/redux/features/cartSlice";
 import { notifySuccess } from "@utils/toast";
+import { isProductSoldOut, SOLD_OUT_LABEL } from "src/utils/product-stock";
 
 const OrderSingleCartItem = ({ item, onRemove, isDirectCheckout = false }) => {
   const dispatch = useDispatch();
   const router = useRouter();
   const { title, orderQuantity = 1, originalPrice, _id, quantity, discount = 0 } = item || {};
   const qty = orderQuantity || quantity || 1;
+  const soldOut = isProductSoldOut(item);
   const basePrice = Number(originalPrice || 0);
   const price = discount > 0 ? basePrice - (basePrice * Number(discount)) / 100 : basePrice;
 
@@ -37,6 +39,11 @@ const OrderSingleCartItem = ({ item, onRemove, isDirectCheckout = false }) => {
     <tr className="cart_item">
       <td className="product-name">
         {title} <strong className="product-quantity"> × {qty}</strong>
+        {soldOut && (
+          <div className="product__details-stock" role="status">
+            <span className="out-of-stock">{SOLD_OUT_LABEL}</span>
+          </div>
+        )}
         <button
           onClick={handleRemoveProduct}
           type="button"

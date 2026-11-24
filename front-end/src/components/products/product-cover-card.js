@@ -4,10 +4,12 @@ import Image from "next/image";
 import Link from "next/link";
 import { getProductUrl } from "src/utils/product-url";
 import { getListingImageUrl } from "src/utils/product-page-main-image";
+import { isProductSoldOut, SOLD_OUT_LABEL } from "src/utils/product-stock";
 import styles from './product-cover-card.module.scss';
 
 const ProductCoverCard = ({ product }) => {
   const { _id, title } = product || {};
+  const soldOut = isProductSoldOut(product);
   const productUrl = getProductUrl(product, _id);
 
   const productImage = getListingImageUrl(product) || '/images/placeholder.webp';
@@ -32,6 +34,9 @@ const ProductCoverCard = ({ product }) => {
             priority={false}
             unoptimized={isLocalImage}
           />
+          {soldOut && (
+            <span className={styles.soldOutBadge}>{SOLD_OUT_LABEL}</span>
+          )}
           {/* Overlay appears only on desktop hover */}
           <div className={styles.overlay}>
             <h3 className={styles.productTitle}>{title}</h3>

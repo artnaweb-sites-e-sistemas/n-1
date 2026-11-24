@@ -6,7 +6,7 @@ import MercadoPagoSecureFields from "@components/checkout/mercado-pago-secure-fi
 const publicKey = (process.env.NEXT_PUBLIC_MERCADO_PAGO_PUBLIC_KEY || "").trim();
 
 const PaymentCardElement = forwardRef(function PaymentCardElement(
-  { cardError, cart_products, isCheckoutSubmit, register, errors, paymentMethod = "card" },
+  { cardError, cart_products, isCheckoutSubmit, register, errors, paymentMethod = "card", purchaseBlocked = false },
   ref
 ) {
   return (
@@ -14,7 +14,7 @@ const PaymentCardElement = forwardRef(function PaymentCardElement(
       <MercadoPagoSecureFields
         ref={ref}
         publicKey={publicKey}
-        disabled={isCheckoutSubmit}
+        disabled={isCheckoutSubmit || purchaseBlocked}
       />
 
       <div className="checkout-form-list mt-20">
@@ -48,7 +48,7 @@ const PaymentCardElement = forwardRef(function PaymentCardElement(
         <button
           type="submit"
           className="tp-btn"
-          disabled={cart_products.length === 0 || isCheckoutSubmit || !publicKey}
+          disabled={cart_products.length === 0 || isCheckoutSubmit || !publicKey || purchaseBlocked}
         >
           {isCheckoutSubmit ? "Processando…" : "Finalizar pagamento"}
         </button>

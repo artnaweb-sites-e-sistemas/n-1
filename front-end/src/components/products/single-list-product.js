@@ -9,9 +9,11 @@ import { initialOrderQuantity } from "src/redux/features/cartSlice";
 import { setProduct } from "src/redux/features/productSlice";
 import { getProductUrl } from "src/utils/product-url";
 import { getListingImageUrl } from "src/utils/product-page-main-image";
+import { isProductSoldOut, SOLD_OUT_LABEL } from "src/utils/product-stock";
 
 const SingleListProduct = ({ product }) => {
-  const { _id, title, price, discount, inStock } = product || {};
+  const { _id, title, price, discount } = product || {};
+  const soldOut = isProductSoldOut(product);
   const productUrl = getProductUrl(product, _id);
   const dispatch = useDispatch();
   
@@ -75,14 +77,14 @@ const SingleListProduct = ({ product }) => {
                 <button
                   type="button"
                   className="product-add-cart-btn product-add-cart-btn-2"
-                  disabled={!inStock}
+                  disabled={soldOut}
                   style={{
-                    opacity: inStock ? 1 : 0.5,
-                    cursor: inStock ? 'pointer' : 'not-allowed'
+                    opacity: soldOut ? 0.7 : 1,
+                    cursor: soldOut ? 'not-allowed' : 'pointer'
                   }}
                 >
                   <CartTwo />
-                  {inStock ? 'Adicionar ao Carrinho' : 'Fora de Estoque'}
+                  {soldOut ? SOLD_OUT_LABEL : 'Adicionar ao Carrinho'}
                 </button>
                 <button
                   type="button"

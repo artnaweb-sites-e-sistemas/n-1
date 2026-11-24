@@ -4,11 +4,13 @@ import { useDispatch } from "react-redux";
 import Link from "next/link";
 import { remove_product } from "src/redux/features/cartSlice";
 import { getProductUrl } from "src/utils/product-url";
+import { isProductSoldOut, SOLD_OUT_LABEL } from "src/utils/product-stock";
 
 const SingleCartItem = ({ item }) => {
   const { _id, image, originalPrice, title, orderQuantity, discount } =
     item || {};
   const productUrl = getProductUrl(item, _id);
+  const soldOut = isProductSoldOut(item);
   const dispatch = useDispatch();
 
   // handle remove cart
@@ -28,6 +30,11 @@ const SingleCartItem = ({ item }) => {
         <h5>
           <Link href={productUrl}>{title}</Link>
         </h5>
+        {soldOut && (
+          <p role="status" style={{ color: "#721c24", fontSize: 12, margin: "4px 0 0" }}>
+            {SOLD_OUT_LABEL}
+          </p>
+        )}
         <div className="cartmini__price-wrapper">
           {!discount && (
             <span className="cartmini__price">R${Number(originalPrice).toFixed(2).replace('.', ',')}</span>

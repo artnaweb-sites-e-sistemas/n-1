@@ -10,9 +10,11 @@ import {
   quantityDecrement,
 } from "src/redux/features/cartSlice";
 import { getProductUrl } from "src/utils/product-url";
+import { isProductSoldOut, SOLD_OUT_LABEL } from "src/utils/product-stock";
 
 const SingleWishlist = ({ item }) => {
-  const { _id, image, title, originalPrice, inStock } = item || {};
+  const { _id, image, title, originalPrice } = item || {};
+  const soldOut = isProductSoldOut(item);
   const productUrl = getProductUrl(item, _id);
   const { cart_products } = useSelector((state) => state.cart);
   const isAddToCart = cart_products.find((item) => item._id === _id);
@@ -44,6 +46,11 @@ const SingleWishlist = ({ item }) => {
       </td>
       <td className="product-name">
         <Link href={productUrl}>{title}</Link>
+        {soldOut && (
+          <div className="product__details-stock" role="status">
+            <span className="out-of-stock">{SOLD_OUT_LABEL}</span>
+          </div>
+        )}
       </td>
       <td className="product-price">
         <span className="amount">${originalPrice}</span>
@@ -52,11 +59,11 @@ const SingleWishlist = ({ item }) => {
         <div className="tp-product-quantity mt-10 mb-10">
           <span 
             className="tp-cart-minus" 
-            onClick={() => handleDecrement(item)}
+            onClick={() => !soldOut && handleDecrement(item)}
             style={{
-              opacity: inStock ? 1 : 0.5,
-              cursor: inStock ? 'pointer' : 'not-allowed',
-              pointerEvents: inStock ? 'auto' : 'none'
+              opacity: soldOut ? 0.5 : 1,
+              cursor: soldOut ? 'not-allowed' : 'pointer',
+              pointerEvents: soldOut ? 'none' : 'auto'
             }}
           >
             <Minus />
@@ -66,18 +73,18 @@ const SingleWishlist = ({ item }) => {
             type="text"
             value={isAddToCart ? isAddToCart?.orderQuantity : 0}
             onChange={handleChange}
-            disabled={!inStock}
+            disabled={soldOut}
             style={{
-              opacity: inStock ? 1 : 0.5
+              opacity: soldOut ? 0.5 : 1
             }}
           />
           <span 
             className="tp-cart-plus" 
-            onClick={() => inStock && handleAddProduct(item)}
+            onClick={() => !soldOut && handleAddProduct(item)}
             style={{
-              opacity: inStock ? 1 : 0.5,
-              cursor: inStock ? 'pointer' : 'not-allowed',
-              pointerEvents: inStock ? 'auto' : 'none'
+              opacity: soldOut ? 0.5 : 1,
+              cursor: soldOut ? 'not-allowed' : 'pointer',
+              pointerEvents: soldOut ? 'none' : 'auto'
             }}
           >
             <Plus />

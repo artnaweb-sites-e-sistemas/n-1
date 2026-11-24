@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
 //internal import
 import { notifyError, notifySuccess } from "@utils/toast";
+import { isProductSoldOut, SOLD_OUT_LABEL } from "src/utils/product-stock";
 import { useValidateCouponMutation } from "src/redux/features/coupon/couponApi";
 import { set_coupon } from "src/redux/features/coupon/couponSlice";
 import useCartInfo from "./use-cart-info";
@@ -363,6 +364,18 @@ const useCheckoutSubmit = (directProduct = null) => {
     console.log('[CHECKOUT] submitHandler iniciado com dados:', data);
     
     if (paymentRunningRef.current) return;
+
+    const soldOutItems = (productsToUse || []).filter(isProductSoldOut);
+    if (soldOutItems.length > 0) {
+      const names = soldOutItems.map((item) => item.title).filter(Boolean).join(", ");
+      notifyError(
+        names
+          ? `${SOLD_OUT_LABEL}: ${names}. Remova do carrinho para continuar.`
+          : `${SOLD_OUT_LABEL}. Remova o item do carrinho para continuar.`
+      );
+      setIsCheckoutSubmit(false);
+      return;
+    }
 
     // Garantir que o CEP está sem máscara
     const cleanZipCode = data.zipCode ? String(data.zipCode).replace(/\D/g, '') : '';

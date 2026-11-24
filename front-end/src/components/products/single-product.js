@@ -15,9 +15,11 @@ import { add_to_wishlist } from "src/redux/features/wishlist-slice";
 import { setProduct } from "src/redux/features/productSlice";
 import { getProductUrl } from "src/utils/product-url";
 import { getListingImageUrl } from "src/utils/product-page-main-image";
+import { isProductSoldOut, SOLD_OUT_LABEL } from "src/utils/product-stock";
 
 const SingleProduct = ({ product, discountPrd = false }) => {
-  const { _id, title, price, discount, originalPrice, inStock } = product || {};
+  const { _id, title, price, discount, originalPrice } = product || {};
+  const soldOut = isProductSoldOut(product);
   const productUrl = getProductUrl(product, _id);
   const dispatch = useDispatch();
   const { cart_products } = useSelector((state) => state.cart);
@@ -39,6 +41,7 @@ const SingleProduct = ({ product, discountPrd = false }) => {
 
   // handle add product
   const handleAddProduct = (prd) => {
+    if (isProductSoldOut(prd)) return;
     dispatch(add_cart_product(prd));
   };
   // handle add wishlist
@@ -66,7 +69,13 @@ const SingleProduct = ({ product, discountPrd = false }) => {
             />
           </Link>
 
-          {discount > 0 && (
+          {soldOut && (
+            <div className="product__badge d-flex flex-column flex-wrap">
+              <span className="product__badge-item has-offer">{SOLD_OUT_LABEL}</span>
+            </div>
+          )}
+
+          {discount > 0 && !soldOut && (
             <div className="product__badge d-flex flex-column flex-wrap">
               <span
                 className={`product__badge-item ${discountPrd ? "has-offer" : "has-new"
@@ -107,7 +116,16 @@ const SingleProduct = ({ product, discountPrd = false }) => {
             </Link>
           </div>
           <div className="product__add transition-3">
-            {isAddedToCart ? (
+            {soldOut ? (
+              <button
+                type="button"
+                className="product-add-cart-btn w-100"
+                disabled
+                style={{ opacity: 0.7, cursor: "not-allowed" }}
+              >
+                {SOLD_OUT_LABEL}
+              </button>
+            ) : isAddedToCart ? (
               <Link
                 href="/cart"
                 type="button"
@@ -121,14 +139,9 @@ const SingleProduct = ({ product, discountPrd = false }) => {
                 onClick={() => handleAddProduct(product)}
                 type="button"
                 className="product-add-cart-btn w-100"
-                disabled={!inStock}
-                style={{
-                  opacity: inStock ? 1 : 0.5,
-                  cursor: inStock ? 'pointer' : 'not-allowed'
-                }}
               >
                 <CartTwo />
-                {inStock ? 'adicionar' : 'Fora de Estoque'}
+                adicionar
               </button>
             )}
           </div>
