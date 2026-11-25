@@ -7,6 +7,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import NiceSelect from "@ui/NiceSelect";
 
 function loadMercadoPagoSdk() {
   if (typeof window === "undefined") return Promise.resolve();
@@ -251,34 +252,28 @@ const MercadoPagoSecureFields = forwardRef(function MercadoPagoSecureFields(
         <p style={{ fontSize: "13px", color: "#888", marginTop: 12 }}>Consultando parcelas…</p>
       )}
       {installmentOptions.length > 1 && (
-        <label style={{ display: "block", marginTop: 16, fontSize: 14 }}>
-          Parcelas
-          <select
-            value={selectedInstallments}
-            disabled={disabled}
-            onChange={(event) => {
-              const count = Number(event.target.value) || 1;
+        <div className={`checkout-form-list country-select mp-installments${disabled ? " is-disabled" : ""}`}>
+          <label>Parcelas</label>
+          <NiceSelect
+            key={`${bin}-${selectedInstallments}-${installmentOptions.length}`}
+            name="installments"
+            options={installmentOptions.map((option) => ({
+              value: String(option.installments),
+              text: option.recommended_message || `${option.installments}x`,
+            }))}
+            defaultCurrent={Math.max(
+              0,
+              installmentOptions.findIndex(
+                (option) => Number(option.installments) === Number(selectedInstallments)
+              )
+            )}
+            onChange={(item) => {
+              const count = Number(item?.value) || 1;
               selectionRef.current = { installments: count };
               setSelectedInstallments(count);
             }}
-            style={{
-              display: "block",
-              width: "100%",
-              marginTop: 6,
-              height: 48,
-              border: "1px solid #ddd",
-              borderRadius: 6,
-              padding: "0 8px",
-              background: "#fff",
-            }}
-          >
-            {installmentOptions.map((option) => (
-              <option key={option.installments} value={option.installments}>
-                {option.recommended_message || `${option.installments}x`}
-              </option>
-            ))}
-          </select>
-        </label>
+          />
+        </div>
       )}
       {!ready && !initError && (
         <p style={{ fontSize: "13px", color: "#888", marginTop: 12 }}>Carregando campos do cartão…</p>

@@ -496,3 +496,49 @@ body {
     }
   }
 }
+
+// Parcelas do cartão: mesmo select do checkout (nice-select), não o nativo do navegador
+.mp-installments.country-select {
+  margin-top: 16px;
+  margin-bottom: 0;
+
+  &.is-disabled {
+    pointer-events: none;
+    opacity: 0.6;
+  }
+
+  .nice-select {
+    white-space: normal;
+    height: auto;
+    min-height: 60px;
+    line-height: 1.4;
+    padding-top: 12px;
+    padding-bottom: 12px;
+    padding-right: 42px;
+    font-size: 16px;
+
+    .current {
+      display: block;
+      white-space: normal;
+    }
+
+    &.open {
+      z-index: 20;
+    }
+
+    .list {
+      max-height: 260px;
+      overflow-y: auto;
+      z-index: 21;
+    }
+
+    .option {
+      white-space: normal;
+      line-height: 1.4;
+      height: auto;
+      min-height: 44px;
+      padding-top: 10px;
+      padding-bottom: 10px;
+    }
+  }
+}
