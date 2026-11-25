@@ -759,7 +759,10 @@ const useCheckoutSubmit = (directProduct = null) => {
         cart: order.cart,
         shippingCost: order.shippingCost,
         checkout: { ...order, _guestPassword: undefined },
-        installments: Number(mercadoPagoCardRef.current?.getSelectedInstallment?.().installments) || 1,
+        installments: Math.min(
+          Math.max(Number(mercadoPagoCardRef.current?.getSelectedInstallment?.().installments) || 1, 1),
+          2
+        ),
         payer_email: order.email,
         payer_first_name,
         payer_last_name,

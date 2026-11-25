@@ -9,6 +9,8 @@ import React, {
 } from "react";
 import NiceSelect from "@ui/NiceSelect";
 
+const MAX_CARD_INSTALLMENTS = 2;
+
 function loadMercadoPagoSdk() {
   if (typeof window === "undefined") return Promise.resolve();
   if (window.MercadoPago) return Promise.resolve();
@@ -131,7 +133,12 @@ const MercadoPagoSecureFields = forwardRef(function MercadoPagoSecureFields(
         if (cancelled) return;
         const list = Array.isArray(result) ? result : [];
         const credit = list.find((item) => item?.payment_type_id === "credit_card") || list[0];
-        const costs = Array.isArray(credit?.payer_costs) ? credit.payer_costs : [];
+        const costs = (Array.isArray(credit?.payer_costs) ? credit.payer_costs : []).filter(
+          (cost) => {
+            const count = Number(cost?.installments);
+            return count >= 1 && count <= MAX_CARD_INSTALLMENTS;
+          }
+        );
         setInstallmentOptions(costs);
         const current = Number(selectionRef.current.installments) || 1;
         const next = costs.find((cost) => Number(cost.installments) === current)
@@ -202,7 +209,8 @@ const MercadoPagoSecureFields = forwardRef(function MercadoPagoSecureFields(
       return { token: result.id };
     },
     getSelectedInstallment() {
-      return { installments: Number(selectionRef.current.installments) || 1 };
+      const count = Number(selectionRef.current.installments) || 1;
+      return { installments: Math.min(Math.max(count, 1), MAX_CARD_INSTALLMENTS) };
     },
   }));
 
@@ -268,7 +276,10 @@ const MercadoPagoSecureFields = forwardRef(function MercadoPagoSecureFields(
               )
             )}
             onChange={(item) => {
-              const count = Number(item?.value) || 1;
+              const count = Math.min(
+                Math.max(Number(item?.value) || 1, 1),
+                MAX_CARD_INSTALLMENTS
+              );
               selectionRef.current = { installments: count };
               setSelectedInstallments(count);
             }}

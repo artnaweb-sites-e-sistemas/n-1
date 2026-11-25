@@ -3958,7 +3958,10 @@ class N1_WooCommerce_API
         $bin = isset($resolved['bin']) ? $resolved['bin'] : '';
 
         $amount = round(floatval($transaction_amount), 2);
-        $installments = max(1, min($installments > 0 ? $installments : 1, 24));
+        $installments = $installments > 0 ? $installments : 1;
+        if ($installments > 2) {
+            return new WP_Error('mp_installments', 'O parcelamento máximo é de 2 vezes.', array('status' => 400));
+        }
         $charge_amount = $amount;
         if ($installments > 1) {
             $plan_total = $this->mercadopago_installment_total($amount, $bin, $payment_method_id, $issuer_id, $installments);
