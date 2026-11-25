@@ -3070,11 +3070,11 @@ class N1_WooCommerce_API
                 return false;
             }
             $status = !empty($data['status']) ? sanitize_text_field($data['status']) : '';
-            $amount = isset($data['transaction_amount']) ? round(floatval($data['transaction_amount']), 2) : -1;
             if ($status !== 'approved') {
                 return false;
             }
-            if (abs($amount - $expected_total) > 0.01) {
+            if (!$this->mercadopago_charged_amount_matches_order($data, $expected_total)) {
+                $amount = isset($data['transaction_amount']) ? round(floatval($data['transaction_amount']), 2) : -1;
                 error_log('N1 API - verify_payment_confirmed (MP): valor divergente. Cobrado=' . $amount . ' Esperado=' . $expected_total . ' (pagamento ' . $payment_id . ').');
                 return false;
             }
@@ -3461,7 +3461,7 @@ class N1_WooCommerce_API
      */
     private function mercadopago_resolve_payment_method_id($token_id, $access_token, $public_key)
     {
-        $fallback = array('payment_method_id' => 'master', 'issuer_id' => null);
+        $fallback = array('payment_method_id' => 'master', 'issuer_id' => null, 'bin' => null);
 
         $url = 'https://api.mercadopago.com/v1/card_tokens/' . rawurlencode($token_id);
         $res = wp_remote_get($url, array(
@@ -3480,6 +3480,13 @@ class N1_WooCommerce_API
             return $fallback;
         }
 
+        $bin = null;
+        if (!empty($body['first_six_digits'])) {
+            $bin = preg_replace('/\D/', '', (string) $body['first_six_digits']);
+        } elseif (!empty($body['first_six_digit'])) {
+            $bin = preg_replace('/\D/', '', (string) $body['first_six_digit']);
+        }
+
         // Algumas respostas já trazem o id do método
         if (!empty($body['payment_method_id']) && is_string($body['payment_method_id'])) {
             $issuer_id = null;
@@ -3489,20 +3496,14 @@ class N1_WooCommerce_API
             return array(
                 'payment_method_id' => sanitize_text_field($body['payment_method_id']),
                 'issuer_id' => $issuer_id,
+                'bin' => $bin,
             );
-        }
-
-        $bin = null;
-        if (!empty($body['first_six_digits'])) {
-            $bin = (string) $body['first_six_digits'];
-        } elseif (!empty($body['first_six_digit'])) {
-            $bin = (string) $body['first_six_digit'];
         }
 
         $from_bin = $bin ? $this->mercadopago_guess_payment_method_from_bin($bin) : 'master';
 
         if (empty($bin)) {
-            return array('payment_method_id' => $from_bin, 'issuer_id' => null);
+            return array('payment_method_id' => $from_bin, 'issuer_id' => null, 'bin' => null);
         }
 
         // Busca oficial por BIN (precisa de public_key alinhada ao token)
@@ -3528,6 +3529,7 @@ class N1_WooCommerce_API
                         return array(
                             'payment_method_id' => sanitize_text_field($pm['id']),
                             'issuer_id' => $issuer_id,
+                            'bin' => $bin,
                         );
                     }
                 }
@@ -3535,7 +3537,110 @@ class N1_WooCommerce_API
         }
 
         // Search vazio ou chave pública ausente: usa heurística pelo BIN (corrige 5031… master vs visa)
-        return array('payment_method_id' => $from_bin, 'issuer_id' => null);
+        return array('payment_method_id' => $from_bin, 'issuer_id' => null, 'bin' => $bin);
+    }
+
+    /**
+     * Total a cobrar no cartão para a parcela escolhida.
+     * Sem juros, coincide com o total do pedido. Com juros, é o total_amount do Mercado Pago.
+     *
+     * @return float|WP_Error
+     */
+    private function mercadopago_installment_total($order_amount, $bin, $payment_method_id, $issuer_id, $installments)
+    {
+        $installments = intval($installments);
+        $order_amount = round(floatval($order_amount), 2);
+        $bin = preg_replace('/\D/', '', (string) $bin);
+        if ($installments <= 1) {
+            return $order_amount;
+        }
+        if (strlen($bin) < 6 || $order_amount <= 0) {
+            return new WP_Error('mp_installments', 'Não foi possível calcular o parcelamento deste cartão. Escolha 1x ou tente outro cartão.', array('status' => 400));
+        }
+
+        $public_key = $this->get_mercadopago_public_key();
+        $access_token = $this->get_mercadopago_access_token();
+        $query = array(
+            'bin' => $bin,
+            'amount' => number_format($order_amount, 2, '.', ''),
+        );
+        if ($public_key !== '') {
+            $query['public_key'] = $public_key;
+        }
+        if (!empty($payment_method_id)) {
+            $query['payment_method_id'] = $payment_method_id;
+        }
+        if (!empty($issuer_id)) {
+            $query['issuer.id'] = intval($issuer_id);
+        }
+
+        $headers = array();
+        if ($access_token !== '') {
+            $headers['Authorization'] = 'Bearer ' . $access_token;
+        }
+        $res = wp_remote_get(
+            add_query_arg($query, 'https://api.mercadopago.com/v1/payment_methods/installments'),
+            array('headers' => $headers, 'timeout' => 30)
+        );
+        if (is_wp_error($res)) {
+            return new WP_Error('mp_installments', 'Não foi possível consultar as parcelas no Mercado Pago. Tente de novo ou pague em 1x.', array('status' => 502));
+        }
+        $code = wp_remote_retrieve_response_code($res);
+        $data = json_decode(wp_remote_retrieve_body($res), true);
+        if ($code < 200 || $code >= 300 || !is_array($data)) {
+            return new WP_Error('mp_installments', 'O Mercado Pago não retornou as parcelas deste cartão. Tente em 1x.', array('status' => 400));
+        }
+
+        foreach ($data as $method) {
+            if (!is_array($method) || empty($method['payer_costs']) || !is_array($method['payer_costs'])) {
+                continue;
+            }
+            foreach ($method['payer_costs'] as $cost) {
+                if (!is_array($cost) || intval($cost['installments']) !== $installments) {
+                    continue;
+                }
+                $total = isset($cost['total_amount']) ? round(floatval($cost['total_amount']), 2) : 0;
+                if ($total > 0) {
+                    return $total;
+                }
+            }
+        }
+
+        return new WP_Error('mp_installments', 'Este cartão não oferece ' . $installments . 'x para este valor. Escolha outra quantidade de parcelas.', array('status' => 400));
+    }
+
+    /**
+     * Pagamento à vista precisa bater com o total do pedido.
+     * Parcelado pode vir maior quando o plano do Mercado Pago tem juros.
+     */
+    private function mercadopago_charged_amount_matches_order($mp_data, $order_total)
+    {
+        if (!is_array($mp_data)) {
+            return false;
+        }
+        $charged = isset($mp_data['transaction_amount']) ? round(floatval($mp_data['transaction_amount']), 2) : -1;
+        $expected = round(floatval($order_total), 2);
+        if ($charged < 0) {
+            return false;
+        }
+        if (abs($charged - $expected) <= 0.01) {
+            return true;
+        }
+        $installments = isset($mp_data['installments']) ? intval($mp_data['installments']) : 1;
+        if ($installments <= 1) {
+            return false;
+        }
+        $bin = '';
+        if (!empty($mp_data['card']['first_six_digits'])) {
+            $bin = (string) $mp_data['card']['first_six_digits'];
+        }
+        $payment_method_id = !empty($mp_data['payment_method_id']) ? $mp_data['payment_method_id'] : '';
+        $issuer_id = !empty($mp_data['issuer_id']) ? intval($mp_data['issuer_id']) : null;
+        $plan_total = $this->mercadopago_installment_total($expected, $bin, $payment_method_id, $issuer_id, $installments);
+        if (is_wp_error($plan_total)) {
+            return false;
+        }
+        return abs($charged - round(floatval($plan_total), 2)) <= 0.01;
     }
 
     /**
@@ -3850,14 +3955,23 @@ class N1_WooCommerce_API
         $resolved = $this->mercadopago_resolve_payment_method_id($token, $access_token, $public_key);
         $payment_method_id = $resolved['payment_method_id'];
         $issuer_id = $resolved['issuer_id'];
+        $bin = isset($resolved['bin']) ? $resolved['bin'] : '';
 
         $amount = round(floatval($transaction_amount), 2);
-        $installments = max(1, min($installments > 0 ? $installments : 1, 12));
+        $installments = max(1, min($installments > 0 ? $installments : 1, 24));
+        $charge_amount = $amount;
+        if ($installments > 1) {
+            $plan_total = $this->mercadopago_installment_total($amount, $bin, $payment_method_id, $issuer_id, $installments);
+            if (is_wp_error($plan_total)) {
+                return $plan_total;
+            }
+            $charge_amount = round(floatval($plan_total), 2);
+        }
 
         $id_type = strlen($clean_doc) > 11 ? 'CNPJ' : $identification_type;
 
         $payment_body = array(
-            'transaction_amount' => $amount,
+            'transaction_amount' => $charge_amount,
             'token' => $token,
             'description' => substr($description, 0, 255),
             'installments' => $installments,
@@ -3929,7 +4043,8 @@ class N1_WooCommerce_API
                 'id' => isset($mp_data['id']) ? $mp_data['id'] : null,
                 'status' => $status,
                 'status_detail' => isset($mp_data['status_detail']) ? $mp_data['status_detail'] : '',
-                'transaction_amount' => isset($mp_data['transaction_amount']) ? $mp_data['transaction_amount'] : $amount,
+                'transaction_amount' => isset($mp_data['transaction_amount']) ? $mp_data['transaction_amount'] : $charge_amount,
+                'installments' => isset($mp_data['installments']) ? intval($mp_data['installments']) : $installments,
                 'payment_method_id' => isset($mp_data['payment_method_id']) ? $mp_data['payment_method_id'] : $payment_method_id,
                 'date_approved' => isset($mp_data['date_approved']) ? $mp_data['date_approved'] : null,
             ),
@@ -4241,7 +4356,7 @@ class N1_WooCommerce_API
         if (empty($orders) && !empty($mp_data['metadata']['n1_order_id'])) {
             $candidate = wc_get_order((int) $mp_data['metadata']['n1_order_id']);
             if ($candidate && $candidate->get_meta('_n1_coupon_prepared') === 'yes' &&
-                abs((float) $candidate->get_total() - (float) $mp_data['transaction_amount']) < 0.01 &&
+                $this->mercadopago_charged_amount_matches_order($mp_data, $candidate->get_total()) &&
                 (!$candidate->get_meta('_mercadopago_payment_id') || (string) $candidate->get_meta('_mercadopago_payment_id') === (string) $payment_id)) {
                 $candidate->update_meta_data('_mercadopago_payment_id', (string) $payment_id);
                 $candidate->set_transaction_id((string) $payment_id);
@@ -4656,10 +4771,16 @@ class N1_WooCommerce_API
                 $wc_payment_title = 'Cartão de Crédito (Stripe)';
             } elseif ($nested_pm === 'mercadopago_card') {
                 $wc_payment_gateway = 'mercadopago';
-                $wc_payment_title = 'Mercado Pago (cartão de crédito)';
+                $mp_installments = (is_array($mp_pay) && !empty($mp_pay['installments'])) ? intval($mp_pay['installments']) : 1;
+                $wc_payment_title = $mp_installments > 1
+                    ? 'Mercado Pago (cartão, ' . $mp_installments . 'x)'
+                    : 'Mercado Pago (cartão de crédito)';
                 if (is_array($mp_pay) && !empty($mp_pay['id'])) {
                     $payment_intent_id = (string) $mp_pay['id'];
                     $mp_extra_meta['_mercadopago_payment_id'] = $payment_intent_id;
+                }
+                if ($mp_installments > 1) {
+                    $mp_extra_meta['_n1_mp_installments'] = $mp_installments;
                 }
                 $payment_status = (is_array($mp_pay) && !empty($mp_pay['status']))
                     ? sanitize_text_field($mp_pay['status'])

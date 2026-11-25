@@ -145,6 +145,7 @@ const OrderArea = ({
                   errors={errors}
                   cardError={error}
                   cart_products={cart_products}
+                  amount={cartTotal}
                   isCheckoutSubmit={isCheckoutSubmit}
                   purchaseBlocked={hasSoldOut}
                   paymentMethod={paymentMethod}

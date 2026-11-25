@@ -32,13 +32,18 @@ function loadMercadoPagoSdk() {
  * expõe ref.createToken({ cardholderName, identificationType, identificationNumber })
  */
 const MercadoPagoSecureFields = forwardRef(function MercadoPagoSecureFields(
-  { publicKey, disabled },
+  { publicKey, disabled, amount = 0 },
   ref
 ) {
   const [ready, setReady] = useState(false);
   const [initError, setInitError] = useState("");
+  const [bin, setBin] = useState("");
+  const [installmentOptions, setInstallmentOptions] = useState([]);
+  const [installmentsLoading, setInstallmentsLoading] = useState(false);
+  const [selectedInstallments, setSelectedInstallments] = useState(1);
   const mpRef = useRef(null);
   const fieldsRef = useRef({ cardNumber: null, expirationDate: null, securityCode: null });
+  const selectionRef = useRef({ installments: 1 });
 
   useEffect(() => {
     if (!publicKey) {
@@ -74,6 +79,14 @@ const MercadoPagoSecureFields = forwardRef(function MercadoPagoSecureFields(
           .mount("mp-form-cvv");
 
         fieldsRef.current = { cardNumber, expirationDate, securityCode };
+        try {
+          cardNumber.on("binChange", (data) => {
+            const nextBin = String(data?.bin || "").replace(/\D/g, "");
+            setBin(nextBin.length >= 6 ? nextBin : "");
+          });
+        } catch (binError) {
+          console.error("[MP] parcelas", binError);
+        }
         setReady(true);
       } catch (e) {
         console.error("[MP] init", e);
@@ -92,8 +105,55 @@ const MercadoPagoSecureFields = forwardRef(function MercadoPagoSecureFields(
       }
       fieldsRef.current = { cardNumber: null, expirationDate: null, securityCode: null };
       mpRef.current = null;
+      setBin("");
     };
   }, [publicKey]);
+
+  useEffect(() => {
+    const mp = mpRef.current;
+    const orderAmount = Number(amount);
+    if (!ready || !mp || !bin || !(orderAmount > 0) || typeof mp.getInstallments !== "function") {
+      setInstallmentOptions([]);
+      selectionRef.current = { installments: 1 };
+      setSelectedInstallments(1);
+      return undefined;
+    }
+
+    let cancelled = false;
+    setInstallmentsLoading(true);
+    mp.getInstallments({
+      amount: orderAmount.toFixed(2),
+      bin,
+      paymentTypeId: "credit_card",
+    })
+      .then((result) => {
+        if (cancelled) return;
+        const list = Array.isArray(result) ? result : [];
+        const credit = list.find((item) => item?.payment_type_id === "credit_card") || list[0];
+        const costs = Array.isArray(credit?.payer_costs) ? credit.payer_costs : [];
+        setInstallmentOptions(costs);
+        const current = Number(selectionRef.current.installments) || 1;
+        const next = costs.find((cost) => Number(cost.installments) === current)
+          || costs.find((cost) => Number(cost.installments) === 1)
+          || costs[0];
+        const count = Number(next?.installments) || 1;
+        selectionRef.current = { installments: count };
+        setSelectedInstallments(count);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setInstallmentOptions([]);
+        selectionRef.current = { installments: 1 };
+        setSelectedInstallments(1);
+      })
+      .finally(() => {
+        if (!cancelled) setInstallmentsLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [ready, bin, amount]);
 
   useImperativeHandle(ref, () => ({
     async createToken({ cardholderName, identificationType = "CPF", identificationNumber }) {
@@ -140,6 +200,9 @@ const MercadoPagoSecureFields = forwardRef(function MercadoPagoSecureFields(
 
       return { token: result.id };
     },
+    getSelectedInstallment() {
+      return { installments: Number(selectionRef.current.installments) || 1 };
+    },
   }));
 
   if (initError) {
@@ -184,6 +247,39 @@ const MercadoPagoSecureFields = forwardRef(function MercadoPagoSecureFields(
           }}
         />
       </div>
+      {installmentsLoading && (
+        <p style={{ fontSize: "13px", color: "#888", marginTop: 12 }}>Consultando parcelas…</p>
+      )}
+      {installmentOptions.length > 1 && (
+        <label style={{ display: "block", marginTop: 16, fontSize: 14 }}>
+          Parcelas
+          <select
+            value={selectedInstallments}
+            disabled={disabled}
+            onChange={(event) => {
+              const count = Number(event.target.value) || 1;
+              selectionRef.current = { installments: count };
+              setSelectedInstallments(count);
+            }}
+            style={{
+              display: "block",
+              width: "100%",
+              marginTop: 6,
+              height: 48,
+              border: "1px solid #ddd",
+              borderRadius: 6,
+              padding: "0 8px",
+              background: "#fff",
+            }}
+          >
+            {installmentOptions.map((option) => (
+              <option key={option.installments} value={option.installments}>
+                {option.recommended_message || `${option.installments}x`}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
       {!ready && !initError && (
         <p style={{ fontSize: "13px", color: "#888", marginTop: 12 }}>Carregando campos do cartão…</p>
       )}

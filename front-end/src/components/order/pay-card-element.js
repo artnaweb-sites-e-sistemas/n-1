@@ -6,7 +6,7 @@ import MercadoPagoSecureFields from "@components/checkout/mercado-pago-secure-fi
 const publicKey = (process.env.NEXT_PUBLIC_MERCADO_PAGO_PUBLIC_KEY || "").trim();
 
 const PaymentCardElement = forwardRef(function PaymentCardElement(
-  { cardError, cart_products, isCheckoutSubmit, register, errors, paymentMethod = "card", purchaseBlocked = false },
+  { cardError, cart_products, isCheckoutSubmit, register, errors, paymentMethod = "card", purchaseBlocked = false, amount = 0 },
   ref
 ) {
   return (
@@ -14,6 +14,7 @@ const PaymentCardElement = forwardRef(function PaymentCardElement(
       <MercadoPagoSecureFields
         ref={ref}
         publicKey={publicKey}
+        amount={amount}
         disabled={isCheckoutSubmit || purchaseBlocked}
       />
 
