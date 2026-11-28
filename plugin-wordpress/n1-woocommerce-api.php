@@ -3,7 +3,7 @@
  * Plugin Name: N-1 WooCommerce API
  * Plugin URI: https://loja.n-1edicoes.org
  * Description: API REST customizada para integração do template React/Next.js com WooCommerce
- * Version: 1.1.0
+ * Version: 1.1.1
  * Author: N-1 Edições
  * Author URI: https://loja.n-1edicoes.org
  * Requires at least: 6.0
@@ -1141,6 +1141,22 @@ class N1_WooCommerce_API
     }
 
     /**
+     * Resolve the current price using WooCommerce's sale dates (absolute timestamps).
+     * Do not rely on _price: scheduled sales may not have been processed by WP-Cron yet.
+     */
+    private function get_current_product_price($product)
+    {
+        $regular_price = $product->get_regular_price();
+        $sale_price = $product->get_sale_price();
+
+        if ($sale_price !== '' && $product->is_on_sale()) {
+            return (float) $sale_price;
+        }
+
+        return $regular_price !== '' ? (float) $regular_price : (float) $product->get_price();
+    }
+
+    /**
      * Format product data for API response
      */
     private function format_product($product, $lite = false)
@@ -1158,7 +1174,7 @@ class N1_WooCommerce_API
         }
 
         $regular_price = floatval($product->get_regular_price());
-        $sale_price = $product->get_sale_price() ? floatval($product->get_sale_price()) : $regular_price;
+        $sale_price = $this->get_current_product_price($product);
         $discount = 0;
 
         if ($regular_price > 0 && $sale_price < $regular_price) {
@@ -3192,7 +3208,7 @@ class N1_WooCommerce_API
             $item = new WC_Order_Item_Product();
             $item->set_product($product);
             $item->set_quantity($quantity);
-            $line_total = (float) $product->get_price() * $quantity;
+            $line_total = $this->get_current_product_price($product) * $quantity;
             $item->set_subtotal($line_total);
             $item->set_total($line_total);
             $order->add_item($item);
@@ -3260,7 +3276,7 @@ class N1_WooCommerce_API
 
     /**
      * SEGURANÇA (FALHA 1): recalcula o total do carrinho no servidor.
-     * Para produtos reais do WooCommerce usa $product->get_price() (ignora o preço do cliente).
+     * Para produtos reais do WooCommerce usa o preço vigente no servidor (ignora o preço do cliente).
      * Para itens sem produto no WooCommerce (catálogo externo do Next) mantém o preço enviado,
      * registrando um aviso — não há preço no servidor para validar.
      * Aplica frete e desconto de cupom informados no payload.
@@ -3286,7 +3302,7 @@ class N1_WooCommerce_API
 
             $product = $product_id > 0 ? wc_get_product($product_id) : null;
             if ($product) {
-                $subtotal += floatval($product->get_price()) * $quantity;
+                $subtotal += $this->get_current_product_price($product) * $quantity;
             } else {
                 // TODO(segurança): este item deveria existir como produto no WooCommerce.
                 $client_price = isset($item['price']) ? floatval($item['price']) : 0;
@@ -4872,7 +4888,7 @@ class N1_WooCommerce_API
 
                         // SEGURANÇA (FALHA 1): IGNORAR o preço enviado pelo cliente.
                         // Usar sempre o preço do servidor (evita fraude de preço).
-                        $server_price = floatval($product->get_price());
+                        $server_price = $this->get_current_product_price($product);
                         $line_total = $server_price * $quantity;
                         $line_items[] = array(
                             'type' => 'product',
@@ -4966,7 +4982,10 @@ class N1_WooCommerce_API
                 } elseif (!empty($line_item['product_id'])) {
                     $product = wc_get_product($line_item['product_id']);
                     if ($product) {
-                        $order->add_product($product, intval($line_item['quantity']));
+                        $order->add_product($product, intval($line_item['quantity']), array(
+                            'subtotal' => $line_item['subtotal'],
+                            'total' => $line_item['total'],
+                        ));
                     }
                 }
             }
@@ -5480,7 +5499,8 @@ class N1_WooCommerce_API
                         $quantity = $item->get_quantity();
                         $quantity = $quantity > 0 ? $quantity : 1;
 
-                        $line_total = floatval($item->get_total());
+                        // Use the historical subtotal; order-level coupon discounts are returned separately.
+                        $line_total = floatval($item->get_subtotal());
                         $item_price = $quantity > 0 ? floatval($line_total / $quantity) : 0;
 
                         if ($product) {
@@ -5488,7 +5508,8 @@ class N1_WooCommerce_API
                             if ($regular_price <= 0) {
                                 $regular_price = $item_price;
                             }
-                            $sale_price = $product->get_sale_price() ? floatval($product->get_sale_price()) : $regular_price;
+                            // Retain the historical unit price before order-level coupons.
+                            $sale_price = $item_price;
                         } else {
                             $regular_price = $item_price;
                             $sale_price = $item_price;
@@ -6018,6 +6039,10 @@ class N1_WooCommerce_API
 
     private function n1_get_cart_item_unit_price($item, $product = null)
     {
+        if ($product && $product->get_id()) {
+            return max(0, $this->get_current_product_price($product));
+        }
+
         $price = 0;
         if (isset($item['price'])) {
             $price = floatval($item['price']);

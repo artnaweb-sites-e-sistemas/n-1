@@ -68,6 +68,8 @@ class WC_Product {
     function get_id() { return $this->id; }
     function get_parent_id() { return 0; }
     function get_price() { return $this->price; }
+    function get_regular_price() { return $this->price; }
+    function get_sale_price() { return $this->sale ? $this->price : ''; }
     function is_on_sale() { return $this->sale; }
     function is_type($type) { return $type === 'simple'; }
     function get_name() { return 'Product '.$this->id; }
@@ -125,7 +127,7 @@ eval('class WC_Coupon { '.$body.'
 }');
 require $base.'class-wc-discounts.php';
 $plugin=file_get_contents(dirname(__DIR__).'/n1-woocommerce-api.php');
-eval('class CouponHarness { '.method_source($plugin,'quote_checkout_coupon').method_source($plugin,'validate_checkout_coupon').' function n1_get_user_id_from_bearer_request() { return 0; } }');
+eval('class CouponHarness { '.method_source($plugin,'get_current_product_price').method_source($plugin,'quote_checkout_coupon').method_source($plugin,'validate_checkout_coupon').' function n1_get_user_id_from_bearer_request() { return 0; } }');
 $harness=new CouponHarness(); $checks=0;
 function run_quote($changes=array(), $rows=null, $email='buyer@example.com') {
     $GLOBALS['coupon']=array_merge(array('code'=>'teste','discount_type'=>'percent','amount'=>10,'status'=>'publish','virtual'=>false,'minimum_amount'=>0,'maximum_amount'=>0,'product_ids'=>array(),'excluded_product_ids'=>array(),'product_categories'=>array(),'excluded_product_categories'=>array(),'email_restrictions'=>array(),'exclude_sale_items'=>false,'usage_limit'=>0,'usage_count'=>0,'usage_limit_per_user'=>0,'limit_usage_to_x_items'=>null,'date_expires'=>null),$changes);
